@@ -1,5 +1,12 @@
 # Travel Office Hisab — AB Travels
 
+## Mobile: naam par tap karne se options foran nazar aayein (v2.74)
+- **Masla:** register mein naam par tap karne se neeche wala options menu (Paid/Unpaid, Invoice, Edit, Detail, Date, Delete) khulta hai, lekin phone par page **zoom** ho jaye (double-tap ya pinch) to wo menu "layout screen" ke neeche chala jata tha — sirf title nazar aata aur buttons ke liye neeche scroll karna parta.
+- **Fix 1 — double-tap zoom band:** jadwal/buttons/links par `touch-action: manipulation`. Row par jaldi jaldi tap karne se ab page zoom nahi hota (pinch zoom waisa hi chalta hai).
+- **Fix 2 — menu dikhne wali screen se chipakta hai:** agar page phir bhi zoom ho, to menu `visualViewport` se naap kar asal visible screen ke neeche pin hota hai aur zoom ke hisaab se chhota ho jata hai; zoom/scroll karne par saath saath khisakta hai.
+- **Fix 3 — menu chhota:** phone par buttons ab 3 columns ke grid mein hain (pehle lambi qatar mein 3-4 lines), menu ki ooncha-i 70% screen se zyada nahi hoti.
+- Sirf display/touch badla — sales data ya hisaab par koi asar nahi. Worker redeploy ki zaroorat nahi.
+
 ## Paid ticket ko dobara Unpaid karna (v2.73)
 - **Masla:** Sale ek dafa **✔ Paid** ho jaye to wapas unpaid karne ka koi button hi nahi tha (sirf unpaid par ✔ Paid aata tha).
 - **Fix:** Sales register mein paid sale ke `⋯` menu mein ab **↩ Unpaid** button hai. Confirm ke baad sale dobara **Pending Payments** mein aa jati hai (poori raqam ya jitni baqi ho).
