@@ -1,5 +1,12 @@
 # Travel Office Hisab — AB Travels
 
+## Meezab Air se live fares (v2.75)
+- **Naya:** Price Lookup mein Ignav ke saath ek alag button — **“Meezab Air — live PKR fares”**. Wohi route/date use hota hai jo form mein hai.
+- Filhaal **one-way, 1 adult, Economy** (Meezab ki search query isi shape mein hai). PKR prices agent rate se aate hain.
+- Worker `/meezab/search` khud login karta he (credentials Cloudflare secrets `MEZ_USER` / `MEZ_PASS` mein), 5 minute cache, rozana 60 search ka budget.
+- Qareeb ke airport/bus connection jo Meezab lauta de (maslan KHI→AUH + **bus** AUH→Dubai) waise hi dikhte hain aur **Bus connection** label ke saath — fare sasta lagta he lekin asal airport alag hota he.
+- Duplicate supplier rows (wahi fare, wahi flights) ek dafa dikhte hain.
+
 ## Mobile: naam par tap karne se options foran nazar aayein (v2.74)
 - **Masla:** register mein naam par tap karne se neeche wala options menu (Paid/Unpaid, Invoice, Edit, Detail, Date, Delete) khulta hai, lekin phone par page **zoom** ho jaye (double-tap ya pinch) to wo menu "layout screen" ke neeche chala jata tha — sirf title nazar aata aur buttons ke liye neeche scroll karna parta.
 - **Fix 1 — double-tap zoom band:** jadwal/buttons/links par `touch-action: manipulation`. Row par jaldi jaldi tap karne se ab page zoom nahi hota (pinch zoom waisa hi chalta hai).

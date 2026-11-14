@@ -1869,6 +1869,164 @@ async function proxyIgnav(request, env, path, hdrs) {
 /*   Body: { title, text, chats? }   Origin must be the app.           */
 /* ------------------------------------------------------------------ */
 
+/* Meezab read-only fares. Only whitelisted search endpoints are called.
+   Credentials/session and supplier tokens never appear in public responses. */
+const MEZ_BASE = "https://testb2bapi.meezabair.com.pk/api/MiddleWare/";
+let mezSession = null;
+let mezLoginPending = null;
+/* Har qadam apna naam rakhta he, taake fail hone par wajah saaf mile:
+   "Meezab login: ..." / "Meezab verify: ..." waghera. */
+async function mezStep(label, fn) {
+  try { return await fn(); }
+  catch (e) {
+    const msg = String((e && e.message) || e).replace(/\s+/g, " ").slice(0, 90);
+    throw new Error("Meezab " + label + ": " + msg);
+  }
+}
+async function mezLogin(env) {
+  if (!env.MEZ_USER || !env.MEZ_PASS) throw new Error("Meezab secrets MEZ_USER / MEZ_PASS are missing.");
+  if (mezSession && mezSession.until > Date.now()) return mezSession.cookie;
+  if (mezLoginPending) return mezLoginPending;
+  mezLoginPending = (async () => {
+    const r = await mezStep("login", () => fetch(MEZ_BASE + "b2b_login", {
+      method: "POST", redirect: "follow", signal: AbortSignal.timeout(30000),
+      headers: { "Content-Type": "application/json", Origin: "https://b2b.meezabair.com.pk" },
+      body: JSON.stringify({ loginID: env.MEZ_USER, loginUUID: "", password: env.MEZ_PASS,
+        host: "b2b.meezabair.com.pk", rememberMe: false })
+    }));
+    const raw = typeof r.headers.getSetCookie === "function" ? r.headers.getSetCookie() : [r.headers.get("set-cookie") || ""];
+    // Meezab pehle ek khaali cookie bhejta he (logout), phir asli token —
+    // sirf value wali cookies rakhein, warna server khaali token utha leta he.
+    const cookie = raw.map(c => String(c).split(";")[0].trim())
+      .filter(c => c && c.indexOf("=") > 0 && c.split("=").slice(1).join("="))
+      .join("; ");
+    if (!r.ok) throw new Error("Meezab login: HTTP " + r.status);
+    if (!cookie) throw new Error("Meezab login: no session cookie");
+    // Verify the session rather than interpreting the portal's 2FA_Setup label.
+    const verify = await mezStep("verify", () => fetch(MEZ_BASE + "GetLoginData_B2B", {
+      headers: { Cookie: cookie }, redirect: "follow", signal: AbortSignal.timeout(20000)
+    }));
+    const body = await mezStep("verify-body", () => verify.text());
+    let account = null;
+    try { account = JSON.parse(body); } catch (e) { throw new Error("Meezab verify: non-JSON reply (" + verify.status + ")"); }
+    if (!verify.ok || !account || account.loginID !== env.MEZ_USER) throw new Error("Meezab verify: rejected (" + verify.status + ")");
+    mezSession = { cookie, until: Date.now() + 10 * 60000 };
+    return cookie;
+  })();
+  try { return await mezLoginPending; } finally { mezLoginPending = null; }
+}
+async function mezPost(cookie, endpoint, body) {
+  if (!["GetFlightList", "GetFlightListUpdate"].includes(endpoint)) throw new Error("Meezab step unsupported: " + endpoint);
+  const r = await mezStep(endpoint, () => fetch(MEZ_BASE + endpoint, {
+    method: "POST", redirect: "follow", signal: AbortSignal.timeout(25000),
+    headers: { "Content-Type": "application/json", Cookie: cookie },
+    body: JSON.stringify(body)
+  }));
+  if (r.status === 401 || r.status === 403) mezSession = null;
+  if (!r.ok) throw new Error("Meezab " + endpoint + ": HTTP " + r.status);
+  return mezStep(endpoint + "-json", () => r.json());
+}
+function mezQuery(q) {
+  const origin = String(q.origin || "").toUpperCase(), destination = String(q.destination || "").toUpperCase();
+  const date = String(q.departure_date || "");
+  if (!/^[A-Z]{3}$/.test(origin) || !/^[A-Z]{3}$/.test(destination) || origin === destination)
+    throw new Error("Valid, different From/To IATA codes are required.");
+  const today = new Date(Date.now() + 5 * 3600000).toISOString().slice(0, 10);
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || !Number.isFinite(Date.parse(date)) ||
+      new Date(date).toISOString().slice(0, 10) !== date || date < today ||
+      Date.parse(date) > Date.now() + 365 * 86400000) throw new Error("Select a valid future date within one year.");
+  if (q.return_date || q.legs || Number(q.adults || 1) !== 1 || Number(q.children || 0) ||
+      Number(q.infants_on_lap || 0) || Number(q.infants_in_seat || 0) ||
+      (q.cabin_class && q.cabin_class !== "economy")) throw new Error("Meezab currently supports one-way, 1 adult, Economy.");
+  return { origin, destination, departure_date: date, nonstop: q.max_stops === 0 };
+}
+function mezNormalize(result, q) {
+  const fr = result.Flight_Result || {}, ds = fr.flightDataSet || {};
+  const fares = [];
+  for (const o of ds.FlightOption || []) {
+    const amount = Number(o.OptionTotal_WithPM_Agent_Currency_Amount);
+    if (!(amount > 0) || o.Agent_Currency !== "PKR") continue;
+    const legs = (ds.FlightData || []).filter(d => d.FlightOptionID === o.ID);
+    const segments = legs.flatMap(d => (ds.FlightSegment || []).filter(s => s.FlightDataID === d.ID))
+      .sort((a, b) => String(a.DepartureDate).localeCompare(String(b.DepartureDate)));
+    if (!segments.length || (q.nonstop && segments.length !== 1)) continue;
+    fares.push({
+      amount, currency: "PKR", airline: o.ValidatingCarrierName || o.ValidatingCarrier,
+      baggage: o.BaggageInfoADT || "", refundable: !!o.isRefundable,
+      segments: segments.map(s => ({
+        from: s.DepartureIata, to: s.ArrivalIata, departure: s.DepartureDate, arrival: s.ArrivalDate,
+        flight: String(s.MarketingAirline || "") + String(s.FlightNumber || ""),
+        seats: String(s.SeatsRemaining || ""), aircraft: String(s.AirCraft || "")
+      }))
+    });
+  }
+  // Wohi fare kai suppliers se aata he — amount + flights se duplicate hata dein.
+  const seen = new Set(), unique = [];
+  for (const f of fares.sort((a, b) => a.amount - b.amount)) {
+    const key = f.amount + "|" + f.segments.map(s => s.flight + s.departure).join("|");
+    if (seen.has(key)) continue;
+    seen.add(key);
+    unique.push(f);
+    if (unique.length >= 60) break;
+  }
+  return { source: "Meezab Air", observed_at: new Date().toISOString(),
+    complete: result.SearchUpdateResult?.isSearchCompleted === true,
+    total: Number(fr.totalResultCount) || 0, fares: unique };
+}
+async function meezabSearch(request, env, hdrs) {
+  if (request.method !== "POST") return jres({ error: "POST only" }, 405, hdrs);
+  if (!notifyOriginOk(env, request)) return jres({ error: "origin" }, 403, hdrs);
+  let q;
+  try { q = mezQuery(await request.json()); }
+  catch (e) { return jres({ error: e.message || "Invalid search" }, 400, hdrs); }
+  try {
+    if (!env.KV) throw new Error("Meezab requires the KV binding.");
+    const key = "meezab:fare:v1:" + JSON.stringify(q);
+    const cached = await env.KV.get(key, "json");
+    if (cached) return jres(cached, 200, hdrs);
+    // Best-effort daily budget shared across routes and users.
+    const budgetKey = "meezab:budget:" + new Date().toISOString().slice(0, 10);
+    const used = Number(await env.KV.get(budgetKey)) || 0;
+    if (used >= 60) return jres({ error: "Meezab daily search limit reached." }, 429, hdrs);
+    await env.KV.put(budgetKey, String(used + 1), { expirationTtl: 172800 });
+    const cookie = await mezLogin(env);
+    const trace = crypto.randomUUID();
+    const query = {
+      ID: "", SearchDateTime: new Date().toISOString(), TraceId_Travelport: trace,
+      FlightDirection: "OneWay", DepartureDate: q.departure_date + "T00:00:00",
+      ArrivalDate: q.departure_date + "T00:00:00", DepartureDateString: "", ArrivalDateString: "",
+      FlightFrom: q.origin, FlightFrom_Text: q.origin, FlightTo: q.destination, FlightTo_Text: q.destination,
+      Cabin: "Economy", MaxTransfers: 0, PreferredAirline: "", Currency: "PKR", MultiCityArray: [],
+      AdultClsArray: [{ ID: "", AdultRefID: crypto.randomUUID(), AdultRefID_NDC_OmanAir: "PAX1",
+        AdultRefID_NDC_Emirates: "T1", AdultRefID_NDC_Serene: "PAX1", AdultRefID_NDC_TurkishAirlines: "PAX1",
+        AdultRefID_NDC_OmanAir_FLX: "T1", AdultRefID_NDC_Hitit: "PAX1", AdultRefID_NDC_Ethiopian: "PAX1",
+        AdultRefID_FZ: 0, Age: 0, IsUmrahPassenger: false, PassengerID: 0,
+        DOB: "0001-01-01T00:00:00", PassportExpiryDate: "0001-01-01T00:00:00",
+        SeatNumbers: [], Meals: [], Baggages: [] }],
+      ChildClsArray: [], InfantClsArray: [], Adults: 1, Child: 0, Infant: 0,
+      isDomestic: false, IsUmrahFareSearch: false, IsAnciSelected: false
+    };
+    const start = await mezPost(cookie, "GetFlightList", { loginID: env.MEZ_USER,
+      subComapanyID: String(env.MEZ_SUBCOMPANY || "278"), traceId_Travelport: trace,
+      searchQuery_obj: JSON.stringify(query), searchType: 1 });
+    const state = typeof start.searchUpdateResult === "string" ? JSON.parse(start.searchUpdateResult) : start.searchUpdateResult;
+    if (!state?.SearchID) throw new Error("Meezab did not return a search ID.");
+    let result;
+    for (let i = 0; i < 16; i++) {
+      await new Promise(resolve => setTimeout(resolve, 2500));
+      result = await mezPost(cookie, "GetFlightListUpdate", { searchID: state.SearchID,
+        sortBy_ColumnName: "OptionTotal_WithPM_Agent_Currency_Amount", sortBy_Descending: false,
+        pageIndex: 1, pageSize: 100, minPrice: 0, maxPrice: 0, airlineCodes: [], flightTimeFilter: [], stopsFilter: [] });
+      if (result.SearchUpdateResult?.isSearchCompleted) break;
+    }
+    const output = mezNormalize(result, q);
+    if (output.complete) await env.KV.put(key, JSON.stringify(output), { expirationTtl: 300 });
+    return jres(output, 200, hdrs);
+  } catch (e) {
+    console.error("Meezab lookup failed");
+    return jres({ error: /^Meezab /.test(e.message || "") ? e.message : "Meezab temporarily unavailable. Please retry." }, 502, hdrs);
+  }
+}
 const NOTIFY_RATE = 120; // max notifications per hour
 
 function notifyOriginOk(env, request) {
@@ -2036,6 +2194,7 @@ export default {
     if (path === "/search") return proxyIgnav(request, env, "/fares/search", hdrs);
     if (path === "/booking-links") return proxyIgnav(request, env, "/fares/booking-links", hdrs);
     if (path === "/notify") return notifyRelay(request, env, hdrs);
+    if (path === "/meezab/search") return meezabSearch(request, env, hdrs);
 
     if (path === "/telegram") {
       if (request.method !== "POST") return new Response("ok");
@@ -2066,6 +2225,7 @@ export default {
       return new Response("ok");
     }
 
+    // Meezab read-only lookup: one marker keeps this file's end easy to find in the dashboard editor.
     return jres({ error: { message: "not found" } }, 404, hdrs);
   },
 
