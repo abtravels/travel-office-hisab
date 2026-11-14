@@ -534,7 +534,7 @@
   <div class="brand">
     <img src="logo.png" alt="AB Travels" decoding="async" onerror="this.style.display='none'">
     <div style="min-width:0;">
-      <h1>AB Travels <span class="ver" id="verBadge">v2.70</span></h1>
+      <h1>AB Travels <span class="ver" id="verBadge">v2.73</span></h1>
       <div class="tag">Ahmed Brothers Hajj &amp; Umra Services (Pvt) Ltd</div>
     </div>
   </div>
@@ -601,7 +601,7 @@
 <script>
 /* ================= DATA ================= */
 var KEY = "travelOfficeHisab";
-var APP_VER = "2.72";
+var APP_VER = "2.73";
 var MONTH_NAMES = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
 /* Cloudflare Worker — Ignav flight prices proxy (free plan, no credit card) */
 var IGNAV_WORKER_CODE = "// AB Travels - Ignav flight prices proxy (Cloudflare Worker)\n// Ignav API key SERVER par rehti hai - app/browser mein kabhi nahi aati.\n//\n// SETUP (ek dafa, ~5 min, free):\n// 1) ignav.com/signup -> free account -> dashboard se API key\n// 2) cloudflare.com -> free account -> Workers & Pages -> Create Worker -> yeh code paste -> Deploy\n// 3) Worker -> Settings -> Variables and Secrets -> secret add karein:\n//      IGNAV_API_KEY = (aap ki Ignav key)\n// 4) Worker URL (https://xxx.workers.dev) app -> Settings -> Flight prices -> paste -> Save & test\n\nexport default {\n  async fetch(request, env) {\n    const cors = {\n      'Access-Control-Allow-Origin': env.ALLOWED_ORIGIN || '*',\n      'Access-Control-Allow-Methods': 'GET,POST,OPTIONS',\n      'Access-Control-Allow-Headers': 'Content-Type',\n      'Access-Control-Max-Age': '86400'\n    };\n    const url = new URL(request.url);\n    if (request.method === 'OPTIONS') return new Response(null, { status: 204, headers: cors });\n    if (!env.IGNAV_API_KEY) {\n      return new Response(JSON.stringify({ error: { code: 'no_key', message: 'IGNAV_API_KEY secret is not set in the Worker.' } }), { status: 500, headers: Object.assign({ 'Content-Type': 'application/json' }, cors) });\n    }\n    const base = 'https://ignav.com/api';\n    let target = '';\n    let init = { method: 'GET', headers: { 'X-Api-Key': env.IGNAV_API_KEY } };\n    if (url.pathname === '/health') {\n      target = base + '/health';\n    } else if (url.pathname === '/fares') {\n      if (request.method !== 'POST') return new Response(JSON.stringify({ error: { message: 'POST only' } }), { status: 405, headers: cors });\n      const body = await request.text();\n      target = base + '/fares/one-way';\n      init = { method: 'POST', headers: { 'X-Api-Key': env.IGNAV_API_KEY, 'Content-Type': 'application/json' }, body };\n    } else if (url.pathname === '/search') {\n      if (request.method !== 'POST') return new Response(JSON.stringify({ error: { message: 'POST only' } }), { status: 405, headers: cors });\n      const body = await request.text();\n      target = base + '/fares/search';\n      init = { method: 'POST', headers: { 'X-Api-Key': env.IGNAV_API_KEY, 'Content-Type': 'application/json' }, body };\n    } else if (url.pathname === '/round-trip') {\n      if (request.method !== 'POST') return new Response(JSON.stringify({ error: { message: 'POST only' } }), { status: 405, headers: cors });\n      const body = await request.text();\n      target = base + '/fares/round-trip';\n      init = { method: 'POST', headers: { 'X-Api-Key': env.IGNAV_API_KEY, 'Content-Type': 'application/json' }, body };\n    } else if (url.pathname === '/booking-links') {\n      if (request.method !== 'POST') return new Response(JSON.stringify({ error: { message: 'POST only' } }), { status: 405, headers: cors });\n      const body = await request.text();\n      target = base + '/fares/booking-links';\n      init = { method: 'POST', headers: { 'X-Api-Key': env.IGNAV_API_KEY, 'Content-Type': 'application/json' }, body };\n    } else {\n      return new Response(JSON.stringify({ error: { message: 'not found' } }), { status: 404, headers: Object.assign({ 'Content-Type': 'application/json' }, cors) });\n    }\n    try {\n      const r = await fetch(target, init);\n      const text = await r.text();\n      return new Response(text, { status: r.status, headers: Object.assign({ 'Content-Type': 'application/json' }, cors) });\n    } catch (e) {\n      return new Response(JSON.stringify({ error: { message: String((e && e.message) || e) } }), { status: 502, headers: Object.assign({ 'Content-Type': 'application/json' }, cors) });\n    }\n  }\n};\n";
@@ -2026,6 +2026,22 @@ function closeRowSheet(){
     if(el && el.parentNode) el.parentNode.removeChild(el);
   });
 }
+/* Paid ticket ko dobara Unpaid karein (ghalti se Paid dab gaya ho to). */
+function markTicketUnpaid(t){
+  if(!t) return;
+  var sale = Number(t.sale) || 0;
+  var got = ticketPaidAmt(t);
+  var fullyCovered = sale > 0 && got >= sale;
+  var msg = "\u201c" + (t.client || "Ticket") + "\u201d ko dobara UNPAID kar dein?\n\nYe Pending Payments mein wapas aa jayegi.";
+  if(fullyCovered) msg += "\n\nNote: is par " + money(got) + " ki payments darj hain jo poori raqam ke barabar hain, is liye unpaid karne ke liye ye payment entries bhi hat jayengi.";
+  return appConfirm(msg, "Mark as unpaid?", { okText:"Haan, Unpaid karo", cancelText:"Nahi", type:"warning" }).then(function(ok){
+    if(!ok) return;
+    if(fullyCovered) t.payments = [];
+    t.paid = false;
+    save(); render();
+    appToast("↩ Ticket dobara Unpaid ho gayi — Pending Payments mein dikhegi.");
+  });
+}
 function openRowSheet(tr){
   closeRowSheet();
   var t = (S.tickets||[]).filter(function(x){ return x.id === tr.getAttribute("data-id"); })[0];
@@ -2062,6 +2078,7 @@ function openRowSheet(tr){
     btns.appendChild(b);
   }
   if(t.paid === false) add("✔ Paid", "green", ".tk-toggle");
+  else add("↩ Unpaid", "", function(){ markTicketUnpaid(t); });
   add("🧾 Invoice", "", ".tk-inv");
   add("✏ Edit", "", ".tk-edit");
   add("📝 Detail", "", function(){
@@ -8733,6 +8750,7 @@ function bind(){
       if(!t) return;
       t.paid = true;
       save(); render();
+      appToast("✔ Paid mark ho gaya — ghalti ho to ⋯ menu → ↩ Unpaid.");
     };
   });
   // WhatsApp par payment reminder bheje

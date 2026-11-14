@@ -1,5 +1,12 @@
 # Travel Office Hisab — AB Travels
 
+## Paid ticket ko dobara Unpaid karna (v2.73)
+- **Masla:** Sale ek dafa **✔ Paid** ho jaye to wapas unpaid karne ka koi button hi nahi tha (sirf unpaid par ✔ Paid aata tha).
+- **Fix:** Sales register mein paid sale ke `⋯` menu mein ab **↩ Unpaid** button hai. Confirm ke baad sale dobara **Pending Payments** mein aa jati hai (poori raqam ya jitni baqi ho).
+- Agar us sale par darj payments poori raqam ke barabar hon (maslan staff ne payment lagayi thi), to unpaid karne ke liye wo payment entries bhi hata di jati hain — confirm dialog mein ye saaf likha aata hai. Warna sale unpaid ho kar bhi 0 baqi dikhti aur Pending mein na aati.
+- **✔ Paid** dabane par ab toast aata hai jo batata hai ke ghalti ho to ⋯ → ↩ Unpaid.
+- Header ka static badge bhi ab sahi version dikhata hai (pehle pehle frame mein purana number aata tha).
+
 ## Default tab: hamesha Sales (v2.72)
 - **Har dafa app khulne par Sales tab** khulta hai. Pehle pichhla khula tab yaad rehta tha — kisi ne Expense/Settings par chhor diya ho to dobara wahi khulta tha.
 - Tab badalna andar waisa hi hai; sirf nayi opening par shuruaat **Sales** se hoti hai (mobile quick bar ka highlight bhi Sales par aata hai).
