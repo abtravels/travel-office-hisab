@@ -13,8 +13,17 @@ and polls supplier completion. Every result page is collected (250 per page,
 max 6 pages / 1,500 options) before normalizing, so the app really sees all
 fares the search returned. Only normalized prices, airlines and segments are
 returned; supplier access tokens and session cookies remain server-side.
-Complete results cache for five minutes; incomplete results are labelled.
-There is a best-effort 60-search daily budget (KV counters are not atomic).
+Complete results cache for ten minutes (`MEZ_CACHE_TTL`); incomplete results are
+labelled. A cache hit costs no budget.
+There is a best-effort daily budget (KV counters are not atomic). Its cap is
+`MEZ_DAILY_CAP` (default 60) and the counter resets at 00:00 UTC (05:00 PKT).
+A unit is counted only once the portal has accepted the search and returned a
+`SearchID`, so a login or HTTP failure above that point costs nothing. Every
+`/meezab/search` reply carries `budget: { cap, used, left, reset_at }`, and an
+exhausted budget answers `429` with `code: "budget"` plus the same cap/reset
+values. The app shows the remaining searches in the results header and keeps
+auto-refresh off when the budget is gone. A country search spends one unit per
+airport.
 
 Passing `fresh: true` in the body skips the five-minute cache and always runs a
 new portal search (used by the app's ↻ / auto-refresh). Cached responses carry

@@ -286,4 +286,16 @@ panelCtx.mezPendRead = () => ({ from:"KHI", to:"DXB", date:"2026-12-10", nonstop
 assert.ok(panel("mezPanelHtml()").includes("mezResumeBtn"), "resume card missing for an unfinished search");
 assert.ok(panel("mezPanelHtml()").includes("KHI") && panel("mezPanelHtml()").includes("DXB"), "resume card lacks the route");
 
+/* Suggestion dropdown: ek hi manager, body par fixed (v2.84) */
+assert.ok(/function abDropMount\(/.test(html), "shared dropdown mount helper missing");
+assert.ok(/var AB_DROP = null;/.test(html), "dropdown state missing");
+assert.ok(!/AB_DROP_CLOSER/.test(html), "old half-done dropdown closer is back");
+assert.ok(/abDropMount\(drop, inp, closeDrop\)/.test(html), "airport dropdown is not mounted on the shared manager");
+assert.ok(/rowOffset \+ j/.test(html), "keyboard highlight ignores the country rows");
+
+/* Meezab budget: cap/reset app side (v2.84) */
+assert.ok(/err\.code === "budget"/.test(html), "budget errors are not tagged");
+assert.ok(/budget ' \+ esc\(String\(MEZ\.budget\.left\)\)/.test(html), "remaining Meezab budget is not shown");
+assert.ok(/MEZ\.budget && Number\(MEZ\.budget\.left\) === 0/.test(html), "auto-refresh ignores an exhausted budget");
+
 console.log("Meezab UI checks passed: baggage parse, stops/baggage/airline filters, airline strip cheapest fares, sorts, auto-refresh helpers, country panel render, card + strip render, quick fare buttons, country map.");

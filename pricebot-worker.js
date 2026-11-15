@@ -14,6 +14,8 @@
  *
  *   3) App proxy budget: MAX_DAILY_PROXY (default 200), optional ALLOWED_ORIGIN check.
  *      Both are best effort; keep the Ignav dashboard spending limit as the hard stop.
+ *   4) Meezab fare lookup (/meezab/search): secrets MEZ_USER, MEZ_PASS, optional
+ *      MEZ_SUBCOMPANY (default 278) and MEZ_DAILY_CAP (default 60 searches/day).
  *
  * SETUP (one time, free plan, no credit card):
  *   1) Create the Worker, paste this file, Deploy.
@@ -2078,17 +2080,44 @@ function mezNormalize(pages, q) {
   return { source: "Meezab Air", observed_at: new Date().toISOString(),
     complete, total: total || options.length, fares: unique };
 }
+
+/* Daily budget for Meezab searches. The portal account allows a limited number of
+   searches per day, so the Worker keeps its own counter.
+   Cap: MEZ_DAILY_CAP (default 60). The counter resets at 00:00 UTC (05:00 PKT).
+   A cache hit costs nothing, so the same routes stay free all day. */
+const MEZ_CACHE_TTL = 600;
+function mezDailyCap(env) {
+  const n = Number(env && env.MEZ_DAILY_CAP);
+  return isFinite(n) && n > 0 ? Math.floor(n) : 60;
+}
+function mezBudgetKey() {
+  return "meezab:budget:" + new Date().toISOString().slice(0, 10);
+}
+function mezBudgetReset() {
+  const d = new Date();
+  return new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate() + 1)).toISOString();
+}
+function mezBudgetError(cap) {
+  const e = new Error("Aaj ki Meezab search limit (" + cap + ") khatam ho gayi - "
+    + "05:00 PKT (00:00 UTC) par reset hoti he. Purane (cached) routes ab bhi chalte hain.");
+  e.code = 429;
+  e.cap = cap;
+  e.left = 0;
+  e.reset_at = mezBudgetReset();
+  return e;
+}
+
 /* Ek route ki poori search — country search bhi isi ko call karta he. */
 async function mezRunSearch(env, q, opts) {
   const fresh = !!(opts && opts.fresh);
   const key = "meezab:fare:v1:" + JSON.stringify(q);
   const cached = fresh ? null : await env.KV.get(key, "json");
   if (cached) return Object.assign({}, cached, { cached: true });
-  // Best-effort daily budget shared across routes and users.
-  const budgetKey = "meezab:budget:" + new Date().toISOString().slice(0, 10);
+  // Best-effort daily budget shared across routes and users (MEZ_DAILY_CAP).
+  const cap = mezDailyCap(env);
+  const budgetKey = mezBudgetKey();
   const used = Number(await env.KV.get(budgetKey)) || 0;
-  if (used >= 60) { const e = new Error("Meezab daily search limit reached."); e.code = 429; throw e; }
-  await env.KV.put(budgetKey, String(used + 1), { expirationTtl: 172800 });
+  if (used >= cap) throw mezBudgetError(cap);
   const cookie = await mezLogin(env);
   const trace = crypto.randomUUID();
   const query = {
@@ -2111,6 +2140,9 @@ async function mezRunSearch(env, q, opts) {
     searchQuery_obj: JSON.stringify(query), searchType: 1 });
   const state = typeof start.searchUpdateResult === "string" ? JSON.parse(start.searchUpdateResult) : start.searchUpdateResult;
   if (!state?.SearchID) throw new Error("Meezab did not return a search ID.");
+  // The portal search has started, so this is where a budget unit is really
+  // spent - a login or HTTP failure above costs nothing.
+  await env.KV.put(budgetKey, String(used + 1), { expirationTtl: 172800 });
   const PAGE = 250, MAX_PAGES = 6;
   const pageBody = (index) => ({ searchID: state.SearchID,
     sortBy_ColumnName: "OptionTotal_WithPM_Agent_Currency_Amount", sortBy_Descending: false,
@@ -2133,7 +2165,9 @@ async function mezRunSearch(env, q, opts) {
     pages.push(extra);
   }
   const output = mezNormalize(pages, q);
-  if (output.complete) await env.KV.put(key, JSON.stringify(output), { expirationTtl: 300 });
+  // Cache before adding the budget block, so a cached reply never shows a stale counter.
+  if (output.complete) await env.KV.put(key, JSON.stringify(output), { expirationTtl: MEZ_CACHE_TTL });
+  output.budget = { cap, used: used + 1, left: Math.max(0, cap - (used + 1)), reset_at: mezBudgetReset() };
   return output;
 }
 async function meezabSearch(request, env, hdrs) {
@@ -2151,7 +2185,7 @@ async function meezabSearch(request, env, hdrs) {
     return jres(await mezRunSearch(env, q, { fresh }), 200, hdrs);
   } catch (e) {
     console.error("Meezab lookup failed");
-    if (e && e.code === 429) return jres({ error: e.message }, 429, hdrs);
+    if (e && e.code === 429) return jres({ error: e.message, code: "budget", cap: e.cap, left: 0, reset_at: e.reset_at }, 429, hdrs);
     return jres({ error: /^Meezab /.test(e.message || "") ? e.message : "Meezab temporarily unavailable. Please retry." }, 502, hdrs);
   }
 }

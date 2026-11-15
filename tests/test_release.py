@@ -19,6 +19,17 @@ class ReleaseChecks(unittest.TestCase):
         worker = (ROOT / "pricebot-worker.js").read_text(encoding="utf-8")
         self.assertIn('if (path === "/search") return proxyIgnav(request, env, "/fares/search", hdrs);', worker)
 
+    def test_meezab_budget(self):
+        worker = (ROOT / "pricebot-worker.js").read_text(encoding="utf-8")
+        self.assertIn("MEZ_DAILY_CAP", worker)
+        self.assertIn("const MEZ_CACHE_TTL = 600;", worker)
+        self.assertIn('code: "budget"', worker)
+        body = worker[worker.index("async function mezRunSearch("):worker.index("async function meezabSearch(")]
+        self.assertIn("if (used >= cap) throw mezBudgetError(cap);", body)
+        self.assertNotIn("used >= 60", body)
+        # A unit is spent only after the portal accepted the search.
+        self.assertGreater(body.index("await env.KV.put(budgetKey"), body.index("if (!state?.SearchID)"))
+
 
 if __name__ == "__main__":
     unittest.main()
