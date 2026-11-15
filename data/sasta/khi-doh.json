@@ -4,11 +4,11 @@
   "origin": "KHI",
   "destination": "DOH",
   "currency": "PKR",
-  "amount": 58825,
+  "amount": 57987,
   "price_basis": "per_person",
   "taxes_included": null,
   "fare_breakdown": null,
   "source_url": "https://www.sastaticket.pk/flights/cheap-flights-from-karachi-to-doha",
-  "observed_at": "2026-11-14T23:01:53.281Z",
-  "headline": "Cheap Flights from Karachi (KHI) to Doha (DOH) (PKR 58,825)"
+  "observed_at": "2026-11-15T02:45:27.388Z",
+  "headline": "Cheap Flights from Karachi (KHI) to Doha (DOH) (PKR 57,987)"
 }
