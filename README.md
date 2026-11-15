@@ -1,5 +1,15 @@
 # Travel Office Hisab — AB Travels
 
+## Auto-deploy from GitHub (Workers Builds)
+- Worker `ab-travels-ignav` ab GitHub se juda he: Cloudflare → Workers & Pages → ab-travels-ignav → Settings → **Builds**.
+  - Git account/repo: `abtravels/travel-office-hisab`, branch **main**
+  - Build command: **khali** (koi build step nahi)
+  - Deploy command: **`npx wrangler deploy -c wrangler.pricebot.toml`**
+  - Root directory: `/`
+- Matlab: `main` par har push ke baad Cloudflare khud Worker deploy kar deta he (log: Deployments → build). Haath se code paste/redeploy ki zaroorat nahi.
+- Bindings, secrets aur cron `wrangler.pricebot.toml` se aate hain; KV (`KV` → `abtravels-bot`), Durable Object (`WATCH_INDEX_DO`) aur secrets dashboard par waise hi rehte hain.
+- Deploy ke baad `https://ab-travels-ignav.umair5075.workers.dev/` par version string check kar lein.
+
 ## Meezab budget barha diya: 60 → 150 (v2.85)
 - Rozana Meezab budget ab **150 searches/din** he (pehle 60). Counter wahi **00:00 UTC = 05:00 PKT** par reset hota he.
 - **Auto-refresh** cap bhi **15 → 40 per din** (per browser), kyunke budget barh gaya he. Manual ↻ par koi cap nahi.
