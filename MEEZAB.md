@@ -30,11 +30,11 @@ per day per browser (localStorage counter `ab_mez_auto_used`) while the ↻ butt
 works any number of times.
 
 Typing a country or city instead of an IATA code in **To** ("UAE", "Saudi
-Arabia",
-"Dubai") runs a country search. The app resolves the airports from its local
-`mwgg/Airports` list (no extra API), keeps the 8 largest (a major-airport rank
-list, then `International` names), and calls `/meezab/search` once per airport,
-sequentially, merging each cheapest fare into a price-sorted list. The worker
+Arabia", "Dubai") runs a country search. The app resolves the airports from its
+local `mwgg/Airports` list (no extra API), keeps the 8 largest (a major-airport
+rank list, then `International` names), and calls `/meezab/search` once per
+airport, **three at a time**, merging each cheapest fare into a price-sorted
+list. Eight UAE airports took 52 seconds on 15 November 2026. The worker
 endpoint is unchanged — only `/meezab/search` is used, so a country search costs
 one budget unit per airport. Clicking a row opens that airport's full fare list in
 the normal results card; the row stays highlighted and ↻/auto-refresh then tracks
