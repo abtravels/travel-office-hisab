@@ -5966,7 +5966,8 @@ function mezAircraft(code){
     "333":"Airbus A330-300", "332":"Airbus A330-200", "359":"Airbus A350-900", "351":"Airbus A350-1000", "388":"Airbus A380",
     "738":"Boeing 737-800", "73H":"Boeing 737-800", "73V":"Boeing 737-800", "7M8":"Boeing 737 MAX 8", "7M9":"Boeing 737 MAX 9",
     "772":"Boeing 777-200", "773":"Boeing 777-300", "77W":"Boeing 777-300ER", "788":"Boeing 787-8", "789":"Boeing 787-9",
-    "78X":"Boeing 787-10", "AT7":"ATR 72", "ATR":"ATR 72", "E90":"Embraer E190", "E95":"Embraer E195", "BUS":"Bus" };
+    "78X":"Boeing 787-10", "AT7":"ATR 72", "ATR":"ATR 72", "E90":"Embraer E190", "E95":"Embraer E195",
+    "32A":"Airbus A320", "32B":"Airbus A321", "32S":"Airbus A320", "BUS":"Bus" };
   return map[c] || c;
 }
 function mezCity(name){
@@ -6002,8 +6003,15 @@ function mezLogoFail(img){
 }
 function mezStopsText(f){
   var n = Number(f.stops) || 0;
-  if(!n) return "Non-stop";
-  return n + " stop" + (n > 1 ? "s" : "") + (f.stops_at ? " · " + f.stops_at : "");
+  return n ? (n + " stop" + (n > 1 ? "s" : "")) : "Non-stop";
+}
+/* Agli subah pahunchne par "+1" — warna 03:45 dekh kar lagega wohi din he. */
+function mezDayShift(from, to){
+  var a = String(from||"").slice(0,10).split("-"), b = String(to||"").slice(0,10).split("-");
+  if(a.length !== 3 || b.length !== 3) return "";
+  var d1 = Date.UTC(+a[0], +a[1] - 1, +a[2]), d2 = Date.UTC(+b[0], +b[1] - 1, +b[2]);
+  var n = Math.round((d2 - d1) / 86400000);
+  return n > 0 ? " +" + n : "";
 }
 function mezCardHtml(f){
   var segs = f.segments || [];
@@ -6019,7 +6027,9 @@ function mezCardHtml(f){
     + '<div class="mez-end"><b>' + esc(mezTime(f.departure)) + '</b><span>' + esc(first.from || "") + '</span>'
     + '<span style="font-weight:500;">' + esc(mezCity(first.from_city)) + '</span></div>'
     + '<div class="mez-mid"><div class="mez-rail"></div><div>' + esc(faDurMins(f.duration_min) || "—") + ' · ' + esc(mezStopsText(f)) + '</div></div>'
-    + '<div class="mez-end" style="text-align:right;"><b>' + esc(mezTime(f.arrival)) + '</b><span>' + esc(last.to || "") + '</span>'
+    + '<div class="mez-end" style="text-align:right;"><b>' + esc(mezTime(f.arrival))
+    + '<span style="display:inline; font-size:11px; color:var(--gold); font-weight:800;">' + esc(mezDayShift(f.departure, f.arrival)) + '</span></b>'
+    + '<span>' + esc(last.to || "") + '</span>'
     + '<span style="font-weight:500;">' + esc(mezCity(last.to_city)) + '</span></div>'
     + '</div>';
   h += '<div class="mez-chips">';
