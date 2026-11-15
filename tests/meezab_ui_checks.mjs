@@ -66,7 +66,7 @@ context.MEZ.fares[1].departure = "2026-12-10T07:15:00";
 assert.equal(run("mezView()[0].departure"), "2026-12-10T07:15:00");
 
 /* ---- Render smoke test: poora Meezab card + airline strip bina browser ---- */
-const renderSource = grab("function mezTime(", "async function meezabLookup(");
+const renderSource = grab("function mezDate(", "async function meezabLookup(");
 const host = { innerHTML: "", querySelector: () => null, querySelectorAll: () => [] };
 const page = {
   document: { getElementById: (id) => (id === "faMeezabResults" ? host : null) },
@@ -117,6 +117,7 @@ assert.ok(out.includes(">NDC Emirates<"));
 assert.ok(out.includes("Layover 14h 15m in AUH"));
 assert.ok(out.includes("Bus connection"));
 assert.ok(out.includes("Page 1 of 1"));
+assert.ok(out.includes("10 Dec 2026") && out.includes("11 Dec 2026"), "overnight dates missing");
 assert.equal((out.match(/class="mez-card"/g) || []).length, 2);
 
 console.log("Meezab UI checks passed: baggage parse, stops/baggage/airline filters, airline strip cheapest fares, sorts, card + strip render.");

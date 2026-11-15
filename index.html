@@ -600,7 +600,7 @@
   <div class="brand">
     <img src="logo.png" alt="AB Travels" decoding="async" onerror="this.style.display='none'">
     <div style="min-width:0;">
-      <h1>AB Travels <span class="ver" id="verBadge">v2.77</span></h1>
+      <h1>AB Travels <span class="ver" id="verBadge">v2.78</span></h1>
       <div class="tag">Ahmed Brothers Hajj &amp; Umra Services (Pvt) Ltd</div>
     </div>
   </div>
@@ -667,7 +667,7 @@
 <script>
 /* ================= DATA ================= */
 var KEY = "travelOfficeHisab";
-var APP_VER = "2.77";
+var APP_VER = "2.78";
 var MONTH_NAMES = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
 /* Cloudflare Worker — Ignav flight prices proxy (free plan, no credit card) */
 var IGNAV_WORKER_CODE = "// AB Travels - Ignav flight prices proxy (Cloudflare Worker)\n// Ignav API key SERVER par rehti hai - app/browser mein kabhi nahi aati.\n//\n// SETUP (ek dafa, ~5 min, free):\n// 1) ignav.com/signup -> free account -> dashboard se API key\n// 2) cloudflare.com -> free account -> Workers & Pages -> Create Worker -> yeh code paste -> Deploy\n// 3) Worker -> Settings -> Variables and Secrets -> secret add karein:\n//      IGNAV_API_KEY = (aap ki Ignav key)\n// 4) Worker URL (https://xxx.workers.dev) app -> Settings -> Flight prices -> paste -> Save & test\n\nexport default {\n  async fetch(request, env) {\n    const cors = {\n      'Access-Control-Allow-Origin': env.ALLOWED_ORIGIN || '*',\n      'Access-Control-Allow-Methods': 'GET,POST,OPTIONS',\n      'Access-Control-Allow-Headers': 'Content-Type',\n      'Access-Control-Max-Age': '86400'\n    };\n    const url = new URL(request.url);\n    if (request.method === 'OPTIONS') return new Response(null, { status: 204, headers: cors });\n    if (!env.IGNAV_API_KEY) {\n      return new Response(JSON.stringify({ error: { code: 'no_key', message: 'IGNAV_API_KEY secret is not set in the Worker.' } }), { status: 500, headers: Object.assign({ 'Content-Type': 'application/json' }, cors) });\n    }\n    const base = 'https://ignav.com/api';\n    let target = '';\n    let init = { method: 'GET', headers: { 'X-Api-Key': env.IGNAV_API_KEY } };\n    if (url.pathname === '/health') {\n      target = base + '/health';\n    } else if (url.pathname === '/fares') {\n      if (request.method !== 'POST') return new Response(JSON.stringify({ error: { message: 'POST only' } }), { status: 405, headers: cors });\n      const body = await request.text();\n      target = base + '/fares/one-way';\n      init = { method: 'POST', headers: { 'X-Api-Key': env.IGNAV_API_KEY, 'Content-Type': 'application/json' }, body };\n    } else if (url.pathname === '/search') {\n      if (request.method !== 'POST') return new Response(JSON.stringify({ error: { message: 'POST only' } }), { status: 405, headers: cors });\n      const body = await request.text();\n      target = base + '/fares/search';\n      init = { method: 'POST', headers: { 'X-Api-Key': env.IGNAV_API_KEY, 'Content-Type': 'application/json' }, body };\n    } else if (url.pathname === '/round-trip') {\n      if (request.method !== 'POST') return new Response(JSON.stringify({ error: { message: 'POST only' } }), { status: 405, headers: cors });\n      const body = await request.text();\n      target = base + '/fares/round-trip';\n      init = { method: 'POST', headers: { 'X-Api-Key': env.IGNAV_API_KEY, 'Content-Type': 'application/json' }, body };\n    } else if (url.pathname === '/booking-links') {\n      if (request.method !== 'POST') return new Response(JSON.stringify({ error: { message: 'POST only' } }), { status: 405, headers: cors });\n      const body = await request.text();\n      target = base + '/fares/booking-links';\n      init = { method: 'POST', headers: { 'X-Api-Key': env.IGNAV_API_KEY, 'Content-Type': 'application/json' }, body };\n    } else {\n      return new Response(JSON.stringify({ error: { message: 'not found' } }), { status: 404, headers: Object.assign({ 'Content-Type': 'application/json' }, cors) });\n    }\n    try {\n      const r = await fetch(target, init);\n      const text = await r.text();\n      return new Response(text, { status: r.status, headers: Object.assign({ 'Content-Type': 'application/json' }, cors) });\n    } catch (e) {\n      return new Response(JSON.stringify({ error: { message: String((e && e.message) || e) } }), { status: 502, headers: Object.assign({ 'Content-Type': 'application/json' }, cors) });\n    }\n  }\n};\n";
@@ -5713,8 +5713,8 @@ function viewFares(){
         + '<div><label>Max results</label><select id="faMax"><option value="10">10</option><option value="15" selected>15</option><option value="25">25</option></select></div>'
         + '<label style="margin:0; display:flex; gap:6px; align-items:center; padding-bottom:8px;"><input type="checkbox" id="faNonStop" style="width:auto;"> Non-stop only</label>'
         + '</div>';
-  html += '<button class="btn primary" id="faSearch" style="width:100%; margin-top:8px;">🔍 Search flights</button>';
-  html += '<button class="btn" id="faMeezab" style="width:100%; margin-top:8px;">Meezab Air — live PKR fares</button>';
+  html += '<button class="btn primary" id="faMeezab" style="width:100%; margin-top:8px; background:#2563eb; color:#fff;">Meezab Air — live PKR fares</button>';
+  html += '<button class="btn" id="faSearch" style="width:100%; margin-top:8px; background:#4b5563; color:#fff;">🔍 Search flights</button>';
   html += '<div class="hint">Meezab: one-way · 1 adult · Economy. Upar wala route aur date use hoga — search ki <b>saari</b> flights, page ke zariye.</div><div id="faMeezabResults"></div>';
   html += '<div id="faStatus" class="hint" style="margin-top:8px; font-weight:600;"></div>';
   html += '<div class="hint" style="margin-top:6px;">Prices <b>indicative</b> hain — booking airline/consolidator portal se hoti hai. Har successful search ek Ignav request count karti hai: pehli <b>1,000 requests one-time free</b> (monthly reset nahi hoti), uske baad <b>$2 per 1,000</b>; failed requests bill nahi hoti.</div>';
@@ -5987,6 +5987,12 @@ function faLoadBookingLinks(ignavId, btn){
 }
 /* ---------- Meezab results: friendly cards + paging (v2.76) ---------- */
 var MEZ = { fares: [], info: null, page: 1, size: 10, sort: "price", stops: "all", baggage: "all", airline: "", busy: false };
+function mezDate(s){
+  var m = String(s||"").match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if(!m) return "";
+  var months = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+  return m[3] + " " + months[Number(m[2])-1] + " " + m[1];
+}
 function mezTime(s){
   var m = String(s||"").match(/T(\d{2}):(\d{2})/);
   return m ? (m[1] + ":" + m[2]) : "";
@@ -6096,12 +6102,12 @@ function mezCardHtml(f){
     + (f.overnight ? ' · overnight' : '') + '</div></div>'
     + '<div class="mez-price"><b>' + esc(faMoney(f.amount, f.currency)) + '</b><small>per adult</small></div></div>';
   h += '<div class="mez-when">'
-    + '<div class="mez-end"><b>' + esc(mezTime(f.departure)) + '</b><span>' + esc(first.from || "") + '</span>'
+    + '<div class="mez-end"><b>' + esc(mezTime(f.departure)) + '</b><span>' + esc(mezDate(f.departure)) + '</span><span>' + esc(first.from || "") + '</span>'
     + '<span style="font-weight:500;">' + esc(mezCity(first.from_city)) + '</span></div>'
     + '<div class="mez-mid"><div class="mez-rail"></div><div>' + esc(faDurMins(f.duration_min) || "—") + ' · ' + esc(mezStopsText(f)) + '</div></div>'
     + '<div class="mez-end" style="text-align:right;"><b>' + esc(mezTime(f.arrival))
     + '<span style="display:inline; font-size:11px; color:var(--gold); font-weight:800;">' + esc(mezDayShift(f.departure, f.arrival)) + '</span></b>'
-    + '<span>' + esc(last.to || "") + '</span>'
+    + '<span>' + esc(mezDate(f.arrival)) + '</span><span>' + esc(last.to || "") + '</span>'
     + '<span style="font-weight:500;">' + esc(mezCity(last.to_city)) + '</span></div>'
     + '</div>';
   h += '<div class="mez-chips">';
@@ -6118,8 +6124,8 @@ function mezCardHtml(f){
     h += '<div class="mez-legs">';
     segs.forEach(function(s, i){
       if(i && Number(s.layover_min) > 0) h += '<div class="mez-lay">Layover ' + esc(faDurMins(s.layover_min)) + ' in ' + esc(s.from) + '</div>';
-      h += '<div class="mez-leg"><b>' + esc(mezTime(s.departure)) + '</b> ' + esc(s.from)
-        + ' → <b>' + esc(mezTime(s.arrival)) + '</b> ' + esc(s.to)
+      h += '<div class="mez-leg"><b>' + esc(mezTime(s.departure)) + '</b> ' + esc(mezDate(s.departure)) + ' · ' + esc(s.from)
+        + ' → <b>' + esc(mezTime(s.arrival)) + '</b> ' + esc(mezDate(s.arrival)) + ' · ' + esc(s.to)
         + ' <span class="m">· ' + esc(s.flight || "") + (s.minutes ? ' · ' + esc(faDurMins(s.minutes)) : '')
         + (s.aircraft && !s.bus ? ' · ' + esc(mezAircraft(s.aircraft)) : '')
         + (s.cls ? ' · class ' + esc(s.cls) : '') + '</span>'
