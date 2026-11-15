@@ -1940,38 +1940,112 @@ function mezQuery(q) {
       (q.cabin_class && q.cabin_class !== "economy")) throw new Error("Meezab currently supports one-way, 1 adult, Economy.");
   return { origin, destination, departure_date: date, nonstop: q.max_stops === 0 };
 }
-function mezNormalize(result, q) {
-  const fr = result.Flight_Result || {}, ds = fr.flightDataSet || {};
+/* Portal ka airline naam "Etihad Airways dba Etihad" jaisa aata he — dba hissa hata dein. */
+function mezAirlineName(name) {
+  return String(name || "").replace(/\s+dba\s+.*$/i, "").trim();
+}
+function mezTimeOf(iso) {
+  const t = Date.parse(iso);
+  return Number.isFinite(t) ? t : NaN;
+}
+/* Ek page se zyada results hote hain, is liye sab pages jama kar ke normalize karte hain. */
+function mezNormalize(pages, q) {
+  const list = Array.isArray(pages) ? pages : [pages];
+  const options = [], legs = [], segs = [];
+  const seenO = new Set(), seenL = new Set(), seenS = new Set();
+  let complete = false, total = 0;
+  for (const res of list) {
+    const fr = (res && res.Flight_Result) || {}, ds = fr.flightDataSet || {};
+    total = Math.max(total, Number(fr.totalResultCount) || 0);
+    let state = res && res.SearchUpdateResult;
+    if (typeof state === "string") { try { state = JSON.parse(state); } catch (e) { state = {}; } }
+    if (state && state.isSearchCompleted === true) complete = true;
+    for (const o of ds.FlightOption || []) if (!seenO.has(o.ID)) { seenO.add(o.ID); options.push(o); }
+    for (const d of ds.FlightData || []) if (!seenL.has(d.ID)) { seenL.add(d.ID); legs.push(d); }
+    for (const s of ds.FlightSegment || []) if (!seenS.has(s.ID)) { seenS.add(s.ID); segs.push(s); }
+  }
+  const legsByOption = new Map(), segsByLeg = new Map();
+  for (const d of legs) {
+    if (!legsByOption.has(d.FlightOptionID)) legsByOption.set(d.FlightOptionID, []);
+    legsByOption.get(d.FlightOptionID).push(d);
+  }
+  for (const s of segs) {
+    if (!segsByLeg.has(s.FlightDataID)) segsByLeg.set(s.FlightDataID, []);
+    segsByLeg.get(s.FlightDataID).push(s);
+  }
   const fares = [];
-  for (const o of ds.FlightOption || []) {
+  for (const o of options) {
     const amount = Number(o.OptionTotal_WithPM_Agent_Currency_Amount);
     if (!(amount > 0) || o.Agent_Currency !== "PKR") continue;
-    const legs = (ds.FlightData || []).filter(d => d.FlightOptionID === o.ID);
-    const segments = legs.flatMap(d => (ds.FlightSegment || []).filter(s => s.FlightDataID === d.ID))
-      .sort((a, b) => String(a.DepartureDate).localeCompare(String(b.DepartureDate)));
+    const myLegs = legsByOption.get(o.ID) || [];
+    const segments = [];
+    for (const leg of myLegs) {
+      const part = (segsByLeg.get(leg.ID) || []).slice()
+        .sort((a, b) => String(a.DepartureDate).localeCompare(String(b.DepartureDate)));
+      for (const s of part) {
+        const aircraft = String(s.AirCraft || "").toUpperCase();
+        const from = String(s.DepartureIata || "").toUpperCase();
+        const to = String(s.ArrivalIata || "").toUpperCase();
+        segments.push({
+          from, to,
+          from_city: s.DepartureCity || "", to_city: s.ArrivalCity || "",
+          departure: s.DepartureDate, arrival: s.ArrivalDate,
+          flight: String(s.MarketingAirline || "") + String(s.FlightNumber || ""),
+          carrier: String(s.MarketingAirline || "").toUpperCase(),
+          airline: mezAirlineName(s.OperatingAirlineName),
+          aircraft: aircraft === "BUS" ? "BUS" : String(s.AirCraft || ""),
+          cls: String(s.FlightClassCode || ""),
+          minutes: Number(s.FlightMinutes) || 0,
+          layover_min: Number(s.LayoverDuration) || 0,
+          seats: String(s.SeatsRemaining || ""),
+          bus: aircraft === "BUS" || from === "XNB" || to === "XNB"
+        });
+      }
+    }
+    segments.sort((a, b) => String(a.departure).localeCompare(String(b.departure)));
     if (!segments.length || (q.nonstop && segments.length !== 1)) continue;
+    const first = segments[0], last = segments[segments.length - 1];
+    const span = (mezTimeOf(last.arrival) - mezTimeOf(first.departure)) / 60000;
+    const airlineCode = String(o.ValidatingCarrier || "").toUpperCase();
     fares.push({
-      amount, currency: "PKR", airline: o.ValidatingCarrierName || o.ValidatingCarrier,
-      baggage: o.BaggageInfoADT || "", refundable: !!o.isRefundable,
-      segments: segments.map(s => ({
-        from: s.DepartureIata, to: s.ArrivalIata, departure: s.DepartureDate, arrival: s.ArrivalDate,
-        flight: String(s.MarketingAirline || "") + String(s.FlightNumber || ""),
-        seats: String(s.SeatsRemaining || ""), aircraft: String(s.AirCraft || "")
-      }))
+      amount, currency: "PKR",
+      airline: mezAirlineName(o.ValidatingCarrierName) || airlineCode,
+      airline_code: airlineCode,
+      refundable: !!o.isRefundable,
+      changeable: !!o.isChangeable,
+      baggage: o.BaggageInfoADT || "",
+      departure: first.departure, arrival: last.arrival,
+      duration_min: Number(myLegs[0] && myLegs[0].FlightDuration) || (Number.isFinite(span) ? Math.max(0, Math.round(span)) : 0),
+      stops: Math.max(0, segments.length - 1),
+      stops_at: segments.slice(0, -1).map(s => s.to).join(" · "),
+      overnight: String(first.departure).slice(0, 10) !== String(last.arrival).slice(0, 10),
+      seats: segments.reduce((n, s) => {
+        const v = Number(s.seats);
+        return Number.isFinite(v) && v > 0 ? Math.min(n || v, v) : n;
+      }, 0),
+      segments
     });
+  }
+  // Portal kabhi kabhi ghalat PKR amount bhejta he (maslan KHI-DXB par 8,077,840) —
+  // sab se saste fare se 50 guna zyada wale rows data error maan kar hata dein.
+  const amounts = fares.map(f => f.amount).filter(a => a > 0).sort((a, b) => a - b);
+  const cheapest = amounts[0] || 0;
+  let pool = fares;
+  if (cheapest >= 5000) {
+    const ceiling = cheapest * 50;
+    const kept = fares.filter(f => f.amount <= ceiling);
+    if (kept.length) pool = kept;
   }
   // Wohi fare kai suppliers se aata he — amount + flights se duplicate hata dein.
   const seen = new Set(), unique = [];
-  for (const f of fares.sort((a, b) => a.amount - b.amount)) {
-    const key = f.amount + "|" + f.segments.map(s => s.flight + s.departure).join("|");
+  for (const f of pool.sort((a, b) => a.amount - b.amount || a.duration_min - b.duration_min)) {
+    const key = f.amount + "|" + f.segments.map(s => s.flight + s.departure + s.arrival).join("|");
     if (seen.has(key)) continue;
     seen.add(key);
     unique.push(f);
-    if (unique.length >= 60) break;
   }
   return { source: "Meezab Air", observed_at: new Date().toISOString(),
-    complete: result.SearchUpdateResult?.isSearchCompleted === true,
-    total: Number(fr.totalResultCount) || 0, fares: unique };
+    complete, total: total || options.length, fares: unique };
 }
 async function meezabSearch(request, env, hdrs) {
   if (request.method !== "POST") return jres({ error: "POST only" }, 405, hdrs);
@@ -2011,15 +2085,28 @@ async function meezabSearch(request, env, hdrs) {
       searchQuery_obj: JSON.stringify(query), searchType: 1 });
     const state = typeof start.searchUpdateResult === "string" ? JSON.parse(start.searchUpdateResult) : start.searchUpdateResult;
     if (!state?.SearchID) throw new Error("Meezab did not return a search ID.");
+    const PAGE = 250, MAX_PAGES = 6;
+    const pageBody = (index) => ({ searchID: state.SearchID,
+      sortBy_ColumnName: "OptionTotal_WithPM_Agent_Currency_Amount", sortBy_Descending: false,
+      pageIndex: index, pageSize: PAGE, minPrice: 0, maxPrice: 0,
+      airlineCodes: [], flightTimeFilter: [], stopsFilter: [] });
     let result;
     for (let i = 0; i < 16; i++) {
       await new Promise(resolve => setTimeout(resolve, 2500));
-      result = await mezPost(cookie, "GetFlightListUpdate", { searchID: state.SearchID,
-        sortBy_ColumnName: "OptionTotal_WithPM_Agent_Currency_Amount", sortBy_Descending: false,
-        pageIndex: 1, pageSize: 100, minPrice: 0, maxPrice: 0, airlineCodes: [], flightTimeFilter: [], stopsFilter: [] });
+      result = await mezPost(cookie, "GetFlightListUpdate", pageBody(1));
       if (result.SearchUpdateResult?.isSearchCompleted) break;
     }
-    const output = mezNormalize(result, q);
+    // Search ke andar jitni flights hain sab lein — page 1 ke baad baqi pages bhi.
+    const pages = [result];
+    const found = Number(result.Flight_Result?.totalResultCount) || 0;
+    for (let p = 2; p <= MAX_PAGES && (p - 1) * PAGE < found; p++) {
+      let extra = null;
+      try { extra = await mezPost(cookie, "GetFlightListUpdate", pageBody(p)); }
+      catch (e) { console.warn("Meezab page " + p + " failed: " + ((e && e.message) || e)); break; }
+      if (!(extra?.Flight_Result?.flightDataSet?.FlightOption || []).length) break;
+      pages.push(extra);
+    }
+    const output = mezNormalize(pages, q);
     if (output.complete) await env.KV.put(key, JSON.stringify(output), { expirationTtl: 300 });
     return jres(output, 200, hdrs);
   } catch (e) {

@@ -9,10 +9,22 @@ never in the HTML or committed files. Existing KV binding is required.
 
 `POST /meezab/search` accepts `origin`, `destination`, `departure_date`, and
 optional `max_stops: 0`. It logs in, verifies the session, starts the search,
-and polls supplier completion. Only normalized prices, airlines and segments
-are returned; supplier access tokens and session cookies remain server-side.
+and polls supplier completion. Every result page is collected (250 per page,
+max 6 pages / 1,500 options) before normalizing, so the app really sees all
+fares the search returned. Only normalized prices, airlines and segments are
+returned; supplier access tokens and session cookies remain server-side.
 Complete results cache for five minutes; incomplete results are labelled.
 There is a best-effort 60-search daily budget (KV counters are not atomic).
+
+Each fare carries `airline_code`, `duration_min`, `stops`, `stops_at`,
+`overnight`, `seats`, `refundable`/`changeable`, `baggage`, and per-segment
+`flight`, `aircraft`, `cls`, `minutes`, `layover_min`, `bus`. Times stay as the
+portal's local wall-clock strings (no UTC conversion), because each airport has
+its own offset.
+
+Absurd amounts are dropped: if the cheapest fare is at least 5,000 PKR, anything
+above 50× the cheapest is treated as portal data error. KHI→DXB keeps a real
+1,323,760 fare but drops the bogus 8,077,840 ones.
 
 Nearby airports and bus connections returned by Meezab retain their actual
 airport codes. The app explicitly labels BUS segments.

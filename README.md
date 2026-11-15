@@ -1,5 +1,13 @@
 # Travel Office Hisab — AB Travels
 
+## Meezab fares: saari flights, pages, logos (v2.76)
+- **Saari flights:** pehle sirf pehla page (100 options) aata tha. Ab worker search ke **saare pages** uthata hai (250 per page, max 1,500 options) — KHI→DXB par 876 options se **863 unique fares**.
+- **Page navigation:** har page 10 fares (25/50 bhi), neeche `‹ Prev  1 … 4 5 [6] 7 … 87  Next ›` aur "Page 6 of 87 · showing 51–60 of 863".
+- **Sort & filter:** Price (low→high) / Duration / Departure, aur Stops: Any / Non-stop / 1 / 2+.
+- **Airline logos:** pehle app ke andar ka `airlines/<code>.png`, warna Wi‑Fi se Kiwi CDN, warna airline code ka badge — network na ho to bhi card toota nahi dikhta.
+- **Friendly detail:** depart/arrive time + airport code + city, total duration, `Non-stop` ya `1 stop · AUH`, har leg alag (flight number, aircraft ka naam maslan "Boeing 737 MAX 8", class), layover duration, baggage, refundable/changeable, seats left, overnight aur **Bus connection** chip.
+- **Data sanity:** portal kabhi kabhi ghalat PKR amount bhejta he (KHI→DXB par FZ fare `8,077,840`) — sab se saste fare ke 50 guna se zyada wale rows hata diye jaate hain.
+
 ## Meezab Air se live fares (v2.75)
 - **Naya:** Price Lookup mein Ignav ke saath ek alag button — **“Meezab Air — live PKR fares”**. Wohi route/date use hota hai jo form mein hai.
 - Filhaal **one-way, 1 adult, Economy** (Meezab ki search query isi shape mein hai). PKR prices agent rate se aate hain.
