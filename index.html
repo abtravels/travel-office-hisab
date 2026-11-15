@@ -5969,6 +5969,10 @@ function mezAircraft(code){
     "78X":"Boeing 787-10", "AT7":"ATR 72", "ATR":"ATR 72", "E90":"Embraer E190", "E95":"Embraer E195", "BUS":"Bus" };
   return map[c] || c;
 }
+function mezCity(name){
+  var s = String(name||"").trim();
+  return /^unknown$/i.test(s) ? "" : s;
+}
 function mezBaggageLabel(b){
   var s = String(b||"").trim();
   if(!s) return "";
@@ -5984,7 +5988,7 @@ function mezLogoHtml(code, name){
     return '<div class="mez-logo"><span>' + esc(String(name||"?").slice(0,2).toUpperCase()) + '</span></div>';
   }
   return '<div class="mez-logo"><img src="' + esc(absAsset("airlines/" + encodeURIComponent(c) + ".png")) + '"'
-    + ' alt="' + esc(c) + '" loading="lazy" data-code="' + esc(c) + '" data-step="1" onerror="mezLogoFail(this)"></div>';
+    + ' alt="' + esc(c) + '" data-code="' + esc(c) + '" data-step="1" onerror="mezLogoFail(this)"></div>';
 }
 function mezLogoFail(img){
   var code = img.getAttribute("data-code") || "";
@@ -6013,10 +6017,10 @@ function mezCardHtml(f){
     + '<div class="mez-price"><b>' + esc(faMoney(f.amount, f.currency)) + '</b><small>per adult</small></div></div>';
   h += '<div class="mez-when">'
     + '<div class="mez-end"><b>' + esc(mezTime(f.departure)) + '</b><span>' + esc(first.from || "") + '</span>'
-    + '<span style="font-weight:500;">' + esc(first.from_city || "") + '</span></div>'
+    + '<span style="font-weight:500;">' + esc(mezCity(first.from_city)) + '</span></div>'
     + '<div class="mez-mid"><div class="mez-rail"></div><div>' + esc(faDurMins(f.duration_min) || "—") + ' · ' + esc(mezStopsText(f)) + '</div></div>'
     + '<div class="mez-end" style="text-align:right;"><b>' + esc(mezTime(f.arrival)) + '</b><span>' + esc(last.to || "") + '</span>'
-    + '<span style="font-weight:500;">' + esc(last.to_city || "") + '</span></div>'
+    + '<span style="font-weight:500;">' + esc(mezCity(last.to_city)) + '</span></div>'
     + '</div>';
   h += '<div class="mez-chips">';
   h += f.refundable ? '<span class="mez-chip ok">Refundable</span>' : '<span class="mez-chip">Non-refundable</span>';
