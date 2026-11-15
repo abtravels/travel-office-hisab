@@ -2581,9 +2581,14 @@ function bindAirportField(inputId){
       }) };
     }
     var qu = qn.toUpperCase(), matches = [];
-    for(var i = 0; i < list.length && matches.length < 15; i++){
+    /* Poori list scan karein — warna alphabetically pehle aane wale chhote airports
+       cap bhar dete hain aur GRU/GIG jaisa bada airport list mein hi nahi aata.
+       Rank pehle, phir 15 — is se sirf sab se bade airports dikhte hain. */
+    for(var i = 0; i < list.length; i++){
       if(list[i].iata === qu || hay.keys[i].indexOf(qn) >= 0) matches.push(list[i]);
     }
+    if(matches.length > 1 && typeof mezRankAirports === "function") matches = mezRankAirports(matches);
+    matches = matches.slice(0, 15);
     /* Country ka naam likhne par sab se pehle ek "country" row — us par click karne se
        poore mulk (8 bade airports) ki fare search chalti he. Warna sirf airport rows
        milti hain aur "UAE" likhne par kuch bhi nazar nahi aata. */
