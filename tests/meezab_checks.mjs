@@ -19,7 +19,8 @@ context.result = {
     FlightOption:[
       {ID:1,OptionTotal_WithPM_Agent_Currency_Amount:27760,Agent_Currency:"PKR",
         ValidatingCarrier:"EY",ValidatingCarrierName:"Etihad Airways dba Etihad",
-        isRefundable:true,isChangeable:false,BaggageInfoADT:"30KG",EXT_secret:"DO-NOT-EXPOSE"},
+        isRefundable:true,isChangeable:false,BaggageInfoADT:"30KG",EXT_secret:"DO-NOT-EXPOSE",
+        Sys_SupplierID:153,EXT_Travelport_json_OfferListResponseIdentifier:"tp-1"},
       {ID:2,OptionTotal_WithPM_Agent_Currency_Amount:0,Agent_Currency:"PKR"},
       {ID:3,OptionTotal_WithPM_Agent_Currency_Amount:100,Agent_Currency:"AED"}],
     FlightData:[{ID:10,FlightOptionID:1,FlightDuration:405}],
@@ -42,6 +43,10 @@ const fare = normalized.fares[0];
 assert.equal(fare.amount,27760);
 assert.equal(fare.airline_code,"EY");
 assert.equal(fare.airline,"Etihad Airways");
+assert.equal(fare.platform,"Travelport");   // EXT_ prefix supplier id se pehle dekha jata he
+assert.equal(vm.runInContext('mezPlatform({Sys_SupplierID:142})', context), "NDC Emirates");
+assert.equal(vm.runInContext('mezPlatform({Sys_SupplierID:94})', context), "Hitit");
+assert.equal(vm.runInContext('mezPlatform({Sys_SupplierID:95})', context), "");
 assert.equal(fare.stops,1);
 assert.equal(fare.stops_at,"AUH");
 assert.equal(fare.duration_min,1125);

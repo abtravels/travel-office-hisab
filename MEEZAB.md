@@ -16,11 +16,31 @@ returned; supplier access tokens and session cookies remain server-side.
 Complete results cache for five minutes; incomplete results are labelled.
 There is a best-effort 60-search daily budget (KV counters are not atomic).
 
-Each fare carries `airline_code`, `duration_min`, `stops`, `stops_at`,
+Each fare carries `airline_code`, `platform`, `duration_min`, `stops`, `stops_at`,
 `overnight`, `seats`, `refundable`/`changeable`, `baggage`, and per-segment
 `flight`, `aircraft`, `cls`, `minutes`, `layover_min`, `bus`. Times stay as the
 portal's local wall-clock strings (no UTC conversion), because each airport has
 its own offset.
+
+`platform` is the distribution system the fare came from. The portal hides it in
+`EXT_<platform>_*` keys (`EXT_Hitit_*`, `EXT_Travelport_*`, `EXT_EK_NDC_*`,
+`EXT_FZ_*`, `EXT_OneAPI_*`, `EXT_AirSial_*`, `EXT_NZFlight_*`) and in
+`Sys_SupplierID`. Mapping observed on live searches:
+
+| Sys_SupplierID | platform |
+| --- | --- |
+| 94 | Hitit |
+| 101 | AirSial |
+| 114 | NDC Flydubai |
+| 138 | OneAPI |
+| 142 | NDC Emirates |
+| 151, 152 | Travelport |
+| 153 | NZFlight |
+| 155 | Airblue direct |
+| 95 | (portal exposes no name — chip hidden) |
+
+`EXT_` keys win over the ID, so a re-numbered supplier still gets the right
+label. Supplier tokens (`SupplierReference`, `EXT_*` values) are never returned.
 
 `duration_min` is summed from segment flight minutes plus layovers. The portal's
 own `FlightDuration` field is unreliable (672 of 854 KHI→DXB fares said 60

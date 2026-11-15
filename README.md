@@ -1,5 +1,11 @@
 # Travel Office Hisab — AB Travels
 
+## Meezab fares: platform, baggage filter, airline strip, tab state (v2.77)
+- **Platform label:** har fare par chip dikhta he ke woh kis system se aaya — `Travelport`, `Hitit`, `NDC Emirates`, `NDC Flydubai`, `NZFlight`, `OneAPI`, `AirSial`, `Airblue direct`. Worker `EXT_<platform>_*` keys se pehchanta he, warna `Sys_SupplierID` se.
+- **Baggage filter:** Sort/Stops panel mein naya `Baggage` select — `Any` / `Checked bag` / `Cabin only`. `0KG-0KG` ka matlab cabin only, khaali field ko kisi filter mein nahi ginte.
+- **Airline strip:** results ke upar Meezab portal jaisa horizontal panel — har airline ka logo, naam, **sab se sasta fare** aur fare count. Kisi airline par click karne se list usi airline ki ho jati he, dobara click / "All airlines" se filter hat jata he. Strip stops/baggage filter ke mutabiq update hoti he.
+- **Tab switch:** kisi doosre tab par jaane par Price Lookup ka typed text, chuni hui date/pax, Ignav results aur Meezab results **bache rehte hain**; wapsi par wahi scroll position milti he. Meezab search chal rahi ho to wapsi par progress card dikhta he.
+
 ## Meezab fares: saari flights, pages, logos (v2.76)
 - **Saari flights:** pehle sirf pehla page (100 options) aata tha. Ab worker search ke **saare pages** uthata hai (250 per page, max 1,500 options) — KHI→DXB par 876 options se **863 unique fares**.
 - **Page navigation:** har page 10 fares (25/50 bhi), neeche `‹ Prev  1 … 4 5 [6] 7 … 87  Next ›` aur "Page 6 of 87 · showing 51–60 of 863".

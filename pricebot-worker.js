@@ -1948,6 +1948,26 @@ function mezTimeOf(iso) {
   const t = Date.parse(iso);
   return Number.isFinite(t) ? t : NaN;
 }
+/* Fare kis platform/supplier se aaya he. Portal option ke andar EXT_<platform>_*
+   keys ya Sys_SupplierID hota he — dono se pehchan lete hain. */
+const MEZ_PLATFORM_BY_ID = {
+  94: "Hitit", 101: "AirSial", 114: "NDC Flydubai", 138: "OneAPI",
+  142: "NDC Emirates", 151: "Travelport", 152: "Travelport", 153: "NZFlight", 155: "Airblue direct"
+};
+const MEZ_PLATFORM_BY_EXT = [
+  ["EXT_EK_NDC", "NDC Emirates"], ["EXT_FZ_", "NDC Flydubai"], ["EXT_TK_NDC", "NDC Turkish"],
+  ["EXT_Hitit", "Hitit"], ["EXT_Travelport", "Travelport"], ["EXT_OneAPI", "OneAPI"],
+  ["EXT_AirSial", "AirSial"], ["EXT_NZFlight", "NZFlight"], ["EXT_Sabre", "Sabre"],
+  ["EXT_Amadeus", "Amadeus"], ["EXT_FlyJinnah", "FlyJinnah"], ["EXT_FlyToday", "FlyToday"]
+];
+function mezPlatform(o) {
+  if (!o) return "";
+  const keys = Object.keys(o);
+  for (const [prefix, name] of MEZ_PLATFORM_BY_EXT) {
+    for (const key of keys) if (key.startsWith(prefix) && o[key]) return name;
+  }
+  return MEZ_PLATFORM_BY_ID[Number(o.Sys_SupplierID)] || "";
+}
 /* Ek page se zyada results hote hain, is liye sab pages jama kar ke normalize karte hain. */
 function mezNormalize(pages, q) {
   const list = Array.isArray(pages) ? pages : [pages];
@@ -2021,6 +2041,7 @@ function mezNormalize(pages, q) {
       amount, currency: "PKR",
       airline: mezAirlineName(o.ValidatingCarrierName) || airlineCode,
       airline_code: airlineCode,
+      platform: mezPlatform(o),
       refundable: !!o.isRefundable,
       changeable: !!o.isChangeable,
       baggage: o.BaggageInfoADT || "",
