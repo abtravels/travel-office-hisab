@@ -88,4 +88,7 @@ context.wild[1].Flight_Result.flightDataSet.FlightSegment.push(
    DepartureDate:"2026-12-10T11:00:00",ArrivalDate:"2026-12-10T13:00:00",
    MarketingAirline:"FZ",FlightNumber:"999",AirCraft:"320",FlightMinutes:120});
 assert.equal(vm.runInContext("mezNormalize(wild, query).fares.length", context),2);
-console.log("Meezab checks passed: validation, fare currency, zero-price filtering, bus routing, token stripping, nonstop, duplicate fares, paging merge, wild-price filter, rich fields.");
+// auto-refresh: search core alag function he, taake fresh flag cache skip kar sake
+assert.equal(vm.runInContext("typeof mezRunSearch", context), "function");
+assert.equal(vm.runInContext("typeof meezabSearch", context), "function");
+console.log("Meezab checks passed: validation, fare currency, zero-price filtering, bus routing, token stripping, nonstop, duplicate fares, paging merge, wild-price filter, rich fields, refresh helper.");

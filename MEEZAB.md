@@ -16,6 +16,30 @@ returned; supplier access tokens and session cookies remain server-side.
 Complete results cache for five minutes; incomplete results are labelled.
 There is a best-effort 60-search daily budget (KV counters are not atomic).
 
+Passing `fresh: true` in the body skips the five-minute cache and always runs a
+new portal search (used by the app's ↻ / auto-refresh). Cached responses carry
+`cached: true` so the app can label them.
+
+## Auto-refresh and country search (v2.79)
+
+The app refreshes the current route on a timer (`Auto refresh`: off / 3 / 5 / 10
+minutes). Refreshes are `fresh: true`, skip the Worker cache, and only run while
+the Price Lookup tab is open and visible (`document.hidden` pauses them). Because
+every refresh spends from the 60/day Worker budget, auto-refresh is capped at 15
+per day per browser (localStorage counter `ab_mez_auto_used`) while the ↻ button
+works any number of times.
+
+Typing a country or city instead of an IATA code in **To** ("UAE", "Saudi
+Arabia",
+"Dubai") runs a country search. The app resolves the airports from its local
+`mwgg/Airports` list (no extra API), keeps the 8 largest (a major-airport rank
+list, then `International` names), and calls `/meezab/search` once per airport,
+sequentially, merging each cheapest fare into a price-sorted list. The worker
+endpoint is unchanged — only `/meezab/search` is used, so a country search costs
+one budget unit per airport. Clicking a row opens that airport's full fare list in
+the normal results card; the row stays highlighted and ↻/auto-refresh then tracks
+that airport.
+
 Each fare carries `airline_code`, `platform`, `duration_min`, `stops`, `stops_at`,
 `overnight`, `seats`, `refundable`/`changeable`, `baggage`, and per-segment
 `flight`, `aircraft`, `cls`, `minutes`, `layover_min`, `bus`. Times stay as the

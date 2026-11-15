@@ -2078,70 +2078,80 @@ function mezNormalize(pages, q) {
   return { source: "Meezab Air", observed_at: new Date().toISOString(),
     complete, total: total || options.length, fares: unique };
 }
+/* Ek route ki poori search — country search bhi isi ko call karta he. */
+async function mezRunSearch(env, q, opts) {
+  const fresh = !!(opts && opts.fresh);
+  const key = "meezab:fare:v1:" + JSON.stringify(q);
+  const cached = fresh ? null : await env.KV.get(key, "json");
+  if (cached) return Object.assign({}, cached, { cached: true });
+  // Best-effort daily budget shared across routes and users.
+  const budgetKey = "meezab:budget:" + new Date().toISOString().slice(0, 10);
+  const used = Number(await env.KV.get(budgetKey)) || 0;
+  if (used >= 60) { const e = new Error("Meezab daily search limit reached."); e.code = 429; throw e; }
+  await env.KV.put(budgetKey, String(used + 1), { expirationTtl: 172800 });
+  const cookie = await mezLogin(env);
+  const trace = crypto.randomUUID();
+  const query = {
+    ID: "", SearchDateTime: new Date().toISOString(), TraceId_Travelport: trace,
+    FlightDirection: "OneWay", DepartureDate: q.departure_date + "T00:00:00",
+    ArrivalDate: q.departure_date + "T00:00:00", DepartureDateString: "", ArrivalDateString: "",
+    FlightFrom: q.origin, FlightFrom_Text: q.origin, FlightTo: q.destination, FlightTo_Text: q.destination,
+    Cabin: "Economy", MaxTransfers: 0, PreferredAirline: "", Currency: "PKR", MultiCityArray: [],
+    AdultClsArray: [{ ID: "", AdultRefID: crypto.randomUUID(), AdultRefID_NDC_OmanAir: "PAX1",
+      AdultRefID_NDC_Emirates: "T1", AdultRefID_NDC_Serene: "PAX1", AdultRefID_NDC_TurkishAirlines: "PAX1",
+      AdultRefID_NDC_OmanAir_FLX: "T1", AdultRefID_NDC_Hitit: "PAX1", AdultRefID_NDC_Ethiopian: "PAX1",
+      AdultRefID_FZ: 0, Age: 0, IsUmrahPassenger: false, PassengerID: 0,
+      DOB: "0001-01-01T00:00:00", PassportExpiryDate: "0001-01-01T00:00:00",
+      SeatNumbers: [], Meals: [], Baggages: [] }],
+    ChildClsArray: [], InfantClsArray: [], Adults: 1, Child: 0, Infant: 0,
+    isDomestic: false, IsUmrahFareSearch: false, IsAnciSelected: false
+  };
+  const start = await mezPost(cookie, "GetFlightList", { loginID: env.MEZ_USER,
+    subComapanyID: String(env.MEZ_SUBCOMPANY || "278"), traceId_Travelport: trace,
+    searchQuery_obj: JSON.stringify(query), searchType: 1 });
+  const state = typeof start.searchUpdateResult === "string" ? JSON.parse(start.searchUpdateResult) : start.searchUpdateResult;
+  if (!state?.SearchID) throw new Error("Meezab did not return a search ID.");
+  const PAGE = 250, MAX_PAGES = 6;
+  const pageBody = (index) => ({ searchID: state.SearchID,
+    sortBy_ColumnName: "OptionTotal_WithPM_Agent_Currency_Amount", sortBy_Descending: false,
+    pageIndex: index, pageSize: PAGE, minPrice: 0, maxPrice: 0,
+    airlineCodes: [], flightTimeFilter: [], stopsFilter: [] });
+  let result;
+  for (let i = 0; i < 16; i++) {
+    await new Promise(resolve => setTimeout(resolve, 2500));
+    result = await mezPost(cookie, "GetFlightListUpdate", pageBody(1));
+    if (result.SearchUpdateResult?.isSearchCompleted) break;
+  }
+  // Search ke andar jitni flights hain sab lein — page 1 ke baad baqi pages bhi.
+  const pages = [result];
+  const found = Number(result.Flight_Result?.totalResultCount) || 0;
+  for (let p = 2; p <= MAX_PAGES && (p - 1) * PAGE < found; p++) {
+    let extra = null;
+    try { extra = await mezPost(cookie, "GetFlightListUpdate", pageBody(p)); }
+    catch (e) { console.warn("Meezab page " + p + " failed: " + ((e && e.message) || e)); break; }
+    if (!(extra?.Flight_Result?.flightDataSet?.FlightOption || []).length) break;
+    pages.push(extra);
+  }
+  const output = mezNormalize(pages, q);
+  if (output.complete) await env.KV.put(key, JSON.stringify(output), { expirationTtl: 300 });
+  return output;
+}
 async function meezabSearch(request, env, hdrs) {
   if (request.method !== "POST") return jres({ error: "POST only" }, 405, hdrs);
   if (!notifyOriginOk(env, request)) return jres({ error: "origin" }, 403, hdrs);
-  let q;
-  try { q = mezQuery(await request.json()); }
+  let q, fresh = false;
+  try {
+    const body = await request.json();
+    fresh = body && body.fresh === true;   // auto-refresh: cache skip karo
+    q = mezQuery(body);
+  }
   catch (e) { return jres({ error: e.message || "Invalid search" }, 400, hdrs); }
   try {
     if (!env.KV) throw new Error("Meezab requires the KV binding.");
-    const key = "meezab:fare:v1:" + JSON.stringify(q);
-    const cached = await env.KV.get(key, "json");
-    if (cached) return jres(cached, 200, hdrs);
-    // Best-effort daily budget shared across routes and users.
-    const budgetKey = "meezab:budget:" + new Date().toISOString().slice(0, 10);
-    const used = Number(await env.KV.get(budgetKey)) || 0;
-    if (used >= 60) return jres({ error: "Meezab daily search limit reached." }, 429, hdrs);
-    await env.KV.put(budgetKey, String(used + 1), { expirationTtl: 172800 });
-    const cookie = await mezLogin(env);
-    const trace = crypto.randomUUID();
-    const query = {
-      ID: "", SearchDateTime: new Date().toISOString(), TraceId_Travelport: trace,
-      FlightDirection: "OneWay", DepartureDate: q.departure_date + "T00:00:00",
-      ArrivalDate: q.departure_date + "T00:00:00", DepartureDateString: "", ArrivalDateString: "",
-      FlightFrom: q.origin, FlightFrom_Text: q.origin, FlightTo: q.destination, FlightTo_Text: q.destination,
-      Cabin: "Economy", MaxTransfers: 0, PreferredAirline: "", Currency: "PKR", MultiCityArray: [],
-      AdultClsArray: [{ ID: "", AdultRefID: crypto.randomUUID(), AdultRefID_NDC_OmanAir: "PAX1",
-        AdultRefID_NDC_Emirates: "T1", AdultRefID_NDC_Serene: "PAX1", AdultRefID_NDC_TurkishAirlines: "PAX1",
-        AdultRefID_NDC_OmanAir_FLX: "T1", AdultRefID_NDC_Hitit: "PAX1", AdultRefID_NDC_Ethiopian: "PAX1",
-        AdultRefID_FZ: 0, Age: 0, IsUmrahPassenger: false, PassengerID: 0,
-        DOB: "0001-01-01T00:00:00", PassportExpiryDate: "0001-01-01T00:00:00",
-        SeatNumbers: [], Meals: [], Baggages: [] }],
-      ChildClsArray: [], InfantClsArray: [], Adults: 1, Child: 0, Infant: 0,
-      isDomestic: false, IsUmrahFareSearch: false, IsAnciSelected: false
-    };
-    const start = await mezPost(cookie, "GetFlightList", { loginID: env.MEZ_USER,
-      subComapanyID: String(env.MEZ_SUBCOMPANY || "278"), traceId_Travelport: trace,
-      searchQuery_obj: JSON.stringify(query), searchType: 1 });
-    const state = typeof start.searchUpdateResult === "string" ? JSON.parse(start.searchUpdateResult) : start.searchUpdateResult;
-    if (!state?.SearchID) throw new Error("Meezab did not return a search ID.");
-    const PAGE = 250, MAX_PAGES = 6;
-    const pageBody = (index) => ({ searchID: state.SearchID,
-      sortBy_ColumnName: "OptionTotal_WithPM_Agent_Currency_Amount", sortBy_Descending: false,
-      pageIndex: index, pageSize: PAGE, minPrice: 0, maxPrice: 0,
-      airlineCodes: [], flightTimeFilter: [], stopsFilter: [] });
-    let result;
-    for (let i = 0; i < 16; i++) {
-      await new Promise(resolve => setTimeout(resolve, 2500));
-      result = await mezPost(cookie, "GetFlightListUpdate", pageBody(1));
-      if (result.SearchUpdateResult?.isSearchCompleted) break;
-    }
-    // Search ke andar jitni flights hain sab lein — page 1 ke baad baqi pages bhi.
-    const pages = [result];
-    const found = Number(result.Flight_Result?.totalResultCount) || 0;
-    for (let p = 2; p <= MAX_PAGES && (p - 1) * PAGE < found; p++) {
-      let extra = null;
-      try { extra = await mezPost(cookie, "GetFlightListUpdate", pageBody(p)); }
-      catch (e) { console.warn("Meezab page " + p + " failed: " + ((e && e.message) || e)); break; }
-      if (!(extra?.Flight_Result?.flightDataSet?.FlightOption || []).length) break;
-      pages.push(extra);
-    }
-    const output = mezNormalize(pages, q);
-    if (output.complete) await env.KV.put(key, JSON.stringify(output), { expirationTtl: 300 });
-    return jres(output, 200, hdrs);
+    return jres(await mezRunSearch(env, q, { fresh }), 200, hdrs);
   } catch (e) {
     console.error("Meezab lookup failed");
+    if (e && e.code === 429) return jres({ error: e.message }, 429, hdrs);
     return jres({ error: /^Meezab /.test(e.message || "") ? e.message : "Meezab temporarily unavailable. Please retry." }, 502, hdrs);
   }
 }

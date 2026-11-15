@@ -1,5 +1,12 @@
 # Travel Office Hisab — AB Travels
 
+## Auto-refresh aur country search (v2.79)
+- **Auto-refresh:** Meezab results ke tools mein `Auto refresh` select — `Off` / `Har 3 min` / `Har 5 min` / `Har 10 min`. Timer sirf Price Lookup tab khula aur visible ho tab chalta he; doosre tab par jaane ya browser background mein jaane par ruk jata he, wapsi par foran check hota he. Refresh cache skip karta he (`fresh: true`) taake naye prices aayen. Header mein `auto-refreshed` aur `cached` ka label dikhta he; ↻ button se kabhi bhi manual refresh.
+- **Budget guard:** har refresh Meezab ke 60/day quota se ek search leta he, is liye auto-refresh din mein **15** tak mehdood he (per browser counter, header mein "aaj bache hue" dikhta he). Manual ↻ par koi cap nahi.
+- **Country search:** **To** mein IATA code ki jagah country/city ka naam likhein — `UAE`, `Saudi Arabia`, `Dubai`, `UK`, `USA`. App apni airport list (`mwgg/Airports`) se us country ke **8 bade airports** chunta he aur har airport ki search alag chalata he, phir sab ko **price-wise** ek list mein dikhata he: airline logo, airport code + city, stops, duration, sab se sasta fare aur fare count.
+- **Row click:** kisi bhi airport par click karne se us airport ki **poori fare list** (cards, filters, airline strip, pages) khul jati he; upar country ka chip aur row highlight rehta he, aur ↻/auto-refresh usi airport ko track karta he.
+- **Cost:** country search har airport ke liye ek search count karti he (8 airports = 8). Search progress (`3/8 ho chuke`) live dikhta he, fail hone par us airport ki row par wajah likhi aati he — baqi results phir bhi aate hain.
+
 ## Meezab fares: platform, baggage filter, airline strip, tab state (v2.77)
 - **Platform label:** har fare par chip dikhta he ke woh kis system se aaya — `Travelport`, `Hitit`, `NDC Emirates`, `NDC Flydubai`, `NZFlight`, `OneAPI`, `AirSial`, `Airblue direct`. Worker `EXT_<platform>_*` keys se pehchanta he, warna `Sys_SupplierID` se.
 - **Baggage filter:** Sort/Stops panel mein naya `Baggage` select — `Any` / `Checked bag` / `Cabin only`. `0KG-0KG` ka matlab cabin only, khaali field ko kisi filter mein nahi ginte.

@@ -119,5 +119,65 @@ assert.ok(out.includes("Bus connection"));
 assert.ok(out.includes("Page 1 of 1"));
 assert.ok(out.includes("10 Dec 2026") && out.includes("11 Dec 2026"), "overnight dates missing");
 assert.equal((out.match(/class="mez-card"/g) || []).length, 2);
+assert.ok(out.includes('id="mezAuto"') && out.includes('id="mezRefresh"'), "auto-refresh controls missing");
+assert.ok(out.includes("cached") === false, "cached marker should not show for a live response");
 
-console.log("Meezab UI checks passed: baggage parse, stops/baggage/airline filters, airline strip cheapest fares, sorts, card + strip render.");
+/* ---- Country code + airport matching ---- */
+const countrySource = grab("var AB_COUNTRY_NAMES", "function airportsCache(");
+const countryCtx = vm.createContext({ AB_COUNTRY_NAMES: {} });
+vm.runInContext(countrySource, countryCtx);
+const cRun = (code) => vm.runInContext(code, countryCtx);
+assert.equal(cRun('countryName("AE")'), "UAE");
+assert.equal(cRun('countryName("SA")'), "Saudi Arabia");
+
+/* ---- Auto-refresh helpers ---- */
+const autoSource = grab("var MEZ_AUTO_CAP", "function ignavSearch(");
+const autoCtx = vm.createContext({ localStorage: { getItem: () => null, setItem: () => {} }, Date, JSON, Number, Math,
+  document: { getElementById: () => null, addEventListener: () => {} }, MEZ: { auto: 5, busy: false, payload: null } });
+vm.runInContext(autoSource, autoCtx);
+assert.equal(vm.runInContext("mezAutoBudgetLeft()", autoCtx), 15, "auto budget should default to 15");
+assert.equal(vm.runInContext("typeof mezRefresh", autoCtx), "function");
+const renderCtxFns = vm.runInContext(
+  "[" + ["mezCountryCode", "mezLocateAirports", "mezRankAirports", "mezCountryRows", "mezRenderCountry",
+    "mezPickDestination", "mezAutoStart", "mezAutoTick", "mezApply", "mezShowResults"].map(function(f){ return 'typeof ' + f; }).join(",") + "]",
+  renderContext);
+assert.deepEqual(Array.from(renderCtxFns), [
+  "function", "function", "function", "function", "function", "function", "function", "function", "function", "function"
+]);
+
+/* ---- Country panel render (price-wise, clickable rows) ---- */
+const countryHost = { innerHTML: "", querySelector: () => null, querySelectorAll: () => [] };
+const countryPage = Object.assign({}, page, {
+  document: { getElementById: (id) => (id === "faMeezabCountry" ? countryHost : null) },
+  mezAirIcon: () => "",
+  mezStopsText: (f) => (Number(f.stops) ? f.stops + " stop" : "Non-stop"),
+  mezCity: (s) => String(s || ""),
+  airportList: () => [
+    { iata: "DXB", name: "Dubai International Airport", city: "Dubai", country: "UAE" },
+    { iata: "AUH", name: "Abu Dhabi International Airport", city: "Abu Dhabi", country: "UAE" },
+    { iata: "SHJ", name: "Sharjah International Airport", city: "Sharjah", country: "UAE" },
+    { iata: "ZIA", name: "Al Minhad Air Base", city: "Dubai", country: "UAE" }
+  ],
+  MEZ: { fares: [], info: null, country: null, auto: 0,
+    countryData: { label: "UAE", code: "AE", total: 4, codes: ["DXB", "AUH", "SHJ", "ZIA"],
+      origin: "KHI", date: "2026-12-10", busy: false, done: 4, observed_at: "2026-11-15T06:56:00.000Z",
+      rows: [
+        { destination: "DXB", city: "Dubai", fares: [{ amount: 69610 }], count: 1, cheapest: 69610,
+          airline: "Emirates", airline_code: "EK", stops: 0, duration_min: 140, state: "ok" },
+        { destination: "AUH", city: "Abu Dhabi", fares: [{ amount: 27760 }], count: 1, cheapest: 27760,
+          airline: "Etihad Airways", airline_code: "EY", stops: 1, duration_min: 600, state: "ok" },
+        { destination: "SHJ", city: "Sharjah", fares: [], count: 0, cheapest: null, state: "ok" },
+        { destination: "ZIA", city: "Dubai", fares: [], count: 0, cheapest: null, state: "err", error: "Meezab daily limit" }
+      ] } }
+});
+countryPage.MEZ.country = countryPage.MEZ.countryData;
+const countryRenderCtx = vm.createContext(countryPage);
+vm.runInContext(renderSource + "\nmezRenderCountry();", countryRenderCtx);
+const cOut = countryHost.innerHTML;
+assert.ok(cOut.includes("UAE — sab se saste fares"), "country panel heading missing");
+assert.ok(cOut.includes('data-mez-dest="AUH"') && cOut.includes('data-mez-dest="DXB"'));
+assert.ok(cOut.indexOf("data-mez-dest=\"AUH\"") < cOut.indexOf("data-mez-dest=\"DXB\""), "country rows not price-sorted");
+assert.ok(cOut.includes("Meezab daily limit"), "country error row missing");
+assert.ok(/SHJ[\s\S]*koi fare nahi mila/.test(cOut), "empty country row message missing");
+
+console.log("Meezab UI checks passed: baggage parse, stops/baggage/airline filters, airline strip cheapest fares, sorts, auto-refresh helpers, country panel render, card + strip render.");
