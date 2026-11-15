@@ -6310,20 +6310,38 @@ function mezCountryCode(name){
 /* Bade airports pehle — airports.json mein size ka data nahi hota, is liye
    mashhoor codes ki list. Baqi "International" wale, phir naam ke hisab se. */
 var MEZ_MAJOR = ("DXB AUH SHJ DWC RUH JED DMM MED DOH BAH KWI MCT AMM BEY IST SAW ESB AYT LHR LGW STN MAN "
-  + "CDG ORY NCE FRA MUC BER AMS BRU ZRH GVA VIE MAD BCN LIS FCO MXP DXB DEL BOM BLR MAA HYD CCU COK "
+  + "CDG ORY NCE FRA MUC BER AMS BRU ZRH GVA VIE MAD BCN LIS FCO MXP DEL BOM BLR MAA HYD CCU COK "
   + "DAC CMB KTM KHI LHE ISB PEW KDU MUX SKT BKK HKT KUL SIN CGK DPS MNL HAN SGN CAN PEK PVG SHA "
   + "HKG TPE NRT HND KIX ICN JFK EWR LGA LAX SFO ORD ATL MIA IAD BOS SEA YYZ YVR DFW IAH "
-  + "SYD MEL BNE AKL JNB CPT NBO ADD CAI CMN TUN LOS ACC DAR ATH IST SVO DME LED WAW PRG BUD OTP "
-  + "SOF BEG ZAG LJU TLV RUH KBL MZR HRE LUN").split(" ");
+  + "SYD MEL BNE AKL JNB CPT NBO ADD CAI CMN TUN LOS ACC DAR ATH SVO DME LED WAW PRG BUD OTP "
+  + "SOF BEG ZAG LJU TLV KBL MZR HRE LUN GRU GIG BSB CNF POA REC FOR SSA CWB VCP BEL MAO NAT "
+  + "MEX CUN GDL MTY TIJ SJD PVR MID BOG MDE CTG BAQ PEI UIO GYE LIM CUZ SCL EZE AEP MDZ COR "
+  + "TIA KFZ BEG SKP OHD PRN TGD TLV AMM BEY DAM BGW EBL NJF IKA THR MHD SYZ KIH TBZ "
+  + "KEF AEY RKV TLL RIX VNO HEL ARN OSL CPH GOT BGO TRD SVG KRS "
+  + "LIS OPO FAO AGP PMI VLC BIO SVQ MAD BCN GRO REU TFS LPA ACE TFN FUE "
+  + "BCN IBZ ALC RMU VIT PNA BIO SDR VGO LCG OVD").split(" ");
 var MEZ_MAJOR_IDX = {};
 MEZ_MAJOR.forEach(function(c, i){ if(!(c in MEZ_MAJOR_IDX)) MEZ_MAJOR_IDX[c] = i; });
+/* International airport, capital-city airport aur bade naam wale airports ko thora
+   oper uthate hain — warna Brazil mein "ALQ" (chhota) "GRU" se pehle aa jata he. */
+function mezAirportScore(a){
+  var s = 0;
+  if(/international/i.test(a.name || "")) s += 40;
+  if(/intl\.?/i.test(a.name || "")) s += 40;
+  if(/\b(international|regional|municipal)\b/i.test(a.name || "")) s += 5;
+  // Chhote / military / private fields: kam score
+  if(/\b(air base|airbase|air force|military|army|navy|private|glider|heliport|ultralight)\b/i.test(a.name || "")) s -= 60;
+  // IATA code jismein digit ho (maslan "X1A") — chhota strip
+  if(!/^[A-Z]{3}$/.test(a.iata || "")) s -= 40;
+  return s;
+}
 function mezRankAirports(list){
   return list.slice().sort(function(a, b){
-    var ia = (a.iata in MEZ_MAJOR_IDX) ? MEZ_MAJOR_IDX[a.iata] : 999 + (a.iata.charCodeAt(0) || 0);
-    var ib = (b.iata in MEZ_MAJOR_IDX) ? MEZ_MAJOR_IDX[b.iata] : 999 + (b.iata.charCodeAt(0) || 0);
+    var ia = (a.iata in MEZ_MAJOR_IDX) ? MEZ_MAJOR_IDX[a.iata] : 9000;
+    var ib = (b.iata in MEZ_MAJOR_IDX) ? MEZ_MAJOR_IDX[b.iata] : 9000;
     if(ia !== ib) return ia - ib;
-    var aI = /international/i.test(a.name) ? 0 : 1, bI = /international/i.test(b.name) ? 0 : 1;
-    if(aI !== bI) return aI - bI;
+    var sa = mezAirportScore(a), sb = mezAirportScore(b);
+    if(sa !== sb) return sb - sa;
     return String(a.city || a.name).localeCompare(String(b.city || b.name));
   });
 }

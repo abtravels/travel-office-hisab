@@ -230,4 +230,16 @@ assert.equal(cmap.GB, "UK");
 assert.equal(cmap.KS, "Kosovo");
 assert.equal(Object.keys(cmap).length >= 200, true, "country map should cover 200+ countries");
 
+/* Airport ranking: bade / international airports pehle (v2.81) */
+const rankSrc = grab("var MEZ_MAJOR = (", "var MEZ_COUNTRY_MAX");
+const rankCtx = vm.createContext({});
+vm.runInContext(rankSrc + ";this.__rank = mezRankAirports;", rankCtx);
+const ranked = rankCtx.__rank([
+  { iata: "ALQ", name: "Aeroclube Airport", city: "Alegrete", country: "Brazil" },
+  { iata: "GRU", name: "Guarulhos International Airport", city: "Sao Paulo", country: "Brazil" },
+  { iata: "ZZZ", name: "Air Force Base", city: "Zed", country: "Brazil" }
+]);
+assert.equal(ranked[0].iata, "GRU", "international airport should rank first");
+assert.equal(ranked[2].iata, "ZZZ", "military base should rank last");
+
 console.log("Meezab UI checks passed: baggage parse, stops/baggage/airline filters, airline strip cheapest fares, sorts, auto-refresh helpers, country panel render, card + strip render, quick fare buttons, country map.");
