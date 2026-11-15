@@ -11,7 +11,19 @@ function grab(start, end) {
   assert.ok(a > 0 && b > a, "missing block: " + start);
   return html.slice(a, b);
 }
+const countryMapSrc = (() => {
+  const a = html.indexOf("var AB_COUNTRY_NAMES =");
+  const b = html.indexOf("\n", a);
+  return html.slice(a, b);
+})();
+const aliasSrc = (() => {
+  const a = html.indexOf("var AB_COUNTRY_ALIAS = {");
+  const b = html.indexOf("};", a) + 2;
+  return html.slice(a, b);
+})();
 const source =
+  countryMapSrc + "\n" +
+  aliasSrc + "\n" +
   grab("function mezBagKg(", "function mezAirlineStats(") +
   grab("function mezAirlineStats(", "function mezLogoHtml(") +
   grab("function mezBase(", "function mezPageButtons(");
@@ -66,7 +78,7 @@ context.MEZ.fares[1].departure = "2026-12-10T07:15:00";
 assert.equal(run("mezView()[0].departure"), "2026-12-10T07:15:00");
 
 /* ---- Render smoke test: poora Meezab card + airline strip bina browser ---- */
-const renderSource = grab("function mezDate(", "async function meezabLookup(");
+const renderSource = countryMapSrc + "\n" + aliasSrc + "\n" + grab("function mezDate(", "async function meezabLookup(");
 const host = { innerHTML: "", querySelector: () => null, querySelectorAll: () => [] };
 const page = {
   document: { getElementById: (id) => (id === "faMeezabResults" ? host : null) },
@@ -194,6 +206,28 @@ assert.ok(/id="bnFares"[^>]*data-tab="fares"/.test(bnBlock), "bottom bar plane b
 assert.equal(bnBtns[3].indexOf("bnFares") >= 0, true, "bottom bar plane button is not in the middle");
 assert.ok(/<span class="bf-circle">✈<\/span>/.test(bnBlock), "bottom bar plane icon missing");
 assert.ok(/function switchTab\(k\)/.test(html), "switchTab missing");
-assert.ok(/getElementById\("brandFares"\)[\s\S]{0,260}switchTab\("fares"\)/.test(html), "header plane button does not call switchTab('fares')");
+assert.ok(/getElementById\("brandFares"\)[\s\S]{0,300}switchTab\("fares"\)/.test(html), "header plane button does not call switchTab('fares')");
 
-console.log("Meezab UI checks passed: baggage parse, stops/baggage/airline filters, airline strip cheapest fares, sorts, auto-refresh helpers, country panel render, card + strip render, quick fare buttons.");
+/* Country search har mulk par chalti he, sirf UAE par nahi (v2.81) */
+const mapCount = (countryMapSrc.match(/"[^"]*"/g) || []).length;
+assert.ok(mapCount >= 240, "country name map is too small: " + mapCount + " strings");
+["AL:\"Albania\"", "CO:\"Colombia\"", "BR:\"Brazil\"", "KE:\"Kenya\"", "JP:\"Japan\"", "IS:\"Iceland\""].forEach((pair) => {
+  assert.ok(countryMapSrc.includes(pair), "country map missing " + pair);
+});
+assert.ok(/function airportsNormalize\(list\)/.test(html), "airport country normaliser missing");
+assert.ok(/function countryCandidates\(q, limit\)/.test(html), "country candidate helper missing");
+assert.ok(/function airportCountInCountry\(list, name\)/.test(html), "airport counter helper missing");
+assert.ok(/airportsNormalize\(cached\.list\)/.test(html), "cached airport list is not normalised");
+assert.ok(/var AB_COUNTRY_ALIAS = \{/.test(html), "country alias table missing");
+assert.ok(!/var MEZ_COUNTRY_ALIAS = \{/.test(html), "duplicate alias table is back");
+
+const shell = vm.createContext({});
+vm.runInContext(countryMapSrc + ";this.__map = AB_COUNTRY_NAMES;", shell);
+const cmap = shell.__map;
+assert.equal(cmap.AE, "UAE");
+assert.equal(cmap.US, "USA");
+assert.equal(cmap.GB, "UK");
+assert.equal(cmap.KS, "Kosovo");
+assert.equal(Object.keys(cmap).length >= 200, true, "country map should cover 200+ countries");
+
+console.log("Meezab UI checks passed: baggage parse, stops/baggage/airline filters, airline strip cheapest fares, sorts, auto-refresh helpers, country panel render, card + strip render, quick fare buttons, country map.");

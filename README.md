@@ -1,5 +1,13 @@
 # Travel Office Hisab — AB Travels
 
+## Country search: sirf UAE nahi, saare mulk (v2.81)
+- **Dropdown mein country row:** ab **To** ya **From** mein country ka naam likhne par dropdown mein sab se pehle **🌍 <Country> — poore mulk ke fares (N airports)** row aati he, us ke neeche us mulk ke airports. Us row par click karne se poora mulk search ho jata he.
+- **Masla kya tha:** airport data (`mwgg/Airports`) mein 236 mulkon mein se **166 mulkon ka naam sirf ISO2 code** ki shakl mein hota he — `AL` (Albania), `CO` (Colombia), `BR` (Brazil), `GS`, `PG` waghera. App ke paas sirf 78 mulkon ke naam the, is liye `Albania`, `Colombia`, `Brazil` likhne par kuch nahi milta tha. `UAE` is liye chalta tha ke us ka naam `AE` ke bajaye seedha "UAE" likha hua he.
+- **Fix:** mulkon ka naam ab **240 mulkon** ke liye mojood he, aur purana phone cache (jis mein sirf codes hain) load hote waqt khud naam mein badal diya jata he — user ko kuch clear nahi karna parta.
+- **Ab chalta he:** `UAE`, `Saudi Arabia`, `Qatar`, `Pakistan`, `UK`, `USA`, `Albania`, `Colombia`, `Brazil`, `Mexico`, `Greece`, `Thailand`, `Japan`, `Iceland`, `Kosovo`, `Kenya`, `Nigeria`, `Australia`, `Greenland`… — 236 mulk ke 7,918 airports.
+- **USA / KSA ka faisla:** ye asal mein airport codes bhi hain (`USA` = Concord, `KSA` = Kassala). Ab pehle country alias dekha jata he, is liye `USA` ya `KSA` likhne par mulk hi khulta he; asli airport chahiye to code ki jagah airport ka naam likhein ya dropdown se chunein.
+- Country search pehle ki tarah **8 bade airports** leti he, 3 parallel, price-wise — sirf ab har mulk par.
+
 ## Plane ka nishan: seedha Price Lookup (v2.80)
 - **Header:** company name (**AB Travels**) ke sath hi ek sunehri ✈ button — ek tap par **Price Lookup** khul jata he. Pehle fares tak pohanchne ke liye ☰ → Price Lookup karna parta tha.
 - **Mobile quick bar:** 7 buttons ke beech mein wohi ✈ nishan (gold circle) ubhra hua he — Sales · Invoice · Files · **✈** · Expense · Pending · Menu. Jab Price Lookup khula ho to circle roshan (amber glow) ho jata he.

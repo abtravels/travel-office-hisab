@@ -635,7 +635,7 @@
   <div class="brand">
     <img src="logo.png" alt="AB Travels" decoding="async" onerror="this.style.display='none'">
     <div style="min-width:0;">
-      <h1>AB Travels <span class="ver" id="verBadge">v2.80</span></h1>
+      <h1>AB Travels <span class="ver" id="verBadge">v2.81</span></h1>
       <div class="tag">Ahmed Brothers Hajj &amp; Umra Services (Pvt) Ltd</div>
     </div>
     <button id="brandFares" class="brand-fares" type="button" title="Price Lookup — flight fares" aria-label="Price Lookup — flight fares">✈</button>
@@ -704,7 +704,7 @@
 <script>
 /* ================= DATA ================= */
 var KEY = "travelOfficeHisab";
-var APP_VER = "2.80";
+var APP_VER = "2.81";
 var MONTH_NAMES = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
 /* Cloudflare Worker — Ignav flight prices proxy (free plan, no credit card) */
 var IGNAV_WORKER_CODE = "// AB Travels - Ignav flight prices proxy (Cloudflare Worker)\n// Ignav API key SERVER par rehti hai - app/browser mein kabhi nahi aati.\n//\n// SETUP (ek dafa, ~5 min, free):\n// 1) ignav.com/signup -> free account -> dashboard se API key\n// 2) cloudflare.com -> free account -> Workers & Pages -> Create Worker -> yeh code paste -> Deploy\n// 3) Worker -> Settings -> Variables and Secrets -> secret add karein:\n//      IGNAV_API_KEY = (aap ki Ignav key)\n// 4) Worker URL (https://xxx.workers.dev) app -> Settings -> Flight prices -> paste -> Save & test\n\nexport default {\n  async fetch(request, env) {\n    const cors = {\n      'Access-Control-Allow-Origin': env.ALLOWED_ORIGIN || '*',\n      'Access-Control-Allow-Methods': 'GET,POST,OPTIONS',\n      'Access-Control-Allow-Headers': 'Content-Type',\n      'Access-Control-Max-Age': '86400'\n    };\n    const url = new URL(request.url);\n    if (request.method === 'OPTIONS') return new Response(null, { status: 204, headers: cors });\n    if (!env.IGNAV_API_KEY) {\n      return new Response(JSON.stringify({ error: { code: 'no_key', message: 'IGNAV_API_KEY secret is not set in the Worker.' } }), { status: 500, headers: Object.assign({ 'Content-Type': 'application/json' }, cors) });\n    }\n    const base = 'https://ignav.com/api';\n    let target = '';\n    let init = { method: 'GET', headers: { 'X-Api-Key': env.IGNAV_API_KEY } };\n    if (url.pathname === '/health') {\n      target = base + '/health';\n    } else if (url.pathname === '/fares') {\n      if (request.method !== 'POST') return new Response(JSON.stringify({ error: { message: 'POST only' } }), { status: 405, headers: cors });\n      const body = await request.text();\n      target = base + '/fares/one-way';\n      init = { method: 'POST', headers: { 'X-Api-Key': env.IGNAV_API_KEY, 'Content-Type': 'application/json' }, body };\n    } else if (url.pathname === '/search') {\n      if (request.method !== 'POST') return new Response(JSON.stringify({ error: { message: 'POST only' } }), { status: 405, headers: cors });\n      const body = await request.text();\n      target = base + '/fares/search';\n      init = { method: 'POST', headers: { 'X-Api-Key': env.IGNAV_API_KEY, 'Content-Type': 'application/json' }, body };\n    } else if (url.pathname === '/round-trip') {\n      if (request.method !== 'POST') return new Response(JSON.stringify({ error: { message: 'POST only' } }), { status: 405, headers: cors });\n      const body = await request.text();\n      target = base + '/fares/round-trip';\n      init = { method: 'POST', headers: { 'X-Api-Key': env.IGNAV_API_KEY, 'Content-Type': 'application/json' }, body };\n    } else if (url.pathname === '/booking-links') {\n      if (request.method !== 'POST') return new Response(JSON.stringify({ error: { message: 'POST only' } }), { status: 405, headers: cors });\n      const body = await request.text();\n      target = base + '/fares/booking-links';\n      init = { method: 'POST', headers: { 'X-Api-Key': env.IGNAV_API_KEY, 'Content-Type': 'application/json' }, body };\n    } else {\n      return new Response(JSON.stringify({ error: { message: 'not found' } }), { status: 404, headers: Object.assign({ 'Content-Type': 'application/json' }, cors) });\n    }\n    try {\n      const r = await fetch(target, init);\n      const text = await r.text();\n      return new Response(text, { status: r.status, headers: Object.assign({ 'Content-Type': 'application/json' }, cors) });\n    } catch (e) {\n      return new Response(JSON.stringify({ error: { message: String((e && e.message) || e) } }), { status: 502, headers: Object.assign({ 'Content-Type': 'application/json' }, cors) });\n    }\n  }\n};\n";
@@ -2446,18 +2446,64 @@ function cacheAirLogos(){
   });
 }
 /* Airports — internet se fetch (country/city/code search), localStorage cache */
-var AB_COUNTRY_NAMES = { PK:"Pakistan", AE:"UAE", SA:"Saudi Arabia", QA:"Qatar", BH:"Bahrain", KW:"Kuwait", OM:"Oman", TR:"Turkey", US:"USA", GB:"UK", IN:"India", BD:"Bangladesh", LK:"Sri Lanka", NP:"Nepal", MY:"Malaysia", SG:"Singapore", TH:"Thailand", ID:"Indonesia", PH:"Philippines", CN:"China", JP:"Japan", KR:"South Korea", VN:"Vietnam", EG:"Egypt", JO:"Jordan", LB:"Lebanon", IQ:"Iraq", IR:"Iran", AF:"Afghanistan", UZ:"Uzbekistan", KZ:"Kazakhstan", AZ:"Azerbaijan", GE:"Georgia", ET:"Ethiopia", KE:"Kenya", NG:"Nigeria", ZA:"South Africa", MA:"Morocco", TN:"Tunisia", DZ:"Algeria", LY:"Libya", SD:"Sudan", CA:"Canada", AU:"Australia", NZ:"New Zealand", DE:"Germany", FR:"France", IT:"Italy", ES:"Spain", NL:"Netherlands", BE:"Belgium", CH:"Switzerland", AT:"Austria", SE:"Sweden", NO:"Norway", DK:"Denmark", FI:"Finland", PL:"Poland", UA:"Ukraine", RU:"Russia", GR:"Greece", PT:"Portugal", IE:"Ireland", HU:"Hungary", CZ:"Czechia", RO:"Romania", IL:"Israel", MV:"Maldives", MM:"Myanmar", KH:"Cambodia", MN:"Mongolia" };
+var AB_COUNTRY_NAMES = {AD:"Andorra", AE:"UAE", AF:"Afghanistan", AG:"Antigua and Barbuda", AI:"Anguilla", AL:"Albania", AM:"Armenia", AO:"Angola", AQ:"Antarctica", AR:"Argentina", AS:"American Samoa", AT:"Austria", AU:"Australia", AW:"Aruba", AX:"Aland Islands", AZ:"Azerbaijan", BA:"Bosnia and Herzegovina", BB:"Barbados", BD:"Bangladesh", BE:"Belgium", BF:"Burkina Faso", BG:"Bulgaria", BH:"Bahrain", BI:"Burundi", BJ:"Benin", BL:"Saint Barthelemy", BM:"Bermuda", BN:"Brunei", BO:"Bolivia", BQ:"Caribbean Netherlands", BR:"Brazil", BS:"Bahamas", BT:"Bhutan", BW:"Botswana", BY:"Belarus", BZ:"Belize", CA:"Canada", CC:"Cocos Islands", CD:"DR Congo", CF:"Central African Republic", CG:"Congo", CH:"Switzerland", CI:"Ivory Coast", CK:"Cook Islands", CL:"Chile", CM:"Cameroon", CN:"China", CO:"Colombia", CR:"Costa Rica", CU:"Cuba", CV:"Cape Verde", CW:"Curacao", CX:"Christmas Island", CY:"Cyprus", CZ:"Czechia", DE:"Germany", DJ:"Djibouti", DK:"Denmark", DM:"Dominica", DO:"Dominican Republic", DZ:"Algeria", EC:"Ecuador", EE:"Estonia", EG:"Egypt", EH:"Western Sahara", ER:"Eritrea", ES:"Spain", ET:"Ethiopia", FI:"Finland", FJ:"Fiji", FK:"Falkland Islands", FM:"Micronesia", FO:"Faroe Islands", FR:"France", GA:"Gabon", GB:"UK", GD:"Grenada", GE:"Georgia", GF:"French Guiana", GG:"Guernsey", GH:"Ghana", GI:"Gibraltar", GL:"Greenland", GM:"Gambia", GN:"Guinea", GP:"Guadeloupe", GQ:"Equatorial Guinea", GR:"Greece", GT:"Guatemala", GU:"Guam", GW:"Guinea-Bissau", GY:"Guyana", HK:"Hong Kong", HN:"Honduras", HR:"Croatia", HT:"Haiti", HU:"Hungary", ID:"Indonesia", IE:"Ireland", IL:"Israel", IM:"Isle of Man", IN:"India", IO:"British Indian Ocean Territory", IQ:"Iraq", IR:"Iran", IS:"Iceland", IT:"Italy", JE:"Jersey", JM:"Jamaica", JO:"Jordan", JP:"Japan", KE:"Kenya", KG:"Kyrgyzstan", KH:"Cambodia", KI:"Kiribati", KM:"Comoros", KN:"Saint Kitts and Nevis", KP:"North Korea", KR:"South Korea", KS:"Kosovo", KW:"Kuwait", KY:"Cayman Islands", KZ:"Kazakhstan", LA:"Laos", LB:"Lebanon", LC:"Saint Lucia", LK:"Sri Lanka", LR:"Liberia", LS:"Lesotho", LT:"Lithuania", LU:"Luxembourg", LV:"Latvia", LY:"Libya", MA:"Morocco", MD:"Moldova", ME:"Montenegro", MF:"Saint Martin", MG:"Madagascar", MH:"Marshall Islands", MK:"North Macedonia", ML:"Mali", MM:"Myanmar", MN:"Mongolia", MO:"Macau", MP:"Northern Mariana Islands", MQ:"Martinique", MR:"Mauritania", MS:"Montserrat", MT:"Malta", MU:"Mauritius", MV:"Maldives", MW:"Malawi", MX:"Mexico", MY:"Malaysia", MZ:"Mozambique", NA:"Namibia", NC:"New Caledonia", NE:"Niger", NF:"Norfolk Island", NG:"Nigeria", NI:"Nicaragua", NL:"Netherlands", NO:"Norway", NP:"Nepal", NR:"Nauru", NU:"Niue", NZ:"New Zealand", OM:"Oman", PA:"Panama", PE:"Peru", PF:"French Polynesia", PG:"Papua New Guinea", PH:"Philippines", PK:"Pakistan", PL:"Poland", PM:"Saint Pierre and Miquelon", PR:"Puerto Rico", PS:"Palestine", PT:"Portugal", PW:"Palau", PY:"Paraguay", QA:"Qatar", RE:"Reunion", RO:"Romania", RS:"Serbia", RU:"Russia", RW:"Rwanda", SA:"Saudi Arabia", SB:"Solomon Islands", SC:"Seychelles", SD:"Sudan", SE:"Sweden", SG:"Singapore", SH:"Saint Helena", SI:"Slovenia", SK:"Slovakia", SL:"Sierra Leone", SN:"Senegal", SO:"Somalia", SR:"Suriname", SS:"South Sudan", ST:"Sao Tome and Principe", SV:"El Salvador", SX:"Sint Maarten", SY:"Syria", SZ:"Eswatini", TC:"Turks and Caicos", TD:"Chad", TG:"Togo", TH:"Thailand", TJ:"Tajikistan", TL:"Timor-Leste", TM:"Turkmenistan", TN:"Tunisia", TO:"Tonga", TR:"Turkey", TT:"Trinidad and Tobago", TV:"Tuvalu", TW:"Taiwan", TZ:"Tanzania", UA:"Ukraine", UG:"Uganda", UM:"US Minor Outlying Islands", US:"USA", UY:"Uruguay", UZ:"Uzbekistan", VA:"Vatican", VC:"Saint Vincent and the Grenadines", VE:"Venezuela", VG:"British Virgin Islands", VI:"US Virgin Islands", VN:"Vietnam", VU:"Vanuatu", WF:"Wallis and Futuna", WS:"Samoa", YE:"Yemen", YT:"Mayotte", ZA:"South Africa", ZM:"Zambia", ZW:"Zimbabwe" };
 var AB_AIRPORTS_MEM = null;
 var AB_AIRPORTS_HAY = null;
 function countryName(cc){
   return AB_COUNTRY_NAMES[cc] || cc;
+}
+/* "UAE", "USA", "KSA" jaisi likhawat ke liye chhote naam. */
+var AB_COUNTRY_ALIAS = { "uae":"AE", "u.a.e":"AE", "u.a.e.":"AE", "emirates":"AE",
+  "united arab emirates":"AE", "uk":"GB", "england":"GB", "britain":"GB", "united kingdom":"GB",
+  "usa":"US", "us":"US", "america":"US", "united states":"US", "united states of america":"US",
+  "turkiye":"TR", "türkiye":"TR", "saudi":"SA", "saudi arabia":"SA", "k.s.a":"SA", "ksa":"SA",
+  "holland":"NL", "uae.":"AE" };
+/* Typed text se country dhoondein — dropdown ki "🌍 <country>" row aur country search
+   dono yahi list use karte hain. Pehle poora naam / chhota naam, phir shuru se match,
+   phir andar kahin bhi match. */
+function countryCandidates(q, limit){
+  var qn = String(q||"").trim().toLowerCase();
+  if(!qn) return [];
+  var out = [], seen = {};
+  function add(cc){
+    if(!cc || seen[cc] || !AB_COUNTRY_NAMES[cc]) return;
+    seen[cc] = 1;
+    out.push({ code: cc, name: AB_COUNTRY_NAMES[cc] });
+  }
+  if(AB_COUNTRY_ALIAS[qn]) add(AB_COUNTRY_ALIAS[qn]);
+  if(/^[a-z]{2}$/.test(qn)) add(qn.toUpperCase());
+  var keys = Object.keys(AB_COUNTRY_NAMES), i;
+  for(i = 0; i < keys.length; i++){
+    if(String(AB_COUNTRY_NAMES[keys[i]]).toLowerCase().indexOf(qn) === 0) add(keys[i]);
+  }
+  for(i = 0; i < keys.length; i++){
+    var n = String(AB_COUNTRY_NAMES[keys[i]]).toLowerCase();
+    if(n.indexOf(qn) > 0) add(keys[i]);
+  }
+  return out.slice(0, limit || 3);
+}
+function airportCountInCountry(list, name){
+  var n = 0;
+  for(var i = 0; i < (list || []).length; i++) if(list[i].country === name) n++;
+  return n;
+}
+/* Airport data mein kuch mulkon ka naam ISO2 code ("AL", "CO") ki shakl mein hota he.
+   Purane cache (phone par) bhi wahi codes rakhte hain, is liye load par naam bana dete hain —
+   warna "Albania" likhne par kuch nahi milta. */
+function airportsNormalize(list){
+  if(!list) return list;
+  for(var i = 0; i < list.length; i++){
+    var c = String(list[i].country || "");
+    if(/^[A-Z]{2}$/.test(c) && AB_COUNTRY_NAMES[c]) list[i].country = AB_COUNTRY_NAMES[c];
+  }
+  return list;
 }
 function airportsCache(cb, force){
   if(AB_AIRPORTS_MEM && AB_AIRPORTS_MEM.length && !force){ cb(AB_AIRPORTS_MEM); return; }
   var cached = null;
   try{ cached = JSON.parse(localStorage.getItem("ab_airports") || "null"); }catch(e){}
   if(!force && cached && cached.list && cached.list.length){
-    AB_AIRPORTS_MEM = cached.list;
+    AB_AIRPORTS_MEM = airportsNormalize(cached.list);
     AB_AIRPORTS_HAY = null;
     cb(AB_AIRPORTS_MEM);
     if(Date.now() - cached.ts > 7*86400000) airportsCache(function(){}, true); // background refresh
@@ -2488,7 +2534,7 @@ function airportList(){
   if(!list){
     try{
       var cached = JSON.parse(localStorage.getItem("ab_airports") || "null");
-      if(cached && cached.list) list = AB_AIRPORTS_MEM = cached.list;
+      if(cached && cached.list) list = AB_AIRPORTS_MEM = airportsNormalize(cached.list);
     }catch(e){}
   }
   return list || null;
@@ -2538,11 +2584,32 @@ function bindAirportField(inputId){
     for(var i = 0; i < list.length && matches.length < 15; i++){
       if(list[i].iata === qu || hay.keys[i].indexOf(qn) >= 0) matches.push(list[i]);
     }
-    if(!matches.length) return;
+    /* Country ka naam likhne par sab se pehle ek "country" row — us par click karne se
+       poore mulk (8 bade airports) ki fare search chalti he. Warna sirf airport rows
+       milti hain aur "UAE" likhne par kuch bhi nazar nahi aata. */
+    var countries = countryCandidates(qn, 3).filter(function(c){
+      return airportCountInCountry(list, c.name) > 0;
+    });
+    if(!matches.length && !countries.length) return;
     arr = matches;
     activeIdx = -1;
     drop = document.createElement("div");
-    drop.style.cssText = "position:absolute; left:0; right:auto; border:1px solid var(--line); border-radius:10px; max-height:200px; overflow-y:auto; background:var(--card); color:var(--ink); box-shadow:0 8px 24px rgba(0,0,0,.28); z-index:45;";
+    drop.style.cssText = "position:absolute; left:0; right:auto; border:1px solid var(--line); border-radius:10px; max-height:240px; overflow-y:auto; background:var(--card); color:var(--ink); box-shadow:0 8px 24px rgba(0,0,0,.28); z-index:45;";
+    if(countries.length){
+      countries.forEach(function(c){
+        var row = document.createElement("div");
+        row.style.cssText = "padding:8px 10px; cursor:pointer; border-bottom:1px solid var(--line-soft); font-size:13px; background:rgba(251,191,36,.07);";
+        row.innerHTML = "🌍 <b>"+esc(c.name)+"</b> <span style='color:#94a3b8;'>— poore mulk ke fares ("
+          + airportCountInCountry(list, c.name) + " airports)</span>";
+        row.onmousedown = function(){
+          inp.value = c.name;
+          var info = inp.parentNode.querySelector(".airport-info");
+          if(info) info.textContent = "🌍 " + c.name + " — sab se saste fares us mulk ke airports se";
+          closeDrop();
+        };
+        drop.appendChild(row);
+      });
+    }
     matches.forEach(function(a){
       var row = document.createElement("div");
       row.style.cssText = "padding:8px 10px; cursor:pointer; border-bottom:1px solid var(--line-soft); font-size:13px;";
@@ -6231,22 +6298,14 @@ function mezFilterNote(){
   if(MEZ.baggage !== "all") p.push(MEZ.baggage === "checked" ? "checked bag" : "cabin only");
   return p.join(" · ");
 }
-/* ---------- Country / city search (v2.79) ---------- */
+/* ---------- Country / city search (v2.79, v2.81: saare mulk) ---------- */
 /* "UAE", "Saudi Arabia", "Dubai" jaisi search ke liye country code milate hain. */
-var MEZ_COUNTRY_ALIAS = { "uae":"AE", "u.a.e":"AE", "u.a.e.":"AE", "emirates":"AE",
-  "united arab emirates":"AE", "uk":"GB", "england":"GB", "britain":"GB", "united kingdom":"GB",
-  "usa":"US", "us":"US", "america":"US", "united states":"US", "united states of america":"US",
-  "turkiye":"TR", "türkiye":"TR", "saudi":"SA", "saudi arabia":"SA", "k.s.a":"SA", "ksa":"SA" };
+var MEZ_COUNTRY_ALIAS = AB_COUNTRY_ALIAS;
 function mezCountryCode(name){
   var q = String(name||"").trim().toLowerCase();
   if(!q) return "";
-  if(MEZ_COUNTRY_ALIAS[q]) return MEZ_COUNTRY_ALIAS[q];
-  if(/^[a-z]{2}$/.test(q)) return q.toUpperCase();
-  var keys = Object.keys(AB_COUNTRY_NAMES);
-  for(var i = 0; i < keys.length; i++){
-    if(String(AB_COUNTRY_NAMES[keys[i]]).toLowerCase() === q) return keys[i];
-  }
-  return "";
+  var cands = countryCandidates(q, 1);
+  return cands.length ? cands[0].code : "";
 }
 /* Bade airports pehle — airports.json mein size ka data nahi hota, is liye
    mashhoor codes ki list. Baqi "International" wale, phir naam ke hisab se. */
@@ -6268,23 +6327,31 @@ function mezRankAirports(list){
     return String(a.city || a.name).localeCompare(String(b.city || b.name));
   });
 }
-/* Typed text se airports nikaalo: pehle IATA, phir country, phir city, phir airport ka naam. */
+/* Typed text se airports nikaalo: pehle country alias, phir IATA, phir country, phir city, phir naam. */
 function mezLocateAirports(q){
   var qn = String(q||"").trim().toLowerCase();
   if(!qn) return null;
   var list = airportList() || [];
   var up = qn.toUpperCase();
+  var i;
+  /* "USA" / "KSA" asal mein airport codes bhi hote hain (Concord, Kassala) — lekin
+     log in se mulk chahte hain, is liye alias pehle dekhte hain. */
+  if(AB_COUNTRY_ALIAS[qn]){
+    var aliasCc = AB_COUNTRY_ALIAS[qn], aliasName = countryName(aliasCc);
+    var aliasIn = list.filter(function(a){ return a.country === aliasName; });
+    if(aliasIn.length) return { kind:"country", label:aliasName, code:aliasCc, total:aliasIn.length, list:mezRankAirports(aliasIn) };
+  }
   if(/^[A-Z]{3}$/.test(up)){
-    for(var i = 0; i < list.length; i++) if(list[i].iata === up) return { kind:"iata", label:up, list:[list[i]] };
+    for(i = 0; i < list.length; i++) if(list[i].iata === up) return { kind:"iata", label:up, list:[list[i]] };
   }
-  // Country naam data mein jaisa likha he waisa hi match karein (AB_COUNTRY_NAMES chhoti list he).
-  var byCountry = list.filter(function(a){ return String(a.country||"").toLowerCase() === qn; });
-  var cc = mezCountryCode(qn);
-  if(cc){
-    var cname = countryName(cc);
+  // Country ke saare candidate codes (poora naam / shuru se / andar kahin bhi match).
+  var cands = countryCandidates(qn, 4);
+  for(i = 0; i < cands.length; i++){
+    var cname = cands[i].name;
     var inC = list.filter(function(a){ return a.country === cname; });
-    if(inC.length) return { kind:"country", label:cname, code:cc, total:inC.length, list:mezRankAirports(inC) };
+    if(inC.length) return { kind:"country", label:cname, code:cands[i].code, total:inC.length, list:mezRankAirports(inC) };
   }
+  var byCountry = list.filter(function(a){ return String(a.country||"").toLowerCase() === qn; });
   if(byCountry.length){
     return { kind:"country", label:String(byCountry[0].country || q.trim()), total:byCountry.length,
       list:mezRankAirports(byCountry) };
@@ -6646,9 +6713,12 @@ async function meezabLookup(){
   await mezAirportsReady();
   var plan = null;
   var toUp = toRaw.toUpperCase();
-  /* 3-letter code sirf tab IATA maanein jab woh asli airport ho — warna "UAE"/"USA"
-     jaisa country code Meezab ko bhejne se search fail hoti he. */
-  if(/^[A-Z]{3}$/.test(toUp)){
+  /* "USA" / "KSA" / "UAE" airport codes bhi hain (Concord, Kassala) — lekin log in se
+     mulk chahte hain. Alias pehle, phir asli IATA airport. */
+  var aliasCc = /^[A-Z]{2,3}$/.test(toUp) ? AB_COUNTRY_ALIAS[toUp.toLowerCase()] : "";
+  if(aliasCc){
+    plan = mezLocateAirports(toRaw);
+  } else if(/^[A-Z]{3}$/.test(toUp)){
     var known = airportFind(toUp);
     if(known) plan = { kind:"iata", label:toUp, total:1, list:[known] };
     else if(!airportList()) plan = { kind:"iata", label:toUp, total:1, list:[{ iata:toUp }] }; // list load nahi hui
