@@ -180,4 +180,20 @@ assert.ok(cOut.indexOf("data-mez-dest=\"AUH\"") < cOut.indexOf("data-mez-dest=\"
 assert.ok(cOut.includes("Meezab daily limit"), "country error row missing");
 assert.ok(/SHJ[\s\S]*koi fare nahi mila/.test(cOut), "empty country row message missing");
 
-console.log("Meezab UI checks passed: baggage parse, stops/baggage/airline filters, airline strip cheapest fares, sorts, auto-refresh helpers, country panel render, card + strip render.");
+/* Quick fare buttons: header brand ke sath plane + mobile bottom bar ke beech mein bhi (v2.80) */
+const brandBtn = html.match(/<button id="brandFares"[^>]*>([\s\S]{0,40}?)<\/button>/);
+assert.ok(brandBtn, "header plane button missing");
+assert.ok(/✈/.test(brandBtn[1]), "header plane button icon missing");
+assert.ok(/class="brand-fares"/.test(brandBtn[0]), "header plane button class missing");
+assert.ok(/aria-label="Price Lookup/.test(brandBtn[0]), "header plane button is not labelled for Price Lookup");
+
+const bnBlock = html.slice(html.indexOf('<nav id="bottomNav"'), html.indexOf("</nav>", html.indexOf('<nav id="bottomNav"')));
+const bnBtns = bnBlock.match(/<button[\s\S]*?<\/button>/g) || [];
+assert.equal(bnBtns.length, 7, "bottom bar should have 7 buttons (plane in the middle)");
+assert.ok(/id="bnFares"[^>]*data-tab="fares"/.test(bnBlock), "bottom bar plane button does not open Price Lookup");
+assert.equal(bnBtns[3].indexOf("bnFares") >= 0, true, "bottom bar plane button is not in the middle");
+assert.ok(/<span class="bf-circle">✈<\/span>/.test(bnBlock), "bottom bar plane icon missing");
+assert.ok(/function switchTab\(k\)/.test(html), "switchTab missing");
+assert.ok(/getElementById\("brandFares"\)[\s\S]{0,260}switchTab\("fares"\)/.test(html), "header plane button does not call switchTab('fares')");
+
+console.log("Meezab UI checks passed: baggage parse, stops/baggage/airline filters, airline strip cheapest fares, sorts, auto-refresh helpers, country panel render, card + strip render, quick fare buttons.");

@@ -33,6 +33,11 @@
   header h1{margin:0; font-size:16.5px; font-weight:800; letter-spacing:.2px; line-height:1.2; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
   header .tag{font-size:10.5px; color:#8fa3bb; margin-top:1px; letter-spacing:.15px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
   .ver{font-size:10px; color:#fbbf24; font-weight:800; margin-left:6px; background:rgba(217,119,6,.16); border:1px solid rgba(251,191,36,.3); padding:1px 6px; border-radius:999px; vertical-align:1px;}
+  /* Company name ke sath plane ka nishan — ek tap par seedha Price Lookup */
+  header .brand-fares{flex:0 0 auto; display:inline-flex; align-items:center; justify-content:center; width:34px; height:34px; padding:0; margin-left:2px; border-radius:50%; border:1px solid rgba(251,191,36,.45); background:linear-gradient(150deg,rgba(251,191,36,.22),rgba(217,119,6,.10)); color:#fbbf24; font-size:17px; line-height:1; cursor:pointer; box-shadow:0 0 0 3px rgba(251,191,36,.06); transition:background .15s,border-color .15s,color .15s,transform .15s;}
+  header .brand-fares:hover{background:linear-gradient(150deg,rgba(251,191,36,.36),rgba(217,119,6,.20)); border-color:rgba(251,191,36,.78); color:#fff;}
+  header .brand-fares:active{transform:scale(.92);}
+  header .brand-fares:focus-visible{outline:2px solid rgba(251,191,36,.7); outline-offset:3px;}
   .hints-btn{margin-left:auto; flex:0 0 auto; border:1px solid rgba(148,163,184,.28); background:rgba(255,255,255,.05); color:#cbd5e1; border-radius:999px; padding:6px 11px; font-size:11px; font-weight:700; letter-spacing:.2px; cursor:pointer; transition:background .15s,border-color .15s,color .15s;}
   .hints-btn:hover{background:rgba(255,255,255,.1); border-color:rgba(251,191,36,.45); color:#fff;}
   #menuBtn{display:none; align-items:center; justify-content:center; flex:0 0 auto; width:34px; height:34px; border:1px solid rgba(148,163,184,.28); background:rgba(255,255,255,.05); color:#fff; border-radius:9px; font-size:16px; line-height:1; cursor:pointer;}
@@ -465,6 +470,19 @@
     #bottomNav button.active{color:#fff; background:rgba(148,163,184,.13);}
     #bottomNav button.active::before{content:""; position:absolute; top:-3px; left:50%; margin-left:-13px; width:26px; height:3px; border-radius:3px; background:linear-gradient(90deg,#d97706,#fbbf24,#d97706);}
     #bottomNav button:active{background:rgba(148,163,184,.22);}
+    /* Beech mein plane ka nishan — ek tap par Price Lookup */
+    #bottomNav button#bnFares{flex:0 0 auto; width:58px; padding:0; position:relative; top:-12px; justify-content:center; gap:0; background:transparent;}
+    #bottomNav button#bnFares .bf-circle{display:flex; align-items:center; justify-content:center; width:46px; height:46px; border-radius:50%; border:1.5px solid rgba(251,191,36,.60); background:linear-gradient(150deg,#fbbf24,#d97706); color:#3b2400; font-size:21px; line-height:1; box-shadow:0 6px 16px rgba(217,119,6,.44), 0 0 0 4px rgba(15,23,42,.92); transition:transform .15s,box-shadow .15s,background .15s;}
+    #bottomNav button#bnFares .bl{display:none;}
+    #bottomNav button#bnFares:active{background:transparent;}
+    #bottomNav button#bnFares:active .bf-circle{transform:scale(.92);}
+    #bottomNav button#bnFares.active{background:transparent;}
+    #bottomNav button#bnFares.active .bf-circle{background:linear-gradient(150deg,#fde68a,#f59e0b); box-shadow:0 6px 18px rgba(251,191,36,.55), 0 0 0 4px rgba(15,23,42,.92);}
+    body.oled #bottomNav button#bnFares .bf-circle{color:#2a1a00; box-shadow:0 6px 16px rgba(217,119,6,.40), 0 0 0 4px #000;}
+    body.oled #bottomNav button#bnFares.active .bf-circle{box-shadow:0 6px 18px rgba(251,191,36,.5), 0 0 0 4px #000;}
+    #bottomNav button#bnFares:focus-visible{outline:none;}
+    #bottomNav button#bnFares:focus-visible .bf-circle{outline:2px solid rgba(251,191,36,.8); outline-offset:2px;}
+    #bottomNav button#bnFares.active::before{display:none;}
     /* Drawer neeche tak scroll ho to MENU heading aur ✕ hamesha oper rahein */
     .nav-head{position:sticky; top:0; z-index:3; background:#0f172a; padding-top:2px;}
     body.oled .nav-head{background:#000;}
@@ -482,13 +500,16 @@
     #menuBtn{width:38px; height:38px;}
     .hints-btn{min-height:34px; display:inline-flex; align-items:center; justify-content:center;}
     .fa-arrow{display:none !important;}
+    /* Plane ka nishan header mein thora chhota, taake company name ka text na kate */
+    header .brand-fares{width:31px; height:31px; font-size:15.5px; margin-left:0;}
   }
   @media (max-width: 430px){
     header{gap:8px; padding:8px 10px 9px;}
-    header .brand{flex:1 1 auto; min-width:0;}
+    header .brand{flex:1 1 auto; min-width:0; gap:9px;}
     header .tag{max-width:150px;}
     header h1{font-size:14.5px;}
     .hints-btn{padding:5px 8px;}
+    header .brand-fares{width:29px; height:29px; font-size:14.5px;}
   }
 
   /* ================= MODERN POLISH (v2.69) ================= */
@@ -577,6 +598,8 @@
       #bottomNav{padding-left:2px; padding-right:2px;}
       #bottomNav button{font-size:9.5px; padding-left:1px; padding-right:1px;}
       #bottomNav button .bi{font-size:18px;}
+      #bottomNav button#bnFares{width:52px; top:-10px;}
+      #bottomNav button#bnFares .bf-circle{width:42px; height:42px; font-size:19px;}
     }
   }
 
@@ -612,9 +635,10 @@
   <div class="brand">
     <img src="logo.png" alt="AB Travels" decoding="async" onerror="this.style.display='none'">
     <div style="min-width:0;">
-      <h1>AB Travels <span class="ver" id="verBadge">v2.79</span></h1>
+      <h1>AB Travels <span class="ver" id="verBadge">v2.80</span></h1>
       <div class="tag">Ahmed Brothers Hajj &amp; Umra Services (Pvt) Ltd</div>
     </div>
+    <button id="brandFares" class="brand-fares" type="button" title="Price Lookup — flight fares" aria-label="Price Lookup — flight fares">✈</button>
   </div>
   <div class="ayat-head" id="ayatHead" role="button" tabindex="0" aria-expanded="false" title="Tap for the full verse">
     <div class="ar" dir="rtl" lang="ar">وَمَن يَتَّقِ اللَّهَ يَجْعَل لَّهُ مَخْرَجًا ۞ وَيَرْزُقْهُ مِنْ حَيْثُ لَا يَحْتَسِبُ</div>
@@ -671,6 +695,7 @@
   <button data-tab="tickets"><span class="bi">🎫</span><span class="bl">Sales</span></button>
   <button data-tab="invoice"><span class="bi">🧾</span><span class="bl">Invoice</span></button>
   <button data-tab="files"><span class="bi">📁</span><span class="bl">Files</span></button>
+  <button id="bnFares" data-tab="fares" aria-label="Price Lookup — flight fares" title="Price Lookup — flight fares"><span class="bf-circle">✈</span><span class="bl">Fares</span></button>
   <button data-tab="exp"><span class="bi">💸</span><span class="bl">Expense</span></button>
   <button data-tab="bakaya"><span class="bi">💳</span><span class="bl">Pending</span></button>
   <button id="bnMenu"><span class="bi">☰</span><span class="bl">Menu</span></button>
@@ -679,7 +704,7 @@
 <script>
 /* ================= DATA ================= */
 var KEY = "travelOfficeHisab";
-var APP_VER = "2.79";
+var APP_VER = "2.80";
 var MONTH_NAMES = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
 /* Cloudflare Worker — Ignav flight prices proxy (free plan, no credit card) */
 var IGNAV_WORKER_CODE = "// AB Travels - Ignav flight prices proxy (Cloudflare Worker)\n// Ignav API key SERVER par rehti hai - app/browser mein kabhi nahi aati.\n//\n// SETUP (ek dafa, ~5 min, free):\n// 1) ignav.com/signup -> free account -> dashboard se API key\n// 2) cloudflare.com -> free account -> Workers & Pages -> Create Worker -> yeh code paste -> Deploy\n// 3) Worker -> Settings -> Variables and Secrets -> secret add karein:\n//      IGNAV_API_KEY = (aap ki Ignav key)\n// 4) Worker URL (https://xxx.workers.dev) app -> Settings -> Flight prices -> paste -> Save & test\n\nexport default {\n  async fetch(request, env) {\n    const cors = {\n      'Access-Control-Allow-Origin': env.ALLOWED_ORIGIN || '*',\n      'Access-Control-Allow-Methods': 'GET,POST,OPTIONS',\n      'Access-Control-Allow-Headers': 'Content-Type',\n      'Access-Control-Max-Age': '86400'\n    };\n    const url = new URL(request.url);\n    if (request.method === 'OPTIONS') return new Response(null, { status: 204, headers: cors });\n    if (!env.IGNAV_API_KEY) {\n      return new Response(JSON.stringify({ error: { code: 'no_key', message: 'IGNAV_API_KEY secret is not set in the Worker.' } }), { status: 500, headers: Object.assign({ 'Content-Type': 'application/json' }, cors) });\n    }\n    const base = 'https://ignav.com/api';\n    let target = '';\n    let init = { method: 'GET', headers: { 'X-Api-Key': env.IGNAV_API_KEY } };\n    if (url.pathname === '/health') {\n      target = base + '/health';\n    } else if (url.pathname === '/fares') {\n      if (request.method !== 'POST') return new Response(JSON.stringify({ error: { message: 'POST only' } }), { status: 405, headers: cors });\n      const body = await request.text();\n      target = base + '/fares/one-way';\n      init = { method: 'POST', headers: { 'X-Api-Key': env.IGNAV_API_KEY, 'Content-Type': 'application/json' }, body };\n    } else if (url.pathname === '/search') {\n      if (request.method !== 'POST') return new Response(JSON.stringify({ error: { message: 'POST only' } }), { status: 405, headers: cors });\n      const body = await request.text();\n      target = base + '/fares/search';\n      init = { method: 'POST', headers: { 'X-Api-Key': env.IGNAV_API_KEY, 'Content-Type': 'application/json' }, body };\n    } else if (url.pathname === '/round-trip') {\n      if (request.method !== 'POST') return new Response(JSON.stringify({ error: { message: 'POST only' } }), { status: 405, headers: cors });\n      const body = await request.text();\n      target = base + '/fares/round-trip';\n      init = { method: 'POST', headers: { 'X-Api-Key': env.IGNAV_API_KEY, 'Content-Type': 'application/json' }, body };\n    } else if (url.pathname === '/booking-links') {\n      if (request.method !== 'POST') return new Response(JSON.stringify({ error: { message: 'POST only' } }), { status: 405, headers: cors });\n      const body = await request.text();\n      target = base + '/fares/booking-links';\n      init = { method: 'POST', headers: { 'X-Api-Key': env.IGNAV_API_KEY, 'Content-Type': 'application/json' }, body };\n    } else {\n      return new Response(JSON.stringify({ error: { message: 'not found' } }), { status: 404, headers: Object.assign({ 'Content-Type': 'application/json' }, cors) });\n    }\n    try {\n      const r = await fetch(target, init);\n      const text = await r.text();\n      return new Response(text, { status: r.status, headers: Object.assign({ 'Content-Type': 'application/json' }, cors) });\n    } catch (e) {\n      return new Response(JSON.stringify({ error: { message: String((e && e.message) || e) } }), { status: 502, headers: Object.assign({ 'Content-Type': 'application/json' }, cors) });\n    }\n  }\n};\n";
@@ -3647,6 +3672,17 @@ document.getElementById("tabs").addEventListener("click", function(e){
   var bd = document.getElementById("navBackdrop");
   if(bd) bd.onclick = closeNav;
   document.addEventListener("keydown", function(e){ if(e.key === "Escape") closeNav(); });
+}());
+/* Header ke brand ke sath plane ka nishan — seedha Price Lookup kholta he */
+(function(){
+  var bf = document.getElementById("brandFares");
+  if(!bf) return;
+  bf.addEventListener("click", function(e){
+    e.preventDefault(); e.stopPropagation();
+    closeNav();
+    if(currentTab === "fares"){ scrollTopApp(); return; }
+    switchTab("fares");
+  });
 }());
 
 /* ---------- Collapsible cards (arrow to minimize / expand) ---------- */

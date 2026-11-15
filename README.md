@@ -1,5 +1,12 @@
 # Travel Office Hisab — AB Travels
 
+## Plane ka nishan: seedha Price Lookup (v2.80)
+- **Header:** company name (**AB Travels**) ke sath hi ek sunehri ✈ button — ek tap par **Price Lookup** khul jata he. Pehle fares tak pohanchne ke liye ☰ → Price Lookup karna parta tha.
+- **Mobile quick bar:** 7 buttons ke beech mein wohi ✈ nishan (gold circle) ubhra hua he — Sales · Invoice · Files · **✈** · Expense · Pending · Menu. Jab Price Lookup khula ho to circle roshan (amber glow) ho jata he.
+- Agar Price Lookup pehle se khula he to nishan sirf page ko oper scroll karta he (dobara load nahi karta), is liye typed route/date aur results zaya nahi hote.
+- Chhoti screens (400px se kam) par nishan thora chhota ho jata he, taake koi label kate na.
+- Sirf UI change — fare logic, worker ya data par koi asar nahi. Worker redeploy ki zaroorat nahi.
+
 ## Auto-refresh aur country search (v2.79)
 - **Auto-refresh:** Meezab results ke tools mein `Auto refresh` select — `Off` / `Har 3 min` / `Har 5 min` / `Har 10 min`. Timer sirf Price Lookup tab khula aur visible ho tab chalta he; doosre tab par jaane ya browser background mein jaane par ruk jata he, wapsi par foran check hota he. Refresh cache skip karta he (`fresh: true`) taake naye prices aayen. Header mein `auto-refreshed` aur `cached` ka label dikhta he; ↻ button se kabhi bhi manual refresh.
 - **Budget guard:** har refresh Meezab ke 60/day quota se ek search leta he, is liye auto-refresh din mein **15** tak mehdood he (per browser counter, header mein "aaj bache hue" dikhta he). Manual ↻ par koi cap nahi.
