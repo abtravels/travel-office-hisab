@@ -635,7 +635,7 @@
   <div class="brand">
     <img src="logo.png" alt="AB Travels" decoding="async" onerror="this.style.display='none'">
     <div style="min-width:0;">
-      <h1>AB Travels <span class="ver" id="verBadge">v2.81</span></h1>
+      <h1>AB Travels <span class="ver" id="verBadge">v2.82</span></h1>
       <div class="tag">Ahmed Brothers Hajj &amp; Umra Services (Pvt) Ltd</div>
     </div>
     <button id="brandFares" class="brand-fares" type="button" title="Price Lookup — flight fares" aria-label="Price Lookup — flight fares">✈</button>
@@ -704,7 +704,7 @@
 <script>
 /* ================= DATA ================= */
 var KEY = "travelOfficeHisab";
-var APP_VER = "2.81";
+var APP_VER = "2.82";
 var MONTH_NAMES = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
 /* Cloudflare Worker — Ignav flight prices proxy (free plan, no credit card) */
 var IGNAV_WORKER_CODE = "// AB Travels - Ignav flight prices proxy (Cloudflare Worker)\n// Ignav API key SERVER par rehti hai - app/browser mein kabhi nahi aati.\n//\n// SETUP (ek dafa, ~5 min, free):\n// 1) ignav.com/signup -> free account -> dashboard se API key\n// 2) cloudflare.com -> free account -> Workers & Pages -> Create Worker -> yeh code paste -> Deploy\n// 3) Worker -> Settings -> Variables and Secrets -> secret add karein:\n//      IGNAV_API_KEY = (aap ki Ignav key)\n// 4) Worker URL (https://xxx.workers.dev) app -> Settings -> Flight prices -> paste -> Save & test\n\nexport default {\n  async fetch(request, env) {\n    const cors = {\n      'Access-Control-Allow-Origin': env.ALLOWED_ORIGIN || '*',\n      'Access-Control-Allow-Methods': 'GET,POST,OPTIONS',\n      'Access-Control-Allow-Headers': 'Content-Type',\n      'Access-Control-Max-Age': '86400'\n    };\n    const url = new URL(request.url);\n    if (request.method === 'OPTIONS') return new Response(null, { status: 204, headers: cors });\n    if (!env.IGNAV_API_KEY) {\n      return new Response(JSON.stringify({ error: { code: 'no_key', message: 'IGNAV_API_KEY secret is not set in the Worker.' } }), { status: 500, headers: Object.assign({ 'Content-Type': 'application/json' }, cors) });\n    }\n    const base = 'https://ignav.com/api';\n    let target = '';\n    let init = { method: 'GET', headers: { 'X-Api-Key': env.IGNAV_API_KEY } };\n    if (url.pathname === '/health') {\n      target = base + '/health';\n    } else if (url.pathname === '/fares') {\n      if (request.method !== 'POST') return new Response(JSON.stringify({ error: { message: 'POST only' } }), { status: 405, headers: cors });\n      const body = await request.text();\n      target = base + '/fares/one-way';\n      init = { method: 'POST', headers: { 'X-Api-Key': env.IGNAV_API_KEY, 'Content-Type': 'application/json' }, body };\n    } else if (url.pathname === '/search') {\n      if (request.method !== 'POST') return new Response(JSON.stringify({ error: { message: 'POST only' } }), { status: 405, headers: cors });\n      const body = await request.text();\n      target = base + '/fares/search';\n      init = { method: 'POST', headers: { 'X-Api-Key': env.IGNAV_API_KEY, 'Content-Type': 'application/json' }, body };\n    } else if (url.pathname === '/round-trip') {\n      if (request.method !== 'POST') return new Response(JSON.stringify({ error: { message: 'POST only' } }), { status: 405, headers: cors });\n      const body = await request.text();\n      target = base + '/fares/round-trip';\n      init = { method: 'POST', headers: { 'X-Api-Key': env.IGNAV_API_KEY, 'Content-Type': 'application/json' }, body };\n    } else if (url.pathname === '/booking-links') {\n      if (request.method !== 'POST') return new Response(JSON.stringify({ error: { message: 'POST only' } }), { status: 405, headers: cors });\n      const body = await request.text();\n      target = base + '/fares/booking-links';\n      init = { method: 'POST', headers: { 'X-Api-Key': env.IGNAV_API_KEY, 'Content-Type': 'application/json' }, body };\n    } else {\n      return new Response(JSON.stringify({ error: { message: 'not found' } }), { status: 404, headers: Object.assign({ 'Content-Type': 'application/json' }, cors) });\n    }\n    try {\n      const r = await fetch(target, init);\n      const text = await r.text();\n      return new Response(text, { status: r.status, headers: Object.assign({ 'Content-Type': 'application/json' }, cors) });\n    } catch (e) {\n      return new Response(JSON.stringify({ error: { message: String((e && e.message) || e) } }), { status: 502, headers: Object.assign({ 'Content-Type': 'application/json' }, cors) });\n    }\n  }\n};\n";
@@ -3916,15 +3916,16 @@ function render(){
     /* Har render se pehle jo kuch type hua he wo snapshot kar lein — warna
        app.innerHTML rebuild par adhoora text gum ho jata he. */
     faRestore();
-    /* Meezab results DOM dobara banti he — wahi fares/filters wapas dikhadein. */
+    /* Meezab results DOM dobara banti he — wahi fares/filters wapas dikhadein.
+       Search chal rahi ho to progress card bhi state se wapas banta he (v2.82). */
     var mezHost = document.getElementById("faMeezabResults");
     if(mezHost && MEZ.busy && !MEZ.fares.length){
-      mezHost.innerHTML = '<div class="card"><b>Meezab Air — live fares</b><div class="hint" style="margin-top:4px;">'
-        + 'Search chal rahi he — results aate hi yahin dikhenge. Aap kisi bhi tab par ja sakte hain.</div></div>';
+      mezHost.innerHTML = mezPanelHtml();
+      mezBindPanel();
     } else mezRender();
     if(MEZ.country) mezRenderCountry();
     var mezBtn = document.getElementById("faMeezab");
-    if(mezBtn && MEZ.busy){ mezBtn.disabled = true; mezBtn.textContent = "Meezab — search chal rahi he…"; }
+    if(mezBtn && MEZ.busy) mezSetBtnBusy(true);
   }
   // Ticket Files tab khulte hi latest shared list GitHub se le aayein (max 20 sec mein ek dafa)
   if(currentTab === "files" && githubSyncConfigured() && Date.now() - filesSyncedAt > 20000){
@@ -5597,15 +5598,6 @@ var faBusy = false;
 var IGN_LAST = null;
 /* Price Lookup results tab switch par bhi bache rahein — sirf X se clear hon */
 var IGN_STATE = { last:null, req:null, status:"", bad:false, form:null, sasta:null, seq:0 };
-var FA_PRESETS = [
-  { from:"KHI", to:"DXB", label:"KHI → DXB" },
-  { from:"KHI", to:"JED", label:"KHI → Jeddah" },
-  { from:"LHE", to:"DXB", label:"LHE → DXB" },
-  { from:"ISB", to:"DXB", label:"ISB → DXB" },
-  { from:"KHI", to:"LHE", label:"KHI → Lahore" },
-  { from:"KHI", to:"ISB", label:"KHI → Islamabad" },
-  { from:"KHI", to:"JID", label:"KHI → Madinah" }
-];
 var FA_MARKETS = [
   { c:"PK", n:"Pakistan (PKR)" }, { c:"AE", n:"UAE (AED)" }, { c:"SA", n:"Saudi (SAR)" },
   { c:"GB", n:"UK (GBP)" }, { c:"US", n:"USA (USD)" }, { c:"IN", n:"India (INR)" }, { c:"QA", n:"Qatar (QAR)" }
@@ -5762,40 +5754,6 @@ function ignavFares(payload){
 function ignavBookingLinks(ignavId){
   return ignavApi("/booking-links", { ignav_id: ignavId });
 }
-function faRenderPresets(){
-  var host = document.getElementById("faPresets"); if(!host) return;
-  host.innerHTML = "";
-  FA_PRESETS.forEach(function(p){
-    var b = document.createElement("button");
-    b.className = "btn small"; b.style.margin = "0"; b.textContent = p.label;
-    b.onclick = function(){
-      var f = document.getElementById("faFrom"), t = document.getElementById("faTo");
-      if(f) f.value = p.from; if(t) t.value = p.to;
-      ignavSearch();
-    };
-    host.appendChild(b);
-  });
-  var qk = document.getElementById("faQuick");
-  if(qk){
-    qk.innerHTML = "";
-    var from = ((document.getElementById("faFrom")||{}).value || "").trim().toUpperCase();
-    var to = ((document.getElementById("faTo")||{}).value || "").trim().toUpperCase();
-    var dt = (document.getElementById("faDate")||{}).value || today();
-    var pair = (from && to) ? (from + "-" + to) : "";
-    var items = [
-      { label:"🛫 sasta ticket", url: pair ? ("https://www.sastaticket.pk/flights/" + pair.toLowerCase()) : "https://www.sastaticket.pk/" },
-      { label:"🔎 Google Flights", url: "https://www.google.com/travel/flights" },
-      { label:"🔎 Kayak", url: pair ? ("https://www.kayak.com/flights/" + pair + "/" + dt) : "https://www.kayak.com/flights" }
-    ];
-    items.forEach(function(it){
-      var a = document.createElement("a");
-      a.href = it.url; a.target = "_blank"; a.rel = "noopener noreferrer";
-      a.className = "btn small"; a.style.cssText = "margin:0; text-decoration:none;";
-      a.textContent = it.label;
-      qk.appendChild(a);
-    });
-  }
-}
 function viewFares(){
   var html = '<div class="card"><h2>🔍 Price Lookup — live flight prices</h2>';
   html += '<div class="hint">Live published fares — sasta ticket ki tarah. <b>Pehle setup karein:</b> Settings → “Flight prices — Ignav” card → free Worker URL save karein (API key sirf Worker par rehti hai). Telegram bot bhi wahi Worker chalata hai → Settings → “Telegram price bot”. Jo airline API mein nahi (kuch LCCs), wo result mein nahi aati — uske liye neeche sasta ticket / Google Flights button hamesha kaam karte hain.</div>';
@@ -5843,9 +5801,6 @@ function viewFares(){
   html += '<div class="hint" style="margin-top:6px;">Prices <b>indicative</b> hain — booking airline/consolidator portal se hoti hai. Har successful search ek Ignav request count karti hai: pehli <b>1,000 requests one-time free</b> (monthly reset nahi hoti), uske baad <b>$2 per 1,000</b>; failed requests bill nahi hoti.</div>';
   html += '</div>';
 
-  html += '<div class="card"><h2>Popular routes</h2><div class="hint" style="margin-top:0;">Ek click mein search:</div><div style="display:flex; flex-wrap:wrap; gap:8px; margin-top:6px;" id="faPresets"></div>';
-  html += '<div class="hint" style="margin-top:12px; font-weight:600;">🔎 Ya in websites par khud dekhein (hamesha kaam karti hain):</div><div style="display:flex; flex-wrap:wrap; gap:8px; margin-top:6px;" id="faQuick"></div>';
-  html += '<div class="hint">Google Flights aur Sasta Ticket ke public free APIs nahi hain, is liye un ke live rates yahan automatic nahi aa sakte. Har result ke saath “Sasta Ticket ↗” aur “Google Flights ↗” buttons se wahi route/date compare kar sakte hain.</div></div>';
   html += '<div id="faResults"></div>';
   html += '<div id="faSastaResults"></div>';
   return html;
@@ -6109,8 +6064,15 @@ function faLoadBookingLinks(ignavId, btn){
   }).then(function(){ if(btn) btn.disabled = false; });
 }
 /* ---------- Meezab results: friendly cards + paging (v2.76) ---------- */
+/* stage/error DOM se alag rakhe jate hain — tab badalne par app.innerHTML dobara banti he,
+   is liye "search chal rahi he" / error ka message state se wapas banaya jata he (v2.82). */
 var MEZ = { fares: [], info: null, page: 1, size: 10, sort: "price", stops: "all", baggage: "all", airline: "",
-  busy: false, payload: null, lastRunAt: 0, autoErr: "", country: null, auto: 5 };
+  busy: false, payload: null, lastRunAt: 0, autoErr: "", country: null, auto: 5,
+  stage: "", stageNote: "", error: "",
+  /* Tab switch / phone sleep par chal rahi search adhoori reh jati he — ye fields
+     usay wapas chalane ke liye hain (v2.82). */
+  pending: null, retry: 0, runStart: 0, countryRun: null };
+var MEZAB_BTN_LABEL = "Meezab Air — live PKR fares";
 try{
   var _mezAuto = localStorage.getItem("ab_mez_auto");
   if(_mezAuto !== null && _mezAuto !== "") MEZ.auto = Number(_mezAuto) || 0;
@@ -6440,7 +6402,7 @@ function mezGo(p){
 function mezRender(){
   var host = document.getElementById("faMeezabResults"); if(!host) return;
   var info = MEZ.info || {};
-  if(!MEZ.fares.length){ host.innerHTML = ""; return; }
+  if(!MEZ.fares.length){ host.innerHTML = mezPanelHtml(); mezBindPanel(); return; }
   var list = mezView();
   var totalPages = Math.max(1, Math.ceil(list.length / MEZ.size));
   if(MEZ.page > totalPages) MEZ.page = totalPages;
@@ -6579,13 +6541,114 @@ function mezShowResults(){
   var liveHost = document.getElementById("faMeezabResults");
   if(!liveHost) return;
   if(!MEZ.fares.length){
-    liveHost.innerHTML = '<div class="card"><div class="empty">Is search mein koi matching fare nahi mila.</div></div>';
+    if(!MEZ.busy && !MEZ.country) mezClearStage();
+    liveHost.innerHTML = mezPanelHtml();
+    if(!liveHost.innerHTML){
+      liveHost.innerHTML = '<div class="card"><div class="empty">Is search mein koi matching fare nahi mila.</div></div>';
+    }
+    mezBindPanel();
     return;
   }
   mezRender();
 }
 function mezWaitCard(title, note){
   return '<div class="card"><b>' + esc(title) + '</b><div class="hint" style="margin-top:4px;">' + note + '</div></div>';
+}
+/* Results host ka woh hissa jo fares ke baghair bhi dikhana he — tab switch par
+   app.innerHTML dobara banti he, is liye "search chal rahi he" aur error message
+   state se wapas banaye jate hain (v2.82). */
+function mezPanelHtml(){
+  if(MEZ.stage === "loading"){
+    return mezWaitCard("Meezab Air — live fares", MEZ.stageNote || "Search chal rahi he…");
+  }
+  /* Tab switch ke doran koi stage set na ho (maslan country search) to bhi khaali na chhodein. */
+  if(MEZ.busy){
+    return mezWaitCard("Meezab Air — live fares",
+      "Search chal rahi he — results aate hi yahin dikhenge. Aap kisi bhi tab par ja sakte hain.");
+  }
+  var pd = mezPendRead();
+  var resumeBtn = '<button class="btn primary" id="mezResumeBtn" style="margin:0; background:#2563eb; color:#fff;">▶ Dobara search karein</button>';
+  var dropBtn = '<button class="btn" id="mezResumeDrop" style="margin:0;">Hata dein</button>';
+  /* Search beech mein ruk gayi (tab switch / phone sleep / reload) — ek tap se resume. */
+  if(pd && !MEZ.fares.length){
+    var head = MEZ.error
+      ? '<div class="hint" style="color:var(--red); font-weight:600; margin-bottom:4px;">Meezab: ' + esc(MEZ.error) + '</div>'
+      : '<b>Adhoori search mili</b>';
+    return '<div class="card" id="mezResumeCard">' + head
+      + '<div class="hint" style="margin-top:4px;">' + esc(pd.from) + ' → ' + esc(pd.to) + ' · ' + esc(mezDate(pd.date))
+      + ' — pichli dafa mukammal nahi hui.</div>'
+      + '<div style="display:flex; gap:8px; margin-top:8px; flex-wrap:wrap;">' + resumeBtn + dropBtn + '</div></div>';
+  }
+  if(MEZ.error){
+    return '<div class="card"><div class="hint" style="color:var(--red); font-weight:600;">Meezab: '
+      + esc(MEZ.error) + '</div></div>';
+  }
+  return "";
+}
+/* Resume card ke buttons jodna — panel jab bhi bane, unhein chalu kar dein. */
+function mezBindPanel(){
+  var b = document.getElementById("mezResumeBtn");
+  if(b) b.onclick = function(){
+    var pd = mezPendRead();
+    if(!pd) return;
+    var set = function(id, v){ var e = document.getElementById(id); if(e){ e.value = v; e.dispatchEvent(new Event("change", { bubbles:true })); } };
+    set("faFrom", pd.from); set("faTo", pd.to); set("faDate", pd.date);
+    var ns = document.getElementById("faNonStop"); if(ns) ns.checked = !!pd.nonstop;
+    meezabLookup();
+  };
+  var d = document.getElementById("mezResumeDrop");
+  if(d) d.onclick = function(){
+    mezPendClear();
+    var host = document.getElementById("faMeezabResults");
+    if(host) host.innerHTML = mezPanelHtml();
+  };
+}
+function mezSetStage(note){
+  MEZ.stage = "loading";
+  MEZ.stageNote = note || "";
+  MEZ.error = "";
+}
+function mezClearStage(){
+  MEZ.stage = ""; MEZ.stageNote = ""; MEZ.error = "";
+}
+/* Search ke dauran button ka haal dono jagah se ek jaisa rakhein. */
+function mezSetBtnBusy(on){
+  var b = document.getElementById("faMeezab");
+  if(!b) return;
+  b.disabled = !!on;
+  b.textContent = on ? "Meezab — search chal rahi he…" : MEZAB_BTN_LABEL;
+}
+/* ---------- Adhoori search yaad rakhna (v2.82) ----------
+   Tab badalne, phone sleep hone ya page reload hone par chal rahi search ka
+   nateeja kho jata tha. Ab request ke inputs sessionStorage mein rakhe jate hain —
+   wapsi par ek tap se wahi search dobara chal jati he. */
+var MEZ_PEND_KEY = "ab_mez_pending";
+function mezPendSave(o){
+  try{ sessionStorage.setItem(MEZ_PEND_KEY, JSON.stringify(o)); }catch(e){}
+}
+function mezPendRead(){
+  try{
+    var o = JSON.parse(sessionStorage.getItem(MEZ_PEND_KEY) || "null");
+    return (o && o.from && o.to && o.date) ? o : null;
+  }catch(e){ return null; }
+}
+function mezPendClear(){
+  try{ sessionStorage.removeItem(MEZ_PEND_KEY); }catch(e){}
+}
+/* Busy atak na jaye — 3 minute se zyada ho to button wapas chalu kar dein. */
+function mezWatchdog(){
+  if(!MEZ.busy || !MEZ.runStart) return;
+  if(Date.now() - MEZ.runStart < 210000) return;
+  MEZ.busy = false;
+  MEZ.stage = "";
+  MEZ.error = "Search bohat lambi chal gayi — dobara try karein (neeche se resume bhi kar sakte hain).";
+  MEZ.country = MEZ.country && MEZ.country.busy ? Object.assign({}, MEZ.country, { busy:false }) : MEZ.country;
+  mezSetBtnBusy(false);
+  mezRender();
+  if(MEZ.country) mezRenderCountry();
+}
+if(typeof document !== "undefined" && document.addEventListener){
+  document.addEventListener("visibilitychange", function(){ if(!document.hidden) mezWatchdog(); });
 }
 /* Ek airport ki poori fare list — country list se row click par. */
 function mezPickDestination(code){
@@ -6650,8 +6713,7 @@ function mezRenderCountry(){
       + '</button>';
   });
   if(c.busy) h += '<div class="hint" style="margin-top:8px;">Har airport ek alag search he — 20–60 second lag sakte hain. '
-    + 'Aap tab badal sakte hain, list wahin milegi.</div>';
-  h += '<div class="hint">Fares price-wise sort hain (sab se sasta pehle). Kisi row par click → poori fare list usi airport ki.</div></div>';
+    + 'Aap tab badal sakte hain, list wahin milegi.</div>';  h += '<div class="hint">Fares price-wise sort hain (sab se sasta pehle). Kisi row par click → poori fare list usi airport ki.</div></div>';
   host.innerHTML = h;
   var close = host.querySelector("#mezCountryClose");
   if(close) close.onclick = function(){
@@ -6714,6 +6776,7 @@ async function mezCountryRun(plan, base, picks){
   for(var k = 0; k < Math.min(MEZ_COUNTRY_PAR, picks.length); k++) lanes.push(worker());
   await Promise.all(lanes);
   MEZ.country.busy = false;
+  mezPendClear();
   mezRenderCountry();
   var best = mezCountryRows().filter(function(r){ return r.cheapest != null; })[0];
   if(best) mezPickDestination(best.destination);
@@ -6732,7 +6795,8 @@ async function meezabLookup(){
     host.textContent = "From ka IATA code (misal KHI) aur departure date dalein."; return;
   }
   /* Country/city search ke liye airport list zaroori he — pehle load karwa lein. */
-  host.textContent = "Airports ki list load ho rahi he…";
+  mezSetStage("Airports ki list load ho rahi he…");
+  host.innerHTML = mezPanelHtml();
   await mezAirportsReady();
   var plan = null;
   var toUp = toRaw.toUpperCase();
@@ -6748,6 +6812,7 @@ async function meezabLookup(){
   }
   if(!plan) plan = mezLocateAirports(toRaw);
   if(!plan || !plan.list.length){
+    mezClearStage();
     host.textContent = "To mein IATA code (DXB) ya country/city ka naam (UAE, Dubai) dalein."; return;
   }
   var payload = { origin:origin, departure_date:date };
@@ -6756,34 +6821,47 @@ async function meezabLookup(){
     .slice(0, MEZ_COUNTRY_MAX).map(function(a){
       return { iata:a.iata, city:a.city || "", name:a.name || "" };
     });
-  if(!picks.length){ host.textContent = "Is naam se koi airport nahi mila."; return; }
+  if(!picks.length){ mezClearStage(); host.textContent = "Is naam se koi airport nahi mila."; return; }
   MEZ.busy = true;
-  if(btn) btn.disabled = true;
+  MEZ.runStart = Date.now();
+  MEZ.error = "";
+  /* Search ke inputs yaad rakhein — tab switch / reload ke baad resume ke liye. */
+  mezPendSave({ from:origin, to:toRaw, date:date,
+    nonstop:!!(document.getElementById("faNonStop")||{}).checked, at:Date.now() });
+  mezSetBtnBusy(true);
   try{
     if(picks.length === 1){
       payload.destination = picks[0].iata;
       MEZ.country = null;
       var ch = document.getElementById("faMeezabCountry"); if(ch) ch.innerHTML = "";
-      host.innerHTML = mezWaitCard("Meezab Air — live fares",
-        "Login ho raha he, phir search ki saari flights load hongi. 20–60 second lag sakte hain — "
+      mezSetStage("Login ho raha he, phir search ki saari flights load hongi. 20–60 second lag sakte hain — "
         + "is dauran aap kisi doosre tab par ja sakte hain.");
+      host.innerHTML = mezPanelHtml();
       var j = await mezFetchSearch(payload);
       MEZ.payload = payload;
       mezApply(j, payload);
+      mezClearStage();
+      mezPendClear();
       mezShowResults();
       mezAutoStart();
     } else {
       await mezCountryRun(plan, payload, picks);
     }
   }catch(e){
+    MEZ.stage = "";
+    MEZ.error = (e && e.message) || "Search failed";
     var errHost = document.getElementById("faMeezabResults");
-    if(errHost) errHost.innerHTML = '<div class="card"><div class="hint" style="color:var(--red); font-weight:600;">Meezab: '
-      + esc((e && e.message) || "Search failed") + '</div></div>';
+    if(errHost) errHost.innerHTML = mezPanelHtml();
   }
   finally{
     MEZ.busy = false;
-    var b2 = document.getElementById("faMeezab");
-    if(b2){ b2.disabled = false; b2.textContent = "Meezab Air - live PKR fares"; }
+    MEZ.runStart = 0;
+    mezSetBtnBusy(false);
+    /* Tab switch ke dauran error aaya ho to wapas aane par bhi dikhe. */
+    if(MEZ.error && !MEZ.fares.length){
+      var h3 = document.getElementById("faMeezabResults");
+      if(h3 && !h3.innerHTML.trim()) h3.innerHTML = mezPanelHtml();
+    }
   }
 }
 /* Manual ya auto refresh — dono cache skip karte hain (fresh:true) taake naye prices
@@ -6815,9 +6893,8 @@ async function mezRefresh(auto){
     mezRender();
     return;
   }
-  var btn = document.getElementById("faMeezab");
   MEZ.busy = true;
-  if(btn) btn.disabled = true;
+  mezSetBtnBusy(true);
   if(auto) mezAutoBudgetUse();
   var payload = MEZ.payload;
   try{
@@ -6837,8 +6914,7 @@ async function mezRefresh(auto){
   }
   finally{
     MEZ.busy = false;
-    var b2 = document.getElementById("faMeezab");
-    if(b2){ b2.disabled = false; b2.textContent = "Meezab Air - live PKR fares"; }
+    mezSetBtnBusy(false);
   }
 }
 function ignavSearch(){
@@ -10321,7 +10397,6 @@ function bind(){
     if(leg2) leg2.style.display = isMulti ? "block" : "none";
     refreshDateDisplays(document.getElementById("app"));
   };
-  faRenderPresets();
 
   // ===== PDF to Word =====
   var pwPick = document.getElementById("pwPickBtn");

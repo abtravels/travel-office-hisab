@@ -1,5 +1,17 @@
 # Travel Office Hisab — AB Travels
 
+## Tab badalne par search band nahi hoti (v2.82)
+- **Masla:** Meezab (ya Ignav) ki search chal rahi ho aur aap doosra tab khol lein, to wapas aane par results ka dabba **khaali** milta tha — search adhoori lagti thi. Wajah: `render()` har tab change par poora page `innerHTML` se dobara banata he, is liye "search chal rahi he" ka card aur error message — jo sirf DOM mein the — mit jate the.
+- **Fix:** search ka haal ab DOM ke bajaye app ki state mein rehta he (`MEZ.stage`, `MEZ.stageNote`, `MEZ.error`, `MEZ.busy`). Tab switch par wahi card khud dobara banta he, is liye:
+  - search chal rahi ho → **"Search chal rahi he — results aate hi yahin dikhenge"** card wapas dikhta he
+  - error aaya ho → wahi error wapas dikhta he
+  - country search chal rahi ho → `N/M ho chuke` ke sath list wahi rehti he, rows live update hoti hain
+  - button ka haal bhi ek jagah se set hota he (`mezSetBtnBusy`), is liye wapas aane par "search chal rahi he…" sahi dikhta he
+- **Adhoori search ka resume:** search ke inputs (from/to/date/non-stop) `sessionStorage` (`ab_mez_pending`) mein rakhe jate hain. Agar search beech mein ruk jaye (tab switch, phone sleep, page reload, ya network timeout), to wapsi par card aata he:
+  **"Adhoori search mili — KHI → DXB · 10 Dec 2026"** ke sath **▶ Dobara search karein** button. Ek tap par wahi search chalti he. Search mukammal hone par ye record khud clear ho jata he.
+- **Watchdog:** 3.5 minute se zyada koi search latki rahe to button khud chalu ho jata he aur error dikhta he (pehle button hamesha ke liye "search chal rahi he…" par atak sakta tha). Phone jagane par bhi ye check chalta he.
+- **Popular routes card hata diya:** Price Lookup se "Popular routes" (KHI→DXB waghera) aur "ya in websites par dekhein" (sasta ticket / Google / Kayak) card nikal diye — form aur Meezab results ab seedha upar aate hain.
+
 ## Country search: sirf UAE nahi, saare mulk (v2.81)
 - **Dropdown mein country row:** ab **To** ya **From** mein country ka naam likhne par dropdown mein sab se pehle **🌍 <Country> — poore mulk ke fares (N airports)** row aati he, us ke neeche us mulk ke airports. Us row par click karne se poora mulk search ho jata he.
 - **Masla kya tha:** airport data (`mwgg/Airports`) mein 236 mulkon mein se **166 mulkon ka naam sirf ISO2 code** ki shakl mein hota he — `AL` (Albania), `CO` (Colombia), `BR` (Brazil), `GS`, `PG` waghera. App ke paas sirf 78 mulkon ke naam the, is liye `Albania`, `Colombia`, `Brazil` likhne par kuch nahi milta tha. `UAE` is liye chalta tha ke us ka naam `AE` ke bajaye seedha "UAE" likha hua he.

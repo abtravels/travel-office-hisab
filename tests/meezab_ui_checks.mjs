@@ -242,4 +242,48 @@ const ranked = rankCtx.__rank([
 assert.equal(ranked[0].iata, "GRU", "international airport should rank first");
 assert.equal(ranked[2].iata, "ZZZ", "military base should rank last");
 
+/* Tab switch par search zinda rahe + adhoori search resume ho (v2.82) */
+assert.ok(/function mezPanelHtml\(\)/.test(html), "state based results panel missing");
+assert.ok(/function mezBindPanel\(\)/.test(html), "resume buttons binder missing");
+assert.ok(/function mezSetStage\(/.test(html) && /function mezClearStage\(/.test(html), "search stage helpers missing");
+assert.ok(/function mezSetBtnBusy\(/.test(html), "busy button helper missing");
+assert.ok(/function mezPendSave\(/.test(html) && /function mezPendRead\(/.test(html) && /function mezPendClear\(/.test(html),
+  "pending search storage helpers missing");
+assert.ok(/ab_mez_pending/.test(html), "pending search storage key missing");
+assert.ok(/id="mezResumeBtn"/.test(html), "resume button markup missing");
+assert.ok(/MEZ\.stage === "loading"/.test(html), "loading stage not handled by panel");
+assert.ok(/mezBindPanel\(\)/.test(html), "panel is rendered without binding its buttons");
+assert.ok(/function mezWatchdog\(\)/.test(html), "stuck search watchdog missing");
+assert.ok(/mezPendSave\(\{ from:origin/.test(html), "search inputs are not remembered");
+assert.ok(/mezPendClear\(\)/.test(html), "pending search is never cleared after success");
+assert.ok(!/faRenderPresets/.test(html), "popular-route preset renderer still present");
+assert.ok(!/FA_PRESETS/.test(html), "popular-route preset list still present");
+assert.ok(!/id="faPresets"/.test(html), "popular routes card still rendered");
+assert.ok(!/id="faQuick"/.test(html), "backup website buttons still rendered");
+
+/* Panel HTML bina browser: loading / busy / error / resume */
+const panelSource = renderSource.slice(renderSource.indexOf("function mezWaitCard("),
+  renderSource.indexOf("/* Ek airport ki poori fare list"));
+const panelCtx = vm.createContext({
+  MEZ: { stage:"", stageNote:"", error:"", busy:false, fares:[] },
+  esc: (s) => String(s == null ? "" : s).replace(/[&<>"]/g, (c) => ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;" }[c])),
+  mezDate: (s) => String(s || "").slice(0, 10),
+  mezPendRead: () => null
+});
+vm.runInContext(panelSource, panelCtx);
+const panel = (code) => vm.runInContext(code, panelCtx);
+
+assert.ok(/Meezab Air/.test(panel("mezPanelHtml()") ) === false, "empty state should render nothing");
+panelCtx.MEZ.stage = "loading"; panelCtx.MEZ.stageNote = "Login ho raha he";
+assert.ok(panel("mezPanelHtml()").includes("Login ho raha he"), "loading stage note not shown");
+panelCtx.MEZ.stage = ""; panelCtx.MEZ.error = "network fail";
+assert.ok(panel("mezPanelHtml()").includes("network fail"), "error not shown in panel");
+panelCtx.MEZ.error = ""; panelCtx.MEZ.busy = true;
+assert.ok(/Search chal rahi he/.test(panel("mezPanelHtml()")), "busy panel missing while search runs");
+panelCtx.MEZ.busy = false;
+assert.equal(panel("mezPanelHtml()"), "", "idle panel should be empty");
+panelCtx.mezPendRead = () => ({ from:"KHI", to:"DXB", date:"2026-12-10", nonstop:false });
+assert.ok(panel("mezPanelHtml()").includes("mezResumeBtn"), "resume card missing for an unfinished search");
+assert.ok(panel("mezPanelHtml()").includes("KHI") && panel("mezPanelHtml()").includes("DXB"), "resume card lacks the route");
+
 console.log("Meezab UI checks passed: baggage parse, stops/baggage/airline filters, airline strip cheapest fares, sorts, auto-refresh helpers, country panel render, card + strip render, quick fare buttons, country map.");
