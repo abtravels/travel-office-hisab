@@ -16,7 +16,7 @@ returned; supplier access tokens and session cookies remain server-side.
 Complete results cache for ten minutes (`MEZ_CACHE_TTL`); incomplete results are
 labelled. A cache hit costs no budget.
 There is a best-effort daily budget (KV counters are not atomic). Its cap is
-`MEZ_DAILY_CAP` (default 60) and the counter resets at 00:00 UTC (05:00 PKT).
+`MEZ_DAILY_CAP` (default 150) and the counter resets at 00:00 UTC (05:00 PKT).
 A unit is counted only once the portal has accepted the search and returned a
 `SearchID`, so a login or HTTP failure above that point costs nothing. Every
 `/meezab/search` reply carries `budget: { cap, used, left, reset_at }`, and an
@@ -34,7 +34,7 @@ new portal search (used by the app's ↻ / auto-refresh). Cached responses carry
 The app refreshes the current route on a timer (`Auto refresh`: off / 3 / 5 / 10
 minutes). Refreshes are `fresh: true`, skip the Worker cache, and only run while
 the Price Lookup tab is open and visible (`document.hidden` pauses them). Because
-every refresh spends from the 60/day Worker budget, auto-refresh is capped at 15
+every refresh spends from the 150/day Worker budget, auto-refresh is capped at 40
 per day per browser (localStorage counter `ab_mez_auto_used`) while the ↻ button
 works any number of times.
 

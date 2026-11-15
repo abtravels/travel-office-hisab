@@ -15,7 +15,7 @@
  *   3) App proxy budget: MAX_DAILY_PROXY (default 200), optional ALLOWED_ORIGIN check.
  *      Both are best effort; keep the Ignav dashboard spending limit as the hard stop.
  *   4) Meezab fare lookup (/meezab/search): secrets MEZ_USER, MEZ_PASS, optional
- *      MEZ_SUBCOMPANY (default 278) and MEZ_DAILY_CAP (default 60 searches/day).
+ *      MEZ_SUBCOMPANY (default 278) and MEZ_DAILY_CAP (default 150 searches/day).
  *
  * SETUP (one time, free plan, no credit card):
  *   1) Create the Worker, paste this file, Deploy.
@@ -2083,12 +2083,12 @@ function mezNormalize(pages, q) {
 
 /* Daily budget for Meezab searches. The portal account allows a limited number of
    searches per day, so the Worker keeps its own counter.
-   Cap: MEZ_DAILY_CAP (default 60). The counter resets at 00:00 UTC (05:00 PKT).
+   Cap: MEZ_DAILY_CAP (default 150). The counter resets at 00:00 UTC (05:00 PKT).
    A cache hit costs nothing, so the same routes stay free all day. */
 const MEZ_CACHE_TTL = 600;
 function mezDailyCap(env) {
   const n = Number(env && env.MEZ_DAILY_CAP);
-  return isFinite(n) && n > 0 ? Math.floor(n) : 60;
+  return isFinite(n) && n > 0 ? Math.floor(n) : 150;
 }
 function mezBudgetKey() {
   return "meezab:budget:" + new Date().toISOString().slice(0, 10);
