@@ -612,6 +612,31 @@
     .row-sheet-actions .rsa-btns .btn{min-width:0; width:100%; padding:10px 4px; font-size:12.5px; white-space:nowrap;}
   }
 
+  /* ---------- Price Lookup — compact form (v2.75) ---------- */
+  .fa-help{margin:0 0 2px;}
+  .fa-help > summary{cursor:pointer; font-size:12.5px; font-weight:700; color:var(--muted); padding:3px 0; list-style:none;}
+  .fa-help > summary::-webkit-details-marker{display:none;}
+  .fa-help > summary::before{content:"▸ "; font-size:11px;}
+  .fa-help[open] > summary::before{content:"▾ ";}
+  .fa-help > summary:hover{color:var(--ink);}
+  select.fa-sm{height:34px; min-height:34px; font-size:13.5px; padding:5px 8px;}
+  .fa-compact > div{min-width:88px;}
+  .fa-compact label{font-size:11.5px; margin-bottom:3px;}
+  .fa-nonstop{display:flex; gap:8px; align-items:center; margin:10px 0 0; font-size:13px; font-weight:600;}
+  /* Band field saaf nazar aaye (maslan Return date jab trip one-way ho) */
+  input:disabled, select:disabled, textarea:disabled{opacity:.45;}
+  /* Touch par tap ke baad blue ring chipki nahi rehti (keyboard walon ko ring milta rahe) */
+  @media (hover:none){
+    button:focus-visible, summary:focus-visible, a:focus-visible, label:focus-visible{outline:none;}
+  }
+  /* Phone par bhi chhote boxes ek saath — 3 columns ka grid (warna 6 boxes poori screen le lete hain) */
+  @media (max-width:860px){
+    select.fa-sm{height:34px; min-height:34px; font-size:13.5px; padding:4px 6px;}
+    .row.fa-compact{display:grid !important; grid-template-columns:repeat(3,minmax(0,1fr)) !important; flex-direction:row !important; gap:8px !important; align-items:stretch !important;}
+    .row.fa-compact > div{width:auto !important; max-width:none !important; min-width:0 !important; flex:0 0 auto !important;}
+    .row.fa-compact label{font-size:11px; margin-bottom:2px;}
+  }
+
   @media (prefers-reduced-motion: reduce){
     *{transition:none !important; animation:none !important;}
   }
@@ -635,7 +660,7 @@
   <div class="brand">
     <img src="logo.png" alt="AB Travels" decoding="async" onerror="this.style.display='none'">
     <div style="min-width:0;">
-      <h1>AB Travels <span class="ver" id="verBadge">v2.82</span></h1>
+      <h1>AB Travels <span class="ver" id="verBadge">v2.83</span></h1>
       <div class="tag">Ahmed Brothers Hajj &amp; Umra Services (Pvt) Ltd</div>
     </div>
     <button id="brandFares" class="brand-fares" type="button" title="Price Lookup — flight fares" aria-label="Price Lookup — flight fares">✈</button>
@@ -704,7 +729,7 @@
 <script>
 /* ================= DATA ================= */
 var KEY = "travelOfficeHisab";
-var APP_VER = "2.82";
+var APP_VER = "2.83";
 var MONTH_NAMES = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
 /* Cloudflare Worker — Ignav flight prices proxy (free plan, no credit card) */
 var IGNAV_WORKER_CODE = "// AB Travels - Ignav flight prices proxy (Cloudflare Worker)\n// Ignav API key SERVER par rehti hai - app/browser mein kabhi nahi aati.\n//\n// SETUP (ek dafa, ~5 min, free):\n// 1) ignav.com/signup -> free account -> dashboard se API key\n// 2) cloudflare.com -> free account -> Workers & Pages -> Create Worker -> yeh code paste -> Deploy\n// 3) Worker -> Settings -> Variables and Secrets -> secret add karein:\n//      IGNAV_API_KEY = (aap ki Ignav key)\n// 4) Worker URL (https://xxx.workers.dev) app -> Settings -> Flight prices -> paste -> Save & test\n\nexport default {\n  async fetch(request, env) {\n    const cors = {\n      'Access-Control-Allow-Origin': env.ALLOWED_ORIGIN || '*',\n      'Access-Control-Allow-Methods': 'GET,POST,OPTIONS',\n      'Access-Control-Allow-Headers': 'Content-Type',\n      'Access-Control-Max-Age': '86400'\n    };\n    const url = new URL(request.url);\n    if (request.method === 'OPTIONS') return new Response(null, { status: 204, headers: cors });\n    if (!env.IGNAV_API_KEY) {\n      return new Response(JSON.stringify({ error: { code: 'no_key', message: 'IGNAV_API_KEY secret is not set in the Worker.' } }), { status: 500, headers: Object.assign({ 'Content-Type': 'application/json' }, cors) });\n    }\n    const base = 'https://ignav.com/api';\n    let target = '';\n    let init = { method: 'GET', headers: { 'X-Api-Key': env.IGNAV_API_KEY } };\n    if (url.pathname === '/health') {\n      target = base + '/health';\n    } else if (url.pathname === '/fares') {\n      if (request.method !== 'POST') return new Response(JSON.stringify({ error: { message: 'POST only' } }), { status: 405, headers: cors });\n      const body = await request.text();\n      target = base + '/fares/one-way';\n      init = { method: 'POST', headers: { 'X-Api-Key': env.IGNAV_API_KEY, 'Content-Type': 'application/json' }, body };\n    } else if (url.pathname === '/search') {\n      if (request.method !== 'POST') return new Response(JSON.stringify({ error: { message: 'POST only' } }), { status: 405, headers: cors });\n      const body = await request.text();\n      target = base + '/fares/search';\n      init = { method: 'POST', headers: { 'X-Api-Key': env.IGNAV_API_KEY, 'Content-Type': 'application/json' }, body };\n    } else if (url.pathname === '/round-trip') {\n      if (request.method !== 'POST') return new Response(JSON.stringify({ error: { message: 'POST only' } }), { status: 405, headers: cors });\n      const body = await request.text();\n      target = base + '/fares/round-trip';\n      init = { method: 'POST', headers: { 'X-Api-Key': env.IGNAV_API_KEY, 'Content-Type': 'application/json' }, body };\n    } else if (url.pathname === '/booking-links') {\n      if (request.method !== 'POST') return new Response(JSON.stringify({ error: { message: 'POST only' } }), { status: 405, headers: cors });\n      const body = await request.text();\n      target = base + '/fares/booking-links';\n      init = { method: 'POST', headers: { 'X-Api-Key': env.IGNAV_API_KEY, 'Content-Type': 'application/json' }, body };\n    } else {\n      return new Response(JSON.stringify({ error: { message: 'not found' } }), { status: 404, headers: Object.assign({ 'Content-Type': 'application/json' }, cors) });\n    }\n    try {\n      const r = await fetch(target, init);\n      const text = await r.text();\n      return new Response(text, { status: r.status, headers: Object.assign({ 'Content-Type': 'application/json' }, cors) });\n    } catch (e) {\n      return new Response(JSON.stringify({ error: { message: String((e && e.message) || e) } }), { status: 502, headers: Object.assign({ 'Content-Type': 'application/json' }, cors) });\n    }\n  }\n};\n";
@@ -5755,13 +5780,23 @@ function ignavBookingLinks(ignavId){
   return ignavApi("/booking-links", { ignav_id: ignavId });
 }
 function viewFares(){
-  var html = '<div class="card"><h2>🔍 Price Lookup — live flight prices</h2>';
-  html += '<div class="hint">Live published fares — sasta ticket ki tarah. <b>Pehle setup karein:</b> Settings → “Flight prices — Ignav” card → free Worker URL save karein (API key sirf Worker par rehti hai). Telegram bot bhi wahi Worker chalata hai → Settings → “Telegram price bot”. Jo airline API mein nahi (kuch LCCs), wo result mein nahi aati — uske liye neeche sasta ticket / Google Flights button hamesha kaam karte hain.</div>';
+  var configured = !!(ignavProxy() || ignavKey());
+  var html = '<div class="card"><h2>🔍 Price Lookup</h2>';
+  /* Lambi hidayat chhup gayi — tab compact rahe, zaroorat par tap kar ke kholein */
+  html += '<details class="fa-help"><summary>' + (configured ? "Setup / help" : "⚠ Setup baqi he — tap karein") + '</summary>'
+        + '<div class="hint" style="margin-top:6px;">'
+        + '<b>Meezab</b> = live PKR fares (Worker ka <code>/meezab/search</code>, wahi Worker jo Telegram bot chalata he). '
+        + '<b>Ignav</b> ke liye Settings → “Flight prices — Ignav” mein Worker URL save karein. '
+        + 'Country search: “To” mein IATA code ki jagah country likhein (UAE, Saudi Arabia) — us country ke airports ke sab se saste fares aayenge (har airport ek search). '
+        + 'Jo airline API mein nahi (kuch LCCs) wo result mein nahi aati — har fare ke sath Sasta / Google Flights / Skyscanner / Kayak links bhi milte hain. '
+        + 'Prices <b>indicative</b> hain; Ignav ki pehli 1,000 requests one-time free, uske baad $2/1,000.'
+        + '</div></details>';
   html += '<div class="row" style="margin-top:8px; align-items:flex-end;">'
         + '<div><label>From</label><input id="faFrom" placeholder="KHI / Karachi" autocomplete="off" style="text-transform:uppercase; font-size:18px; font-weight:700; letter-spacing:.12em;"><div class="hint airport-info" style="margin-top:2px;"></div></div>'
         + '<div class="fa-arrow" style="display:flex; align-items:center; padding-bottom:10px; font-size:20px;">→</div>'
         + '<div><label>To</label><input id="faTo" placeholder="DXB / Dubai" autocomplete="off" style="text-transform:uppercase; font-size:18px; font-weight:700; letter-spacing:.12em;"><div class="hint airport-info" style="margin-top:2px;"></div></div>'
         + '</div>';
+  html += '<div style="display:flex; justify-content:flex-end; margin-top:4px;"><button type="button" class="btn small" id="faSwap" title="From aur To badal dein" style="margin:0; padding:4px 10px; font-size:12px;">⇄ Swap</button></div>';
   html += '<div id="faLeg2Wrap" style="display:none; border:1px dashed var(--line); border-radius:12px; padding:10px; margin-top:8px;">'
         + '<div style="font-weight:800; font-size:13px; margin-bottom:2px;">Second leg — multi-city</div>'
         + '<div class="hint" style="margin-top:0;">Leg 1 ke baad leg 2 ki alag route/date — dono legs ek hi itinerary mein search hongi.</div>'
@@ -5774,31 +5809,22 @@ function viewFares(){
         + '</div>';
   html += '<div class="row" style="margin-top:8px;">'
         + '<div><label>Departure date</label><input id="faDate" type="date" value="'+today()+'"></div>'
-        + '<div><label>Trip</label><select id="faTrip"><option value="one">One-way</option><option value="round">Round trip</option><option value="multi">Multi-city (2 legs)</option></select></div>'
         + '<div><label>Return date</label><input id="faRet" type="date" value="'+today()+'" disabled></div>'
         + '</div>';
-  html += '<div class="row" style="margin-top:8px;">'
-        + '<div><label>Adults</label><select id="faAdults">'+[1,2,3,4,5,6,7,8,9].map(function(n){ return '<option value="'+n+'">'+n+'</option>'; }).join('')+'</select></div>'
-        + '<div><label>Children (2–11)</label><select id="faChildren">'+[0,1,2,3,4,5,6,7,8].map(function(n){ return '<option value="'+n+'">'+n+'</option>'; }).join('')+'</select></div>'
-        + '<div><label>Infants on lap (&lt;2)</label><select id="faInfantsLap">'+[0,1,2,3,4].map(function(n){ return '<option value="'+n+'">'+n+'</option>'; }).join('')+'</select></div>'
-        + '<div><label>Infants in seat</label><select id="faInfantsSeat">'+[0,1,2,3,4].map(function(n){ return '<option value="'+n+'">'+n+'</option>'; }).join('')+'</select></div>'
+  html += '<div class="row fa-compact" style="margin-top:8px;">'
+        + '<div><label>Trip</label><select id="faTrip" class="fa-sm"><option value="one">One-way</option><option value="round">Round trip</option><option value="multi">Multi-city</option></select></div>'
+        + '<div><label>Class</label><select id="faClass" class="fa-sm"><option value="">Any</option><option value="economy">Economy</option><option value="premium_economy">Premium economy</option><option value="business">Business</option><option value="first">First</option></select></div>'
+        + '<div><label>Adults</label><select id="faAdults" class="fa-sm">'+[1,2,3,4,5,6,7,8,9].map(function(n){ return '<option value="'+n+'">'+n+'</option>'; }).join('')+'</select></div>'
+        + '<div><label>Children</label><select id="faChildren" class="fa-sm">'+[0,1,2,3,4,5,6,7,8].map(function(n){ return '<option value="'+n+'">'+n+'</option>'; }).join('')+'</select></div>'
+        + '<div><label>Infants lap</label><select id="faInfantsLap" class="fa-sm">'+[0,1,2,3,4].map(function(n){ return '<option value="'+n+'">'+n+'</option>'; }).join('')+'</select></div>'
+        + '<div><label>Infants seat</label><select id="faInfantsSeat" class="fa-sm">'+[0,1,2,3,4].map(function(n){ return '<option value="'+n+'">'+n+'</option>'; }).join('')+'</select></div>'
         + '</div>';
-  html += '<div class="row" style="margin-top:8px;">'
-        + '<div><label>Class</label><select id="faClass"><option value="">Any</option><option value="economy">Economy</option><option value="premium_economy">Premium economy</option><option value="business">Business</option><option value="first">First</option></select></div>'
-        + '<div><label>Market (price currency)</label><select id="faMarket">'+FA_MARKETS.map(function(m){ return '<option value="'+m.c+'"'+(m.c===ignavMarket()?" selected":"")+'>'+esc(m.n)+'</option>'; }).join('')+'</select></div>'
-        + '</div>';
-  html += '<div class="hint" style="margin-top:6px;">Ek search = ek Ignav request — passengers zyada hone se koi extra request nahi lagti. Fare poore party ka <b>total</b> hota hai (adult/child/infant ka alag breakdown API nahi deta).</div>';
-  html += '<div class="row" style="margin-top:8px; align-items:center;">'
-        + '<div><label>Max results</label><select id="faMax"><option value="10">10</option><option value="15" selected>15</option><option value="25">25</option></select></div>'
-        + '<label style="margin:0; display:flex; gap:6px; align-items:center; padding-bottom:8px;"><input type="checkbox" id="faNonStop" style="width:auto;"> Non-stop only</label>'
-        + '</div>';
-  html += '<button class="btn primary" id="faMeezab" style="width:100%; margin-top:8px; background:#2563eb; color:#fff;">Meezab Air — live PKR fares</button>';
-  html += '<button class="btn" id="faSearch" style="width:100%; margin-top:8px; background:#4b5563; color:#fff;">🔍 Search flights</button>';
-  html += '<div class="hint">Meezab: one-way · 1 adult · Economy. Upar wala route aur date use hoga — search ki <b>saari</b> flights, page ke zariye. '
-        + '<b>Country search:</b> “To” mein IATA code ki jagah country ka naam likhein (misal <b>UAE</b>, <b>Saudi Arabia</b>) — us country ke airports ke sab se saste fares price-wise aayenge. Har airport ek search count karta he.</div>'
+  html += '<label class="fa-nonstop"><input type="checkbox" id="faNonStop" style="width:auto;"> Non-stop only</label>';
+  html += '<button class="btn primary" id="faMeezab" style="width:100%; margin-top:10px; background:#2563eb; color:#fff;">Meezab Air — live PKR fares</button>';
+  html += '<button class="btn" id="faSearch" style="width:100%; margin-top:8px; background:#4b5563; color:#fff;">🔍 Ignav search</button>';
+  html += '<div class="hint" style="margin-top:6px;">Meezab: one-way · 1 adult · Economy — upar wala route aur date, <b>saari</b> flights, PKR mein.</div>'
         + '<div id="faMeezabCountry"></div><div id="faMeezabResults"></div>';
   html += '<div id="faStatus" class="hint" style="margin-top:8px; font-weight:600;"></div>';
-  html += '<div class="hint" style="margin-top:6px;">Prices <b>indicative</b> hain — booking airline/consolidator portal se hoti hai. Har successful search ek Ignav request count karti hai: pehli <b>1,000 requests one-time free</b> (monthly reset nahi hoti), uske baad <b>$2 per 1,000</b>; failed requests bill nahi hoti.</div>';
   html += '</div>';
 
   html += '<div id="faResults"></div>';
@@ -5916,7 +5942,7 @@ function faCaptureForm(){
     adults:faFieldVal("faAdults") || "1", children:faFieldVal("faChildren") || "0",
     lap:faFieldVal("faInfantsLap") || "0", seat:faFieldVal("faInfantsSeat") || "0",
     cls:faFieldVal("faClass") || "",
-    market:faFieldVal("faMarket") || "PK", max:faFieldVal("faMax") || "15",
+    market:faFieldVal("faMarket") || "PK", max:faFieldVal("faMax") || "50",
     nonstop:!!((document.getElementById("faNonStop")||{}).checked)
   };
 }
@@ -5942,7 +5968,7 @@ function faApplyForm(f){
 function faRestore(){
   if(!IGN_STATE.form) return;
   faApplyForm(IGN_STATE.form);
-  if(IGN_STATE.last) faRenderOffers(IGN_STATE.last, IGN_STATE.req || { __max: Number(IGN_STATE.form.max) || 15 });
+  if(IGN_STATE.last) faRenderOffers(IGN_STATE.last, IGN_STATE.req || { __max: Number(IGN_STATE.form.max) || 50 });
   faRenderSasta();
   if(IGN_STATE.status) faSetStatus(IGN_STATE.status, IGN_STATE.bad);
   if(faBusy){
@@ -6016,7 +6042,7 @@ function faClearResults(){
 function faRenderOffers(j, req){
   var host = document.getElementById("faResults"); if(!host) return;
   var list = (j && j.itineraries) || [];
-  var max = Number((req && req.__max) || 15);
+  var max = Number((req && req.__max) || 50);
   list = list.slice(0, max);
   if(!list.length){
     host.innerHTML = '<div class="card"><div style="display:flex; align-items:center; gap:8px;"><h2 style="margin:0; flex:1;">No flights found</h2><button class="del" id="faClearResults" title="Clear results" style="background:var(--red-bg); color:var(--red); padding:4px 9px;">✕</button></div><div class="empty">Koi flight nahi mili — date/route change karke dobara try karein. Sasta ticket/Google Flights links neeche hain.</div></div>';
@@ -6949,11 +6975,12 @@ function ignavSearch(){
   var resultHost = document.getElementById("faResults"); if(resultHost) resultHost.innerHTML = "";
   faRenderSasta();
   var btn = document.getElementById("faSearch"); if(btn){ btn.textContent = "Loading…"; btn.disabled = true; }
-  var maxResults = Number((document.getElementById("faMax")||{}).value || 15);
+  /* PKR hamesha — market box hata diya; results ki koi limit nahi (jo aayen sab dikhein) */
+  var maxResults = 50;
   var adults = pax.adults;
   var cls = (document.getElementById("faClass")||{}).value || "";
   var nonStop = !!((document.getElementById("faNonStop")||{}).checked);
-  var market = (document.getElementById("faMarket")||{}).value || ignavMarket();
+  var market = "PK";
   var payload, endpoint;
   if(trip === "multi"){
     var leg1 = { origin:f, destination:t, departure_date:date };
@@ -10380,6 +10407,13 @@ function bind(){
   });
   var faSearchBtn = document.getElementById("faSearch");
   if(faSearchBtn) faSearchBtn.onclick = ignavSearch;
+  var faSwapBtn = document.getElementById("faSwap");
+  if(faSwapBtn) faSwapBtn.onclick = function(){
+    var a = document.getElementById("faFrom"), b = document.getElementById("faTo");
+    if(!a || !b) return;
+    var tmp = a.value; a.value = b.value; b.value = tmp;
+    try{ a.dispatchEvent(new Event("input")); b.dispatchEvent(new Event("input")); }catch(e){}
+  };
   var faMeezabBtn = document.getElementById("faMeezab");
   if(faMeezabBtn) faMeezabBtn.onclick = meezabLookup;
   /* Auto-refresh timer hamesha chalta rahe — tick khud check karta he ke kuch karna he ya nahi. */

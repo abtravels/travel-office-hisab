@@ -1,5 +1,16 @@
 # Travel Office Hisab — AB Travels
 
+## Price Lookup compact (v2.83)
+- **Lambi hidayat chhup gayi:** tab ke oper wala bara paragraph ab ek chhoti **“Setup / help”** line hai jo tap karne par khulti hai (agar Worker URL set nahi he to wo khud “⚠ Setup baqi he” dikhati hai). Price note, country-search tareeqa aur Ignav ki request-limit wali baat usi ke andar.
+- **Market (currency) box hata diya** — search hamesha **PKR** mein hoti hai.
+- **Max results box hata diya** — Ignav se jo aayen sab dikhte hain (pehle 15 par kat jate thay). Meezab pehle se hi saari flights laata hai.
+- **Chhote boxes:** Trip / Class / Adults / Children / Infants ab compact (34px) aur phone par bhi **3 columns ke grid** mein — From, To aur dates hi bare hain. Pehle ye 6 boxes phone par poori screen le lete thay.
+- Trip select dates ki row se nikal kar compact row mein — desktop par date boxes ka overflow bhi theek ho gaya (ab sirf 2 date boxes barabar column mein).
+- **⇄ Swap** button — ek tap mein From/To badal jate hain (reverse route search ke liye).
+- `faMax` / `faMarket` ka purana saved form data chup chaap ignore hota hai, is liye purani settings kharab nahi hotin.
+- Chhoti safai: band (disabled) field ab halka dikhta hai — maslan one-way par "Return date" saaf pata chalta hai ke wo kaam nahi kar raha. Touch par tap ke baad button/summary par blue focus ring chipki nahi rehti.
+- Sirf app ka change — Worker redeploy ki zaroorat nahi.
+
 ## Tab badalne par search band nahi hoti (v2.82)
 - **Masla:** Meezab (ya Ignav) ki search chal rahi ho aur aap doosra tab khol lein, to wapas aane par results ka dabba **khaali** milta tha — search adhoori lagti thi. Wajah: `render()` har tab change par poora page `innerHTML` se dobara banata he, is liye "search chal rahi he" ka card aur error message — jo sirf DOM mein the — mit jate the.
 - **Fix:** search ka haal ab DOM ke bajaye app ki state mein rehta he (`MEZ.stage`, `MEZ.stageNote`, `MEZ.error`, `MEZ.busy`). Tab switch par wahi card khud dobara banta he, is liye:
