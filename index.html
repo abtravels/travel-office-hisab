@@ -6539,7 +6539,9 @@ function mezRenderCountry(){
     btns[i].onclick = function(){ mezPickDestination(this.getAttribute("data-mez-dest")); };
   }
 }
-/* Country ke airports ek ek kar ke search — app side, taake worker timeout na ho. */
+/* Country ke airports ek saath 3 chal kar search — app side, taake worker timeout
+   na ho aur 8 airports bhi 1–2 minute mein ho jayen. */
+var MEZ_COUNTRY_PAR = 3;
 async function mezCountryRun(plan, base, picks){
   var hostR = document.getElementById("faMeezabResults");
   MEZ.fares = []; MEZ.info = null; MEZ.payload = null;
@@ -6547,34 +6549,44 @@ async function mezCountryRun(plan, base, picks){
     codes:picks.map(function(a){ return a.iata; }), rows:[], done:0, busy:true,
     origin:base.origin, date:base.departure_date, observed_at:"" };
   if(hostR) hostR.innerHTML = "";
+  MEZ.country.rows = picks.map(function(a){
+    return { destination:a.iata, city:a.city || "", name:a.name || "", fares:[], cheapest:null,
+      airline:"", airline_code:"", stops:null, duration_min:null, count:0, state:"pending" };
+  });
   mezRenderCountry();
-  for(var i = 0; i < picks.length; i++){
-    var a = picks[i];
-    var row = { destination:a.iata, city:a.city || "", name:a.name || "", fares:[], cheapest:null,
-      airline:"", airline_code:"", stops:null, duration_min:null, count:0, state:"searching" };
-    MEZ.country.rows.push(row);
-    mezRenderCountry();
-    try{
-      var j = await mezFetchSearch(Object.assign({}, base, { destination:a.iata }));
-      var fares = Array.isArray(j.fares) ? j.fares : [];
-      row.fares = fares;
-      row.count = fares.length;
-      row.cached = !!j.cached;
-      row.state = "ok";
-      if(fares.length){
-        var cheapest = fares.reduce(function(x, y){ return y.amount < x.amount ? y : x; });
-        row.cheapest = cheapest.amount; row.airline = cheapest.airline;
-        row.airline_code = cheapest.airline_code; row.stops = cheapest.stops;
-        row.duration_min = cheapest.duration_min; row.departure = cheapest.departure;
+  var next = 0;
+  async function worker(){
+    while(true){
+      var idx = next++;
+      if(idx >= picks.length) return;
+      var a = picks[idx], row = MEZ.country.rows[idx];
+      row.state = "searching";
+      mezRenderCountry();
+      try{
+        var j = await mezFetchSearch(Object.assign({}, base, { destination:a.iata }));
+        var fares = Array.isArray(j.fares) ? j.fares : [];
+        row.fares = fares;
+        row.count = fares.length;
+        row.cached = !!j.cached;
+        row.state = "ok";
+        if(fares.length){
+          var cheapest = fares.reduce(function(x, y){ return y.amount < x.amount ? y : x; });
+          row.cheapest = cheapest.amount; row.airline = cheapest.airline;
+          row.airline_code = cheapest.airline_code; row.stops = cheapest.stops;
+          row.duration_min = cheapest.duration_min; row.departure = cheapest.departure;
+        }
+        if(j.observed_at) MEZ.country.observed_at = j.observed_at;
+      }catch(e){
+        row.state = "err";
+        row.error = (e && e.message) || "search fail";
       }
-      MEZ.country.observed_at = j.observed_at || MEZ.country.observed_at;
-    }catch(e){
-      row.state = "err";
-      row.error = (e && e.message) || "search fail";
+      MEZ.country.done = MEZ.country.rows.filter(function(r){ return r.state !== "pending" && r.state !== "searching"; }).length;
+      mezRenderCountry();
     }
-    MEZ.country.done = i + 1;
-    mezRenderCountry();
   }
+  var lanes = [];
+  for(var k = 0; k < Math.min(MEZ_COUNTRY_PAR, picks.length); k++) lanes.push(worker());
+  await Promise.all(lanes);
   MEZ.country.busy = false;
   mezRenderCountry();
   var best = mezCountryRows().filter(function(r){ return r.cheapest != null; })[0];
