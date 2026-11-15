@@ -27,11 +27,12 @@ context.result = {
       {ID:20,FlightDataID:10,DepartureIata:"KHI",ArrivalIata:"AUH",
         DepartureDate:"2026-12-10T05:10:00",ArrivalDate:"2026-12-10T07:35:00",
         MarketingAirline:"EY",FlightNumber:"297",AirCraft:"320",FlightMinutes:145,
+        LayoverDuration:820,
         DepartureCity:"Karachi",ArrivalCity:"Abu Dhabi",SeatsRemaining:5},
       {ID:21,FlightDataID:10,DepartureIata:"AUH",ArrivalIata:"XNB",
         DepartureDate:"2026-12-10T21:15:00",ArrivalDate:"2026-12-10T23:55:00",
         MarketingAirline:"EY",FlightNumber:"5426",AirCraft:"BUS",FlightMinutes:160,
-        LayoverDuration:820,ArrivalCity:"Dubai"}
+        ArrivalCity:"Dubai"}
     ]
   }}
 };
@@ -43,7 +44,7 @@ assert.equal(fare.airline_code,"EY");
 assert.equal(fare.airline,"Etihad Airways");
 assert.equal(fare.stops,1);
 assert.equal(fare.stops_at,"AUH");
-assert.equal(fare.duration_min,405);
+assert.equal(fare.duration_min,1125);
 assert.equal(fare.refundable,true);
 assert.equal(fare.baggage,"30KG");
 assert.equal(fare.segments[1].to,"XNB");

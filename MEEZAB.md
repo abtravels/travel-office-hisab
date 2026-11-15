@@ -22,6 +22,12 @@ Each fare carries `airline_code`, `duration_min`, `stops`, `stops_at`,
 portal's local wall-clock strings (no UTC conversion), because each airport has
 its own offset.
 
+`duration_min` is summed from segment flight minutes plus layovers. The portal's
+own `FlightDuration` field is unreliable (672 of 854 KHI→DXB fares said 60
+minutes for 4–5 hour journeys), so it is only a fallback. Meezab stores a
+layover on the *preceding* segment; the worker moves it to `layover_min` of the
+segment it comes before.
+
 Absurd amounts are dropped: if the cheapest fare is at least 5,000 PKR, anything
 above 50× the cheapest is treated as portal data error. KHI→DXB keeps a real
 1,323,760 fare but drops the bogus 8,077,840 ones.

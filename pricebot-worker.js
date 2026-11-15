@@ -1996,16 +1996,26 @@ function mezNormalize(pages, q) {
           aircraft: aircraft === "BUS" ? "BUS" : String(s.AirCraft || ""),
           cls: String(s.FlightClassCode || ""),
           minutes: Number(s.FlightMinutes) || 0,
-          layover_min: Number(s.LayoverDuration) || 0,
+          layover_after: Number(s.LayoverDuration) || 0,
           seats: String(s.SeatsRemaining || ""),
           bus: aircraft === "BUS" || from === "XNB" || to === "XNB"
         });
       }
     }
     segments.sort((a, b) => String(a.departure).localeCompare(String(b.departure)));
+    // Portal layover agle segment par nahi, pichle segment par likhta he —
+    // "layover before" bana dein taake app seedha dikha sake.
+    const waits = segments.map(s => s.layover_after || 0);
+    for (let i = 0; i < segments.length; i++) {
+      segments[i].layover_min = i ? waits[i - 1] : 0;
+      delete segments[i].layover_after;
+    }
     if (!segments.length || (q.nonstop && segments.length !== 1)) continue;
     const first = segments[0], last = segments[segments.length - 1];
     const span = (mezTimeOf(last.arrival) - mezTimeOf(first.departure)) / 60000;
+    // FlightDuration portal par aksar ghalat (maslan 60) hota he; segments ka
+    // jod (flight + layover) hi bharosa mand he.
+    const bySegments = segments.reduce((n, s) => n + (s.minutes || 0) + (s.layover_min || 0), 0);
     const airlineCode = String(o.ValidatingCarrier || "").toUpperCase();
     fares.push({
       amount, currency: "PKR",
@@ -2015,7 +2025,7 @@ function mezNormalize(pages, q) {
       changeable: !!o.isChangeable,
       baggage: o.BaggageInfoADT || "",
       departure: first.departure, arrival: last.arrival,
-      duration_min: Number(myLegs[0] && myLegs[0].FlightDuration) || (Number.isFinite(span) ? Math.max(0, Math.round(span)) : 0),
+      duration_min: bySegments || Number(myLegs[0] && myLegs[0].FlightDuration) || (Number.isFinite(span) ? Math.max(0, Math.round(span)) : 0),
       stops: Math.max(0, segments.length - 1),
       stops_at: segments.slice(0, -1).map(s => s.to).join(" · "),
       overnight: String(first.departure).slice(0, 10) !== String(last.arrival).slice(0, 10),
