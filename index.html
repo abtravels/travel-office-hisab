@@ -470,14 +470,14 @@
     #bottomNav button.active{color:#fff; background:rgba(148,163,184,.13);}
     #bottomNav button.active::before{content:""; position:absolute; top:-3px; left:50%; margin-left:-13px; width:26px; height:3px; border-radius:3px; background:linear-gradient(90deg,#d97706,#fbbf24,#d97706);}
     #bottomNav button:active{background:rgba(148,163,184,.22);}
-    /* Beech mein plane ka nishan — ek tap par Price Lookup */
-    #bottomNav button#bnFares{flex:0 0 auto; width:60px; padding:0; position:relative; top:-16px; align-self:center; height:auto; justify-content:center; gap:0; background:transparent;}
-    #bottomNav button#bnFares .bf-circle{display:flex; align-items:center; justify-content:center; width:50px; height:50px; border-radius:50%; border:1.5px solid rgba(251,191,36,.66); background:linear-gradient(150deg,#fbbf24,#d97706); color:#3b2400; font-size:22px; line-height:1; box-shadow:0 7px 18px rgba(217,119,6,.48), 0 0 0 4px rgba(15,23,42,.94); transition:transform .15s,box-shadow .15s,background .15s;}
+    /* Beech mein plane ka nishan — ek tap par Price Lookup (bar ki height par asar nahi) */
+    #bottomNav button#bnFares{flex:0 0 auto; width:62px; padding:0; position:relative; align-self:stretch; height:auto; background:transparent; gap:0;}
+    #bottomNav button#bnFares .bf-circle{position:absolute; left:50%; bottom:9px; transform:translateX(-50%); display:flex; align-items:center; justify-content:center; width:50px; height:50px; border-radius:50%; border:1.5px solid rgba(251,191,36,.66); background:linear-gradient(150deg,#fbbf24,#d97706); color:#3b2400; font-size:22px; line-height:1; box-shadow:0 7px 18px rgba(217,119,6,.48), 0 0 0 4px rgba(15,23,42,.94); transition:transform .15s,box-shadow .15s,background .15s;}
     #bottomNav button#bnFares .bl{display:none;}
     #bottomNav button#bnFares:active{background:transparent;}
-    #bottomNav button#bnFares:active .bf-circle{transform:scale(.92);}
+    #bottomNav button#bnFares:active .bf-circle{transform:translateX(-50%) scale(.92);}
     #bottomNav button#bnFares.active{background:transparent;}
-    #bottomNav button#bnFares.active .bf-circle{background:linear-gradient(150deg,#fde68a,#f59e0b); box-shadow:0 6px 18px rgba(251,191,36,.55), 0 0 0 4px rgba(15,23,42,.92);}
+    #bottomNav button#bnFares.active .bf-circle{background:linear-gradient(150deg,#fde68a,#f59e0b); box-shadow:0 7px 20px rgba(251,191,36,.60), 0 0 0 4px rgba(15,23,42,.94);}
     body.oled #bottomNav button#bnFares .bf-circle{color:#2a1a00; box-shadow:0 6px 16px rgba(217,119,6,.40), 0 0 0 4px #000;}
     body.oled #bottomNav button#bnFares.active .bf-circle{box-shadow:0 6px 18px rgba(251,191,36,.5), 0 0 0 4px #000;}
     #bottomNav button#bnFares:focus-visible{outline:none;}
@@ -598,8 +598,8 @@
       #bottomNav{padding-left:2px; padding-right:2px;}
       #bottomNav button{font-size:9.5px; padding-left:1px; padding-right:1px;}
       #bottomNav button .bi{font-size:18px;}
-      #bottomNav button#bnFares{width:52px; top:-10px;}
-      #bottomNav button#bnFares .bf-circle{width:42px; height:42px; font-size:19px;}
+      #bottomNav button#bnFares{width:54px; top:-14px;}
+      #bottomNav button#bnFares .bf-circle{width:46px; height:46px; font-size:20px;}
     }
   }
 
