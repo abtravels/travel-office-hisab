@@ -1928,6 +1928,16 @@ async function mezPost(cookie, endpoint, body) {
   if (!r.ok) throw new Error("Meezab " + endpoint + ": HTTP " + r.status);
   return mezStep(endpoint + "-json", () => r.json());
 }
+/* Portal ek search mein poora party leta he (adult + child + infant), jaisa
+   Meezab ki apni website par. Har group ki apni hadd he — is se zyada par
+   supplier timeout karte hain. */
+const MEZ_MAX_ADULTS = 10, MEZ_MAX_CHILDREN = 10, MEZ_MAX_INFANTS = 10;
+function mezPaxCount(value, min, max, label) {
+  const n = Number(value == null || value === "" ? min : value);
+  if (!Number.isFinite(n) || Math.floor(n) !== n || n < min || n > max)
+    throw new Error("Meezab " + label + " " + min + " se " + max + " tak ho sakte hain.");
+  return n;
+}
 function mezQuery(q) {
   const origin = String(q.origin || "").toUpperCase(), destination = String(q.destination || "").toUpperCase();
   const date = String(q.departure_date || "");
@@ -1937,10 +1947,51 @@ function mezQuery(q) {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || !Number.isFinite(Date.parse(date)) ||
       new Date(date).toISOString().slice(0, 10) !== date || date < today ||
       Date.parse(date) > Date.now() + 365 * 86400000) throw new Error("Select a valid future date within one year.");
-  if (q.return_date || q.legs || Number(q.adults || 1) !== 1 || Number(q.children || 0) ||
-      Number(q.infants_on_lap || 0) || Number(q.infants_in_seat || 0) ||
-      (q.cabin_class && q.cabin_class !== "economy")) throw new Error("Meezab currently supports one-way, 1 adult, Economy.");
-  return { origin, destination, departure_date: date, nonstop: q.max_stops === 0 };
+  if (q.return_date || q.legs || (q.cabin_class && q.cabin_class !== "economy"))
+    throw new Error("Meezab currently supports one-way, Economy.");
+  const adults = mezPaxCount(q.adults, 1, MEZ_MAX_ADULTS, "mein adult");
+  const children = mezPaxCount(q.children, 0, MEZ_MAX_CHILDREN, "mein child");
+  const lap = mezPaxCount(q.infants_on_lap, 0, MEZ_MAX_INFANTS, "mein lap infant");
+  const seat = mezPaxCount(q.infants_in_seat, 0, MEZ_MAX_INFANTS, "mein seat infant");
+  const infants = lap + seat;
+  if (infants > MEZ_MAX_INFANTS)
+    throw new Error("Meezab mein infants (lap + seat) " + MEZ_MAX_INFANTS + " se zyada nahi ho sakte.");
+  /* Portal infants ko ek hi group mein leta he — lap aur seat dono "Infant". */
+  return { origin, destination, departure_date: date, nonstop: q.max_stops === 0,
+    adults, children, infants, infants_on_lap: lap, infants_in_seat: seat };
+}
+/* Portal ke passenger objects — jitne log, utne. IDs unique hone chahiye,
+   warna supplier ek hi pax samajh kar ek ka fare deta he. */
+function mezPaxObject(kind, i) {
+  const p = (kind === "adt" ? "PAX" : kind === "chd" ? "CHD" : "INF") + (i + 1);
+  const refKey = kind === "adt" ? "AdultRefID" : "ChildRefID";
+  const o = { ID: "" };
+  o[refKey] = crypto.randomUUID();
+  o[refKey + "_NDC_OmanAir"] = p;
+  o[refKey + "_NDC_Emirates"] = "T" + (i + 1);
+  o[refKey + "_NDC_Serene"] = p;
+  o[refKey + "_NDC_TurkishAirlines"] = p;
+  o[refKey + "_NDC_Hitit"] = p;
+  o[refKey + "_NDC_Ethiopian"] = p;
+  if (kind === "adt") {
+    o.AdultRefID_NDC_OmanAir_FLX = "T" + (i + 1);
+    o.AdultRefID_FZ = 0;
+  }
+  o.Age = 0;
+  if (kind === "adt") o.IsUmrahPassenger = false;
+  o.PassengerID = 0;
+  o.DOB = "0001-01-01T00:00:00";
+  o.PassportExpiryDate = "0001-01-01T00:00:00";
+  o.SeatNumbers = [];
+  o.Meals = [];
+  o.Baggages = [];
+  return o;
+}
+/* Portal har passenger ka apna fare bhejta he — PerAdult / PerChild / PerInfant.
+   "_WithPM_" wala field markup ke baad ka asli agent fare he, wohi total mein jata he. */
+function mezPaxFare(o, kind) {
+  const v = Number(o && o["Per" + kind + "Total_WithPM_Agent_Currency_Amount"]);
+  return Number.isFinite(v) && v > 0 ? v : 0;
 }
 /* Portal ka airline naam "Etihad Airways dba Etihad" jaisa aata he — dba hissa hata dein. */
 function mezAirlineName(name) {
@@ -2039,14 +2090,29 @@ function mezNormalize(pages, q) {
     // jod (flight + layover) hi bharosa mand he.
     const bySegments = segments.reduce((n, s) => n + (s.minutes || 0) + (s.layover_min || 0), 0);
     const airlineCode = String(o.ValidatingCarrier || "").toUpperCase();
+    /* Portal total poore party ka hota he. Har group ka apna fare bhi aata he —
+       app usi se "per adult / child / infant" breakdown dikhata he. */
+    const paxCounts = { adults: (q && q.adults) || 1, children: (q && q.children) || 0,
+      infants: (q && q.infants) || 0 };
+    const perAdult = mezPaxFare(o, "Adult"), perChild = mezPaxFare(o, "Child"),
+      perInfant = mezPaxFare(o, "Infant");
+    const partySum = perAdult * paxCounts.adults + perChild * paxCounts.children
+      + perInfant * paxCounts.infants;
     fares.push({
       amount, currency: "PKR",
+      /* amount = poore party ka total (portal jaisa). per_pax = breakdown; kisi
+         group ka fare portal ne na diya ho to us se total dobara na banayein. */
+      pax: paxCounts,
+      party_sum: partySum,
+      per_adult: perAdult, per_child: perChild, per_infant: perInfant,
       airline: mezAirlineName(o.ValidatingCarrierName) || airlineCode,
       airline_code: airlineCode,
       platform: mezPlatform(o),
       refundable: !!o.isRefundable,
       changeable: !!o.isChangeable,
       baggage: o.BaggageInfoADT || "",
+      baggage_child: o.BaggageInfoCNN || "",
+      baggage_infant: o.BaggageInfoINF || "",
       departure: first.departure, arrival: last.arrival,
       duration_min: bySegments || Number(myLegs[0] && myLegs[0].FlightDuration) || (Number.isFinite(span) ? Math.max(0, Math.round(span)) : 0),
       stops: Math.max(0, segments.length - 1),
@@ -2078,7 +2144,11 @@ function mezNormalize(pages, q) {
     unique.push(f);
   }
   return { source: "Meezab Air", observed_at: new Date().toISOString(),
-    complete, total: total || options.length, fares: unique };
+    complete, total: total || options.length,
+    pax: { adults: (q && q.adults) || 1, children: (q && q.children) || 0,
+      infants: (q && q.infants) || 0, infants_on_lap: (q && q.infants_on_lap) || 0,
+      infants_in_seat: (q && q.infants_in_seat) || 0 },
+    fares: unique };
 }
 
 /* Daily budget for Meezab searches. The portal account allows a limited number of
@@ -2126,13 +2196,10 @@ async function mezRunSearch(env, q, opts) {
     ArrivalDate: q.departure_date + "T00:00:00", DepartureDateString: "", ArrivalDateString: "",
     FlightFrom: q.origin, FlightFrom_Text: q.origin, FlightTo: q.destination, FlightTo_Text: q.destination,
     Cabin: "Economy", MaxTransfers: 0, PreferredAirline: "", Currency: "PKR", MultiCityArray: [],
-    AdultClsArray: [{ ID: "", AdultRefID: crypto.randomUUID(), AdultRefID_NDC_OmanAir: "PAX1",
-      AdultRefID_NDC_Emirates: "T1", AdultRefID_NDC_Serene: "PAX1", AdultRefID_NDC_TurkishAirlines: "PAX1",
-      AdultRefID_NDC_OmanAir_FLX: "T1", AdultRefID_NDC_Hitit: "PAX1", AdultRefID_NDC_Ethiopian: "PAX1",
-      AdultRefID_FZ: 0, Age: 0, IsUmrahPassenger: false, PassengerID: 0,
-      DOB: "0001-01-01T00:00:00", PassportExpiryDate: "0001-01-01T00:00:00",
-      SeatNumbers: [], Meals: [], Baggages: [] }],
-    ChildClsArray: [], InfantClsArray: [], Adults: 1, Child: 0, Infant: 0,
+    AdultClsArray: Array.from({ length: q.adults || 1 }, (_, i) => mezPaxObject("adt", i)),
+    ChildClsArray: Array.from({ length: q.children || 0 }, (_, i) => mezPaxObject("chd", i)),
+    InfantClsArray: Array.from({ length: q.infants || 0 }, (_, i) => mezPaxObject("inf", i)),
+    Adults: q.adults || 1, Child: q.children || 0, Infant: q.infants || 0,
     isDomestic: false, IsUmrahFareSearch: false, IsAnciSelected: false
   };
   const start = await mezPost(cookie, "GetFlightList", { loginID: env.MEZ_USER,
@@ -2326,7 +2393,7 @@ async function statusPage(env) {
       info = "<li>Webhook: <span style=\"color:var(--gold)\">check slow</span> <small>(Telegram jawab nahi de raha - bot par message bhej kar test karein)</small></li>";
     }
   }
-  return page("AB Travels worker", "<h1>✈️ AB Travels worker <small>v2.85</small></h1><ul>" + rows.join("") + info +
+  return page("AB Travels worker", "<h1>✈️ AB Travels worker <small>v2.86</small></h1><ul>" + rows.join("") + info +
     "<li>Today's searches: <b>" + esc(used) + "</b> / " + budgetCap(env) + "</li>" +
     "<li>Owner chat: <code>" + esc(owner) + "</code></li>" +
     "<li>Team alerts: " + (team.length ? team.map(function (c) { return "<code>" + esc(c) + "</code>"; }).join(", ") : "<i>sirf owner</i>") + "</li></ul>" +

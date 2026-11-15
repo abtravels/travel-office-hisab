@@ -8,8 +8,26 @@ vm.runInContext(source, context);
 const query = {origin:"KHI",destination:"DXB",departure_date:new Date(Date.now()+7*86400000).toISOString().slice(0,10)};
 context.query = query;
 assert.equal(vm.runInContext("mezQuery(query).origin", context), "KHI");
-context.invalid = {...query, children:1};
-assert.throws(() => vm.runInContext("mezQuery(invalid)", context), /1 adult/);
+/* Passengers: portal jaisa poora party, 1/1/1 se 10/10/10 tak (v2.86). */
+assert.equal(vm.runInContext("mezQuery(query).adults", context), 1);
+assert.equal(vm.runInContext("mezQuery(query).children", context), 0);
+context.party = {...query, adults:2, children:3, infants_on_lap:1, infants_in_seat:2};
+const pq = vm.runInContext("mezQuery(party)", context);
+assert.equal(pq.adults, 2); assert.equal(pq.children, 3);
+assert.equal(pq.infants, 3);          // lap + seat ek hi Infant group
+assert.equal(pq.infants_on_lap, 1); assert.equal(pq.infants_in_seat, 2);
+context.big = {...query, adults:10, children:10, infants_on_lap:5, infants_in_seat:5};
+assert.equal(vm.runInContext("mezQuery(big).infants", context), 10);
+context.invalid = {...query, adults:11};
+assert.throws(() => vm.runInContext("mezQuery(invalid)", context), /adult 1 se 10/);
+context.invalid = {...query, children:11};
+assert.throws(() => vm.runInContext("mezQuery(invalid)", context), /child 0 se 10/);
+context.invalid = {...query, infants_on_lap:6, infants_in_seat:6};
+assert.throws(() => vm.runInContext("mezQuery(invalid)", context), /infants .* 10 se zyada/);
+context.invalid = {...query, adults:0};
+assert.throws(() => vm.runInContext("mezQuery(invalid)", context), /adult 1 se 10/);
+context.invalid = {...query, return_date:"2026-12-20"};
+assert.throws(() => vm.runInContext("mezQuery(invalid)", context), /one-way/);
 context.invalid = {...query, departure_date:"2026-02-30"};
 assert.throws(() => vm.runInContext("mezQuery(invalid)", context), /valid future date/);
 context.invalid = {...query, destination:"KHI"};
@@ -52,6 +70,31 @@ assert.equal(fare.stops_at,"AUH");
 assert.equal(fare.duration_min,1125);
 assert.equal(fare.refundable,true);
 assert.equal(fare.baggage,"30KG");
+assert.equal(fare.baggage_child,"");
+/* Per-passenger fares (v2.86): portal har group ka fare alag bhejta he. */
+assert.equal(fare.pax.adults,1);
+assert.equal(fare.per_adult,0);       // is fixture mein Per* fields nahi hain
+context.partyResult = JSON.parse(JSON.stringify(context.result));
+Object.assign(context.partyResult.Flight_Result.flightDataSet.FlightOption[0], {
+  PerAdultTotal_WithPM_Agent_Currency_Amount:27760,
+  PerChildTotal_WithPM_Agent_Currency_Amount:19800,
+  PerInfantTotal_WithPM_Agent_Currency_Amount:4200,
+  BaggageInfoCNN:"20KG", BaggageInfoINF:"10KG"
+});
+context.partyQuery = {nonstop:false, adults:2, children:1, infants:1};
+const partyNorm = vm.runInContext("mezNormalize(partyResult, partyQuery)", context);
+assert.equal(partyNorm.pax.adults,2);
+assert.equal(partyNorm.pax.children,1);
+assert.equal(partyNorm.pax.infants,1);
+const pf = partyNorm.fares[0];
+assert.equal(pf.per_adult,27760);
+assert.equal(pf.per_child,19800);
+assert.equal(pf.per_infant,4200);
+assert.equal(pf.baggage_child,"20KG");
+assert.equal(pf.baggage_infant,"10KG");
+// per-pax sum vs portal total (27760*2 + 19800 + 4200 = 79520)
+assert.equal(pf.party_sum,79520);
+assert.ok(!JSON.stringify(partyNorm).includes("DO-NOT-EXPOSE"));
 assert.equal(fare.segments[1].to,"XNB");
 assert.equal(fare.segments[1].aircraft,"BUS");
 assert.equal(fare.segments[1].bus,true);
@@ -91,4 +134,4 @@ assert.equal(vm.runInContext("mezNormalize(wild, query).fares.length", context),
 // auto-refresh: search core alag function he, taake fresh flag cache skip kar sake
 assert.equal(vm.runInContext("typeof mezRunSearch", context), "function");
 assert.equal(vm.runInContext("typeof meezabSearch", context), "function");
-console.log("Meezab checks passed: validation, fare currency, zero-price filtering, bus routing, token stripping, nonstop, duplicate fares, paging merge, wild-price filter, rich fields, refresh helper.");
+console.log("Meezab checks passed: validation, passenger groups (10/10/10), fare currency, zero-price filtering, bus routing, token stripping, nonstop, duplicate fares, paging merge, wild-price filter, rich fields, per-passenger fares, refresh helper.");

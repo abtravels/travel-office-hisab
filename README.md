@@ -10,6 +10,26 @@
 - Bindings, secrets aur cron `wrangler.pricebot.toml` se aate hain; KV (`KV` → `abtravels-bot`), Durable Object (`WATCH_INDEX_DO`) aur secrets dashboard par waise hi rehte hain.
 - Deploy ke baad `https://ab-travels-ignav.umair5075.workers.dev/` par version string check kar lein.
 
+## Meezab: poora party (adult + child + infant) ek hi search mein (v2.86)
+- Pehle Meezab sirf **1 adult** par chalta tha (worker mein hard block). Ab portal jaisa **poora party**: **10 adult tak, 10 children tak, 10 infants tak** (lap + seat mila kar) — har group ka apna fare bhi aata he.
+- **Kya badla:**
+  - Worker `mezQuery()` ka 1-adult block gaya; body se `adults` / `children` / `infants_on_lap` / `infants_in_seat` le kar har passenger ka apna object banaya jata he (`AdultClsArray` / `ChildClsArray` / `InfantClsArray`, unique reference IDs ke sath).
+  - Hadd se zyada bhejne par saaf error (maslan "Meezab mein adult 1 se 10 tak ho sakte hain").
+  - Har fare mein ab **per-person fares** aate hain: `per_adult`, `per_child`, `per_infant`, `party_sum`, aur per-group baggage (`baggage_child`, `baggage_infant`). Reply mein top-level `pax` block bhi.
+  - `amount` **poore party ka total** he (portal jaisa) — 1 adult par pehle jaisa hi.
+- **App:**
+  - Price Lookup ke passenger boxes ab **10 tak** (Adults 1–10, Children 0–10, Infants lap/seat 0–10).
+  - Fare card par total + "total · 2 adults + 1 child" label; **"Per-passenger breakdown"** dabane par table khulti he: per person fare × count, group total, baggage. `Per-person fares markup ke baad ke agent fares hain` ka note bhi.
+  - Header mein party dikhta he (pehle hardcoded "1 adult" tha). Single adult par card waisa hi simple rehta he — breakdown nahi.
+  - Adhoori search resume karte waqt passenger counts bhi wapas set hote hain; country search bhi party ke hisaab se chalti he.
+- **Live verify (16 Nov 2026):** 2 adult + 1 child + 1 infant = **186,747 PKR** total, per-person fares ka jod bilkul wohi; 10 adult / 10 child / 10 infant 33 second mein mukammal.
+- **Worker redeploy zaroori:** `npx wrangler deploy -c wrangler.pricebot.toml` (Workers Builds push par khud bhi kar deta he).
+
+## Airport dropdown ke 3 bache hue bugs (v2.86)
+- **Ek saath do lists:** ek field se doosri par jaate waqt purani list `body` par pari reh jati thi (naya mount hone se uska reference kho jata tha aur wo kabhi band nahi hoti thi). Ab har list par `data-ab-drop` he — naya mount hone se pehle purani hata di jati he, aur doosri field khulte waqt pehli band ho jati he.
+- **Tab switch par list float karti rehti thi:** `switchTab()` aur `render()` shuru mein `abDropCloseAll()` — app dobara banne se pehle list saaf.
+- **Tez tap par nayi list band ho jati thi:** `blur` ka 200ms timer sirf wohi list band karta he jo us waqt khuli thi (`if(drop === mine)`), is liye nayi khuli list bachi rehti he.
+
 ## Meezab budget barha diya: 60 → 150 (v2.85)
 - Rozana Meezab budget ab **150 searches/din** he (pehle 60). Counter wahi **00:00 UTC = 05:00 PKT** par reset hota he.
 - **Auto-refresh** cap bhi **15 → 40 per din** (per browser), kyunke budget barh gaya he. Manual ↻ par koi cap nahi.
@@ -474,7 +494,7 @@ Current version: **2.31** (Email share opens Gmail compose with recipient prompt
 - Default waisa hi hai, is liye purane users ka behaviour nahi badla.
 
 ## Version
-Current version: **2.85** (v2.85 Meezab budget 60 → 150 searches/day and auto-refresh cap 15 → 40; v2.84 airport/client suggestion dropdown body-fixed + keyboard row fix, Meezab budget configurable `MEZ_DAILY_CAP`, unit counted after the search starts, budget shown in the app, 10-minute cache; v2.83 compact Price Lookup card; v2.69 modern look: narm kone, layered card shadows, ring-focus fields, frosted bottom bar, patli scrollbars; v2.68 notification failures visible + retry; v2.67 PC par mouse wheel register ke upar ho to bhi PAGE scroll hota hai; v2.66 sales register wheel/scroll fix; v2.65 sticky drawer header + quick-bar accent tweak; v2.64 new GitHub Pages link `abtravels.github.io` + relay origin allowlist for both hosts; v2.63 phone UI: bottom quick bar, chhota header, settings search, invoice section headings, labelled sale form, scroll fixes; v2.62 sales register full laptop width; v2.53 reminder times now shown as 12-hour am/pm; v2.52 Telegram reminders in the price bot; v2.50 Sale "Number of persons" field; v2.49 passenger ID alignment; v2.48 added-by names removed from Telegram notifications; v2.47 multi-city proxy + offline release checks; v2.46 route and current price on the first line of price alerts; v2.45 children/infants in Price Lookup; v2.44 WATCH_INDEX_DO Durable Object setup card + `wrangler.pricebot.toml`; v2.42–v2.43 SQLite Durable Object watch index, relay authentication, optional relay token; v2.41 stopped the every-minute KV.list; v2.40 sync of Telegram token/chat IDs/relay/Ignav proxy/OCR key; GitHub PAT and Ignav API key stay device-local).
+Current version: **2.86** (v2.86 Meezab poora party — 10 adult / 10 child / 10 infant ek search mein, total + per-adult/child/infant breakdown card par, worker query aur normalize mein per-pax fares; v2.85 Meezab budget 60 → 150 searches/day and auto-refresh cap 15 → 40; v2.84 airport/client suggestion dropdown body-fixed + keyboard row fix, Meezab budget configurable `MEZ_DAILY_CAP`, unit counted after the search starts, budget shown in the app, 10-minute cache; v2.83 compact Price Lookup card; v2.69 modern look: narm kone, layered card shadows, ring-focus fields, frosted bottom bar, patli scrollbars; v2.68 notification failures visible + retry; v2.67 PC par mouse wheel register ke upar ho to bhi PAGE scroll hota hai; v2.66 sales register wheel/scroll fix; v2.65 sticky drawer header + quick-bar accent tweak; v2.64 new GitHub Pages link `abtravels.github.io` + relay origin allowlist for both hosts; v2.63 phone UI: bottom quick bar, chhota header, settings search, invoice section headings, labelled sale form, scroll fixes; v2.62 sales register full laptop width; v2.53 reminder times now shown as 12-hour am/pm; v2.52 Telegram reminders in the price bot; v2.50 Sale "Number of persons" field; v2.49 passenger ID alignment; v2.48 added-by names removed from Telegram notifications; v2.47 multi-city proxy + offline release checks; v2.46 route and current price on the first line of price alerts; v2.45 children/infants in Price Lookup; v2.44 WATCH_INDEX_DO Durable Object setup card + `wrangler.pricebot.toml`; v2.42–v2.43 SQLite Durable Object watch index, relay authentication, optional relay token; v2.41 stopped the every-minute KV.list; v2.40 sync of Telegram token/chat IDs/relay/Ignav proxy/OCR key; GitHub PAT and Ignav API key stay device-local).
 
 ## Price bot: KV list limit fix (v2.41)
 - Cloudflare KV free plan mein **1,000 list requests/day** hoti hain. Bot ka cron har minute `KV.list` chalata tha (1,440/day), is liye ~15 ghante mein 90% usage email aa jati thi.

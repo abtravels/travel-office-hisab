@@ -1,15 +1,17 @@
 # Meezab fare lookup
 
-The app's Price Lookup includes a separate Meezab button using the selected route
-and date. Initial support: one-way, one adult, Economy, prices in PKR.
+The app's Price Lookup includes a separate Meezab button using the selected route,
+date and passengers. Support: one-way, Economy, prices in PKR, and the full
+portal party — up to 10 adults, 10 children and 10 infants (lap + seat together).
 
 Worker secrets: `MEZ_USER`, `MEZ_PASS`. Optional `MEZ_SUBCOMPANY` defaults to the
 view-only account's company ID `278`. Set these through Cloudflare secrets,
 never in the HTML or committed files. Existing KV binding is required.
 
-`POST /meezab/search` accepts `origin`, `destination`, `departure_date`, and
-optional `max_stops: 0`. It logs in, verifies the session, starts the search,
-and polls supplier completion. Every result page is collected (250 per page,
+`POST /meezab/search` accepts `origin`, `destination`, `departure_date`,
+`adults` (1–10), `children` (0–10), `infants_on_lap` (0–10), `infants_in_seat`
+(0–10, and lap + seat together at most 10), and optional `max_stops: 0`. It logs
+in, verifies the session, starts the search, and polls supplier completion. Every result page is collected (250 per page,
 max 6 pages / 1,500 options) before normalizing, so the app really sees all
 fares the search returned. Only normalized prices, airlines and segments are
 returned; supplier access tokens and session cookies remain server-side.
@@ -54,6 +56,40 @@ Each fare carries `airline_code`, `platform`, `duration_min`, `stops`, `stops_at
 `flight`, `aircraft`, `cls`, `minutes`, `layover_min`, `bus`. Times stay as the
 portal's local wall-clock strings (no UTC conversion), because each airport has
 its own offset.
+
+## Passengers: total price + per-person breakdown (v2.86)
+
+The portal prices the whole party in one search, exactly like its own website, so
+`amount` is the **party total**. The worker builds one passenger object per
+traveller (`AdultClsArray` / `ChildClsArray` / `InfantClsArray`, with `Adults`,
+`Child` and `Infant` counts), each with its own unique reference IDs — reusing
+IDs makes a supplier quote a single passenger.
+
+Every fare also carries the portal's per-group fares, taken from
+`PerAdultTotal_WithPM_Agent_Currency_Amount`, `PerChildTotal_…` and
+`PerInfantTotal_…` (markup-included agent amounts, matching the total field):
+
+```json
+{ "amount": 186747, "pax": { "adults": 2, "children": 1, "infants": 1 },
+  "per_adult": 59546, "per_child": 50977, "per_infant": 16678,
+  "party_sum": 186747,
+  "baggage": "0Nil", "baggage_child": "0Nil", "baggage_infant": "0Nil" }
+```
+
+`party_sum` is `per_adult × adults + per_child × children + per_infant × infants`;
+the app only warns when it differs from `amount`. Baggage now comes per group
+(`BaggageInfoADT` / `BaggageInfoCNN` / `BaggageInfoINF`). Replies also carry a
+top-level `pax` block. Verified live on 16 November 2026: the sums matched
+exactly for 1/0/0, 2/0/0, 2/1/1, 10/3/2 and 10/10/10.
+
+In the app the card shows the party total with a "total · 2 adults + 1 child"
+label, and tapping **Per-passenger breakdown** opens a small table with per-person
+fare, per-group total and baggage. A single-adult search keeps the plain
+"per adult" card with no breakdown.
+
+The portal stores infants in one group, so `infants_on_lap` and `infants_in_seat`
+are added together before the search (`infants`). The app still remembers which
+was which for the form and add-to-booking display.
 
 `platform` is the distribution system the fare came from. The portal hides it in
 `EXT_<platform>_*` keys (`EXT_Hitit_*`, `EXT_Travelport_*`, `EXT_EK_NDC_*`,
@@ -114,3 +150,6 @@ python -m unittest discover -s tests
 
 Live adapter verification on 14 November 2026: KHI/DXB, 10 December 2026,
 one adult, completed successfully and returned PKR fares. Prices are transient.
+Party search verified 16 November 2026: 2 adults + 1 child + 1 infant returned
+186,747 PKR total with per-person fares summing to the same number, and a
+10 adult / 10 child / 10 infant search completed in 33 seconds.

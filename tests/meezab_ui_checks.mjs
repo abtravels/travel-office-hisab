@@ -134,6 +134,37 @@ assert.equal((out.match(/class="mez-card"/g) || []).length, 2);
 assert.ok(out.includes('id="mezAuto"') && out.includes('id="mezRefresh"'), "auto-refresh controls missing");
 assert.ok(out.includes("cached") === false, "cached marker should not show for a live response");
 
+/* ---- Per-passenger breakdown (v2.86): total + tap par per-adult/child/infant ---- */
+assert.ok(/mezPaxText/.test(html) && /function mezPaxBreakdownHtml/.test(html), "passenger breakdown helpers missing");
+assert.equal(vm.runInContext("mezPaxText({adults:1,children:0,infants:0})", renderContext), "1 adult");
+assert.equal(vm.runInContext("mezPaxText({adults:2,children:1,infants:1})", renderContext), "2 adults + 1 child + 1 infant");
+const pq = vm.runInContext("mezPaxFromPayload({adults:3,children:2,infants_on_lap:1,infants_in_seat:1})", renderContext);
+assert.equal(pq.adults, 3); assert.equal(pq.children, 2); assert.equal(pq.infants, 2);
+// Party card: total + breakdown toggle
+const partyCtx = vm.createContext(Object.assign({}, page, {
+  MEZ: Object.assign({}, page.MEZ, {
+    fares: [ Object.assign({}, page.MEZ.fares[1], {
+      amount: 189320, per_adult: 69610, per_child: 50000, per_infant: 10000,
+      pax: { adults:2, children:1, infants:0 }, party_sum: 189220,
+      baggage_child: "20KG", baggage_infant: "10KG" }) ],
+    info: Object.assign({}, page.MEZ.info, { pax: { adults:2, children:1, infants:0, infants_on_lap:0, infants_in_seat:0 } })
+  })
+}));
+partyCtx.host = { innerHTML: "", querySelector: () => null, querySelectorAll: () => [] };
+partyCtx.document = { getElementById: (id) => (id === "faMeezabResults" ? partyCtx.host : null) };
+vm.runInContext(renderSource + "\nmezRender();", partyCtx);
+const pout = partyCtx.host.innerHTML;
+assert.ok(pout.includes("total · 2 adults + 1 child"), "card does not label the total as the party total");
+assert.ok(pout.includes("Per-passenger breakdown"), "breakdown toggle missing");
+assert.ok(/data-mez-pax="mezPax0"/.test(pout), "breakdown toggle has no target");
+assert.ok(pout.includes('id="mezPax0" hidden'), "breakdown should stay folded by default");
+assert.ok(/Adult<span class="mez-pax-n">× 2<\/span>[\s\S]{0,80}PKR 69610/.test(pout), "per-adult fare missing from the breakdown");
+assert.ok(/Child<span class="mez-pax-n">× 1<\/span>[\s\S]{0,80}PKR 50000/.test(pout), "per-child fare missing from the breakdown");
+assert.ok(pout.includes("Baggage 20 kg"), "child baggage missing from the breakdown");
+assert.ok(pout.includes("2 adults + 1 child · Economy"), "header does not show the party");
+// Single adult par breakdown nahi — card waisa hi rahe
+assert.ok(/per adult/.test(out) && !out.includes("Per-passenger breakdown"), "1-adult card should not show a breakdown");
+
 /* ---- Country code + airport matching ---- */
 const countrySource = grab("var AB_COUNTRY_NAMES", "function airportsCache(");
 const countryCtx = vm.createContext({ AB_COUNTRY_NAMES: {} });
@@ -293,9 +324,10 @@ assert.ok(!/AB_DROP_CLOSER/.test(html), "old half-done dropdown closer is back")
 assert.ok(/abDropMount\(drop, inp, closeDrop\)/.test(html), "airport dropdown is not mounted on the shared manager");
 assert.ok(/rowOffset \+ j/.test(html), "keyboard highlight ignores the country rows");
 
-/* Meezab budget: cap/reset app side (v2.84) */
-assert.ok(/err\.code === "budget"/.test(html), "budget errors are not tagged");
+/* Meezab budget: cap/reset app side (v2.84) — asli tagging app mein
+   `err.code = (j && j.code) || ...` hai, is liye pattern us par milta he. */
+assert.ok(/err\.code = \(j && j\.code\) \|\| \(r\.status === 429 \? "budget" : ""\)/.test(html), "budget errors are not tagged");
 assert.ok(/budget ' \+ esc\(String\(MEZ\.budget\.left\)\)/.test(html), "remaining Meezab budget is not shown");
 assert.ok(/MEZ\.budget && Number\(MEZ\.budget\.left\) === 0/.test(html), "auto-refresh ignores an exhausted budget");
 
-console.log("Meezab UI checks passed: baggage parse, stops/baggage/airline filters, airline strip cheapest fares, sorts, auto-refresh helpers, country panel render, card + strip render, quick fare buttons, country map.");
+console.log("Meezab UI checks passed: baggage parse, stops/baggage/airline filters, airline strip cheapest fares, sorts, auto-refresh helpers, country panel render, card + strip render, per-passenger breakdown, quick fare buttons, country map.");
