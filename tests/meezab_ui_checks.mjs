@@ -290,7 +290,7 @@ const autoSource = grab("var MEZ_AUTO_CAP", "function ignavSearch(");
 const autoCtx = vm.createContext({ localStorage: { getItem: () => null, setItem: () => {} }, Date, JSON, Number, Math,
   document: { getElementById: () => null, addEventListener: () => {} }, MEZ: { auto: 5, busy: false, payload: null } });
 vm.runInContext(autoSource, autoCtx);
-assert.equal(vm.runInContext("mezAutoBudgetLeft()", autoCtx), 40, "auto budget should default to 40");
+assert.equal(vm.runInContext("mezAutoBudgetLeft()", autoCtx), 240, "auto budget should default to 240 (live prices)");
 assert.equal(vm.runInContext("typeof mezRefresh", autoCtx), "function");
 const renderCtxFns = vm.runInContext(
   "[" + ["mezCountryCode", "mezLocateAirports", "mezRankAirports", "mezCountryRows", "mezRenderCountry",

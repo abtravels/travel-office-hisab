@@ -2076,27 +2076,25 @@ function mezPlatform(o) {
   return MEZ_PLATFORM_BY_ID[Number(o.Sys_SupplierID)] || "";
 }
 /* Ek page se zyada results hote hain, is liye sab pages jama kar ke normalize karte hain. */
-function mezNormalize(pages, q) {
-  const list = Array.isArray(pages) ? pages : [pages];
-  const options = [], legs = [], segs = [];
-  const seenO = new Set(), seenL = new Set(), seenS = new Set();
-  let complete = false, total = 0;
-  for (const res of list) {
-    const fr = (res && res.Flight_Result) || {}, ds = fr.flightDataSet || {};
-    total = Math.max(total, Number(fr.totalResultCount) || 0);
-    let state = res && res.SearchUpdateResult;
-    if (typeof state === "string") { try { state = JSON.parse(state); } catch (e) { state = {}; } }
-    if (state && state.isSearchCompleted === true) complete = true;
-    for (const o of ds.FlightOption || []) if (!seenO.has(o.ID)) { seenO.add(o.ID); options.push(o); }
-    for (const d of ds.FlightData || []) if (!seenL.has(d.ID)) { seenL.add(d.ID); legs.push(d); }
-    for (const s of ds.FlightSegment || []) if (!seenS.has(s.ID)) { seenS.add(s.ID); segs.push(s); }
-  }
+/* Ek portal page → fares. Har page apne aap mukammal he (us ke FlightOption ka
+   FlightData/FlightSegment usi page mein aata he, aur do pages mein koi option
+   repeat nahi hota — asli 16.6 MB ke 4 pages par check kiya gaya). Isi liye
+   page alag process karke raw JSON foran chhod di jati he; warna saare pages
+   ek saath memory mein rakhne se Worker ki memory limit toot jati he aur
+   Cloudflare 1102 (resource limit) aata he. */
+function mezPageFares(res, q) {
+  const fr = (res && res.Flight_Result) || {}, ds = fr.flightDataSet || {};
+  let complete = false;
+  let state = res && res.SearchUpdateResult;
+  if (typeof state === "string") { try { state = JSON.parse(state); } catch (e) { state = {}; } }
+  if (state && state.isSearchCompleted === true) complete = true;
+  const options = ds.FlightOption || [];
   const legsByOption = new Map(), segsByLeg = new Map();
-  for (const d of legs) {
+  for (const d of ds.FlightData || []) {
     if (!legsByOption.has(d.FlightOptionID)) legsByOption.set(d.FlightOptionID, []);
     legsByOption.get(d.FlightOptionID).push(d);
   }
-  for (const s of segs) {
+  for (const s of ds.FlightSegment || []) {
     if (!segsByLeg.has(s.FlightDataID)) segsByLeg.set(s.FlightDataID, []);
     segsByLeg.get(s.FlightDataID).push(s);
   }
@@ -2210,6 +2208,23 @@ function mezNormalize(pages, q) {
   }
   // Portal kabhi kabhi ghalat PKR amount bhejta he (maslan KHI-DXB par 8,077,840) —
   // sab se saste fare se 50 guna zyada wale rows data error maan kar hata dein.
+  return { complete, total: Number(fr.totalResultCount) || options.length, fares };
+}
+/* Ek page (ya kai pages, purane tests ke liye) se poora jawab. */
+function mezNormalize(pages, q) {
+  const list = Array.isArray(pages) ? pages : [pages];
+  const fares = [];
+  let complete = false, total = 0;
+  for (const res of list) {
+    const part = mezPageFares(res, q);
+    complete = complete || part.complete;
+    total = Math.max(total, part.total);
+    for (const f of part.fares) fares.push(f);
+  }
+  return mezFinishResult(fares, q, complete, total);
+}
+/* Fares ka final hissa — outlier filter, duplicate hatao, jawab ka shape. */
+function mezFinishResult(fares, q, complete, total) {
   const amounts = fares.map(f => f.amount).filter(a => a > 0).sort((a, b) => a - b);
   const cheapest = amounts[0] || 0;
   let pool = fares;
@@ -2231,7 +2246,7 @@ function mezNormalize(pages, q) {
     unique.push(f);
   }
   return { source: "Meezab Air", observed_at: new Date().toISOString(),
-    complete, total: total || options.length,
+    complete, total: total || fares.length,
     trip: { type: (q && q.trip_type) || "oneway",
       cabin: (q && q.cabin) || "Economy",
       legs: (q && q.trip_type === "multi" && q.legs.length) ? q.legs
@@ -2247,12 +2262,13 @@ function mezNormalize(pages, q) {
 
 /* Daily budget for Meezab searches. The portal account allows a limited number of
    searches per day, so the Worker keeps its own counter.
-   Cap: MEZ_DAILY_CAP (default 150). The counter resets at 00:00 UTC (05:00 PKT).
-   A cache hit costs nothing, so the same routes stay free all day. */
+   Cap: MEZ_DAILY_CAP (default 4000 = practically unlimited for a travel office).
+   The counter resets at 00:00 UTC (05:00 PKT). v2.90: prices are live on every
+   search, so this is the only guard left against a runaway loop. */
 const MEZ_CACHE_TTL = 600;
 function mezDailyCap(env) {
   const n = Number(env && env.MEZ_DAILY_CAP);
-  return isFinite(n) && n > 0 ? Math.floor(n) : 150;
+  return isFinite(n) && n > 0 ? Math.floor(n) : 4000;
 }
 function mezBudgetKey() {
   return "meezab:budget:" + new Date().toISOString().slice(0, 10);
@@ -2304,12 +2320,18 @@ function mezPortalQuery(q, env) {
     isDomestic: false, IsUmrahFareSearch: false, IsAnciSelected: false
   };
 }
-/* Ek route ki poori search — country search bhi isi ko call karta he. */
+/* Ek route ki poori search — country search bhi isi ko call karta he.
+   v2.90: (1) har page foran normalize ho kar raw JSON chhod di jati he, is liye
+   memory limit nahi tootti; (2) prices hamesha live — cache sirf tab jab caller
+   saaf tor par `cache:true` bheje (auto-refresh/`fresh` par kabhi nahi). */
 async function mezRunSearch(env, q, opts) {
   const fresh = !!(opts && opts.fresh);
-  const key = "meezab:fare:v2:" + JSON.stringify(q);
-  const cached = fresh ? null : await env.KV.get(key, "json");
-  if (cached) return Object.assign({}, cached, { cached: true });
+  const wantCache = !fresh && !!(opts && opts.cache);
+  const key = "meezab:fare:v3:" + JSON.stringify(q);
+  if (wantCache) {
+    const cached = await env.KV.get(key, "json");
+    if (cached) return Object.assign({}, cached, { cached: true });
+  }
   // Best-effort daily budget shared across routes and users (MEZ_DAILY_CAP).
   const cap = mezDailyCap(env);
   const budgetKey = mezBudgetKey();
@@ -2331,25 +2353,41 @@ async function mezRunSearch(env, q, opts) {
     sortBy_ColumnName: "OptionTotal_WithPM_Agent_Currency_Amount", sortBy_Descending: false,
     pageIndex: index, pageSize: PAGE, minPrice: 0, maxPrice: 0,
     airlineCodes: [], flightTimeFilter: [], stopsFilter: [] });
-  let result;
+  /* Pehla page aane tak intezar (search complete hone ka signal). */
+  let result = null;
   for (let i = 0; i < 16; i++) {
     await new Promise(resolve => setTimeout(resolve, 2500));
     result = await mezPost(cookie, "GetFlightListUpdate", pageBody(1));
     if (result.SearchUpdateResult?.isSearchCompleted) break;
   }
-  // Search ke andar jitni flights hain sab lein — page 1 ke baad baqi pages bhi.
-  const pages = [result];
-  const found = Number(result.Flight_Result?.totalResultCount) || 0;
+  /* Har page alag process — raw JSON dobara na rakhein (warna 16 MB+ pages se
+     Worker ka memory limit toot kar Cloudflare 1102 deta he). */
+  const fares = [];
+  let complete = false, total = 0;
+  const absorb = (res) => {
+    if (!res) return 0;
+    const part = mezPageFares(res, q);
+    complete = complete || part.complete;
+    total = Math.max(total, part.total);
+    for (const f of part.fares) fares.push(f);
+    return (res?.Flight_Result?.flightDataSet?.FlightOption || []).length;
+  };
+  const found = Number(result?.Flight_Result?.totalResultCount) || 0;
+  absorb(result);
+  result = null;
   for (let p = 2; p <= MAX_PAGES && (p - 1) * PAGE < found; p++) {
     let extra = null;
     try { extra = await mezPost(cookie, "GetFlightListUpdate", pageBody(p)); }
     catch (e) { console.warn("Meezab page " + p + " failed: " + ((e && e.message) || e)); break; }
-    if (!(extra?.Flight_Result?.flightDataSet?.FlightOption || []).length) break;
-    pages.push(extra);
+    if (!absorb(extra)) break;
+    extra = null;
   }
-  const output = mezNormalize(pages, q);
-  // Cache before adding the budget block, so a cached reply never shows a stale counter.
-  if (output.complete) await env.KV.put(key, JSON.stringify(output), { expirationTtl: MEZ_CACHE_TTL });
+  const output = mezFinishResult(fares, q, complete, total);
+  /* Cache likhi hamesha jati he (fallback ke liye), magar padhi sirf tab jati
+     he jab caller `cache:true` bheje — default jawab hamesha live hota he. */
+  if (output.complete) {
+    try { await env.KV.put(key, JSON.stringify(output), { expirationTtl: MEZ_CACHE_TTL }); } catch (e) { /* KV limit */ }
+  }
   output.budget = { cap, used: used + 1, left: Math.max(0, cap - (used + 1)), reset_at: mezBudgetReset() };
   return output;
 }
@@ -2367,8 +2405,17 @@ async function meezabSearch(request, env, hdrs) {
     if (!env.KV) throw new Error("Meezab requires the KV binding.");
     return jres(await mezRunSearch(env, q, { fresh }), 200, hdrs);
   } catch (e) {
-    console.error("Meezab lookup failed");
+    console.error("Meezab lookup failed: " + ((e && e.message) || e));
     if (e && e.code === 429) return jres({ error: e.message, code: "budget", cap: e.cap, left: 0, reset_at: e.reset_at }, 429, hdrs);
+    /* Live search fail ho gayi (portal down / memory) — pichla mukammal jawab
+       de dein, magar saaf bata kar ke ye purana he. Khaali screen se behtar. */
+    try {
+      const stale = await env.KV.get("meezab:fare:v3:" + JSON.stringify(q), "json");
+      if (stale && Array.isArray(stale.fares) && stale.fares.length) {
+        return jres(Object.assign({}, stale, { cached: true, stale: true,
+          stale_reason: String((e && e.message) || "portal error").slice(0, 120) }), 200, hdrs);
+      }
+    } catch (e2) { /* KV bhi na chale */ }
     return jres({ error: /^Meezab /.test(e.message || "") ? e.message : "Meezab temporarily unavailable. Please retry." }, 502, hdrs);
   }
 }
@@ -2509,7 +2556,7 @@ async function statusPage(env) {
       info = "<li>Webhook: <span style=\"color:var(--gold)\">check slow</span> <small>(Telegram jawab nahi de raha - bot par message bhej kar test karein)</small></li>";
     }
   }
-  return page("AB Travels worker", "<h1>✈️ AB Travels worker <small>v2.89</small></h1><ul>" + rows.join("") + info +
+  return page("AB Travels worker", "<h1>✈️ AB Travels worker <small>v2.90</small></h1><ul>" + rows.join("") + info +
     "<li>Today's searches: <b>" + esc(used) + "</b> / " + budgetCap(env) + "</li>" +
     "<li>Owner chat: <code>" + esc(owner) + "</code></li>" +
     "<li>Team alerts: " + (team.length ? team.map(function (c) { return "<code>" + esc(c) + "</code>"; }).join(", ") : "<i>sirf owner</i>") + "</li></ul>" +
