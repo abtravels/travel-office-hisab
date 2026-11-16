@@ -744,7 +744,7 @@
 <script>
 /* ================= DATA ================= */
 var KEY = "travelOfficeHisab";
-var APP_VER = "2.92";
+var APP_VER = "2.93";
 var MONTH_NAMES = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
 /* Cloudflare Worker — Ignav flight prices proxy (free plan, no credit card) */
 var IGNAV_WORKER_CODE = "// AB Travels - Ignav flight prices proxy (Cloudflare Worker)\n// Ignav API key SERVER par rehti hai - app/browser mein kabhi nahi aati.\n//\n// SETUP (ek dafa, ~5 min, free):\n// 1) ignav.com/signup -> free account -> dashboard se API key\n// 2) cloudflare.com -> free account -> Workers & Pages -> Create Worker -> yeh code paste -> Deploy\n// 3) Worker -> Settings -> Variables and Secrets -> secret add karein:\n//      IGNAV_API_KEY = (aap ki Ignav key)\n// 4) Worker URL (https://xxx.workers.dev) app -> Settings -> Flight prices -> paste -> Save & test\n\nexport default {\n  async fetch(request, env) {\n    const cors = {\n      'Access-Control-Allow-Origin': env.ALLOWED_ORIGIN || '*',\n      'Access-Control-Allow-Methods': 'GET,POST,OPTIONS',\n      'Access-Control-Allow-Headers': 'Content-Type',\n      'Access-Control-Max-Age': '86400'\n    };\n    const url = new URL(request.url);\n    if (request.method === 'OPTIONS') return new Response(null, { status: 204, headers: cors });\n    if (!env.IGNAV_API_KEY) {\n      return new Response(JSON.stringify({ error: { code: 'no_key', message: 'IGNAV_API_KEY secret is not set in the Worker.' } }), { status: 500, headers: Object.assign({ 'Content-Type': 'application/json' }, cors) });\n    }\n    const base = 'https://ignav.com/api';\n    let target = '';\n    let init = { method: 'GET', headers: { 'X-Api-Key': env.IGNAV_API_KEY } };\n    if (url.pathname === '/health') {\n      target = base + '/health';\n    } else if (url.pathname === '/fares') {\n      if (request.method !== 'POST') return new Response(JSON.stringify({ error: { message: 'POST only' } }), { status: 405, headers: cors });\n      const body = await request.text();\n      target = base + '/fares/one-way';\n      init = { method: 'POST', headers: { 'X-Api-Key': env.IGNAV_API_KEY, 'Content-Type': 'application/json' }, body };\n    } else if (url.pathname === '/search') {\n      if (request.method !== 'POST') return new Response(JSON.stringify({ error: { message: 'POST only' } }), { status: 405, headers: cors });\n      const body = await request.text();\n      target = base + '/fares/search';\n      init = { method: 'POST', headers: { 'X-Api-Key': env.IGNAV_API_KEY, 'Content-Type': 'application/json' }, body };\n    } else if (url.pathname === '/round-trip') {\n      if (request.method !== 'POST') return new Response(JSON.stringify({ error: { message: 'POST only' } }), { status: 405, headers: cors });\n      const body = await request.text();\n      target = base + '/fares/round-trip';\n      init = { method: 'POST', headers: { 'X-Api-Key': env.IGNAV_API_KEY, 'Content-Type': 'application/json' }, body };\n    } else if (url.pathname === '/booking-links') {\n      if (request.method !== 'POST') return new Response(JSON.stringify({ error: { message: 'POST only' } }), { status: 405, headers: cors });\n      const body = await request.text();\n      target = base + '/fares/booking-links';\n      init = { method: 'POST', headers: { 'X-Api-Key': env.IGNAV_API_KEY, 'Content-Type': 'application/json' }, body };\n    } else {\n      return new Response(JSON.stringify({ error: { message: 'not found' } }), { status: 404, headers: Object.assign({ 'Content-Type': 'application/json' }, cors) });\n    }\n    try {\n      const r = await fetch(target, init);\n      const text = await r.text();\n      return new Response(text, { status: r.status, headers: Object.assign({ 'Content-Type': 'application/json' }, cors) });\n    } catch (e) {\n      return new Response(JSON.stringify({ error: { message: String((e && e.message) || e) } }), { status: 502, headers: Object.assign({ 'Content-Type': 'application/json' }, cors) });\n    }\n  }\n};\n";
@@ -1067,12 +1067,12 @@ function fileTombstoneMerge(localT, remoteT){
   });
   return out.slice(-300);
 }
-function fileAddTombstone(id){
+function fileAddTombstone(id, file){
   if(!id) return;
   if(!Array.isArray(S.fileTombstones)) S.fileTombstones = [];
-  if(!S.fileTombstones.some(function(t){ return t && t.id === id; })){
-    S.fileTombstones.push({ id: id, at: Date.now() });
-  }
+  var hit = S.fileTombstones.filter(function(t){ return t && t.id === id; })[0];
+  if(!hit) S.fileTombstones.push({ id: id, at: Date.now(), file: String(file || "") });
+  else if(!hit.file && file) hit.file = String(file);
   if(S.fileTombstones.length > 300) S.fileTombstones = S.fileTombstones.slice(-300);
 }
 /* Remote list se jo files is device par nahi hain, unhe local mein milayein.
@@ -1083,6 +1083,66 @@ function fileMergeRemote(remote){
   var added = 0;
   S.fileTickets.forEach(function(f){ if(!before[f.id]) added++; });
   return added;
+}
+/* ---------- orphan recovery ----------
+   Kabhi metadata (fileTickets entry) kho jati he — purane version ka pull
+   remote list se replace kar deta tha, jabke PDF repo ke tickets/ folder mein
+   maujood rehti he. Is liye folder list kar ke missing entries wapas banate hain. */
+function fileTypeOf(name){
+  var n = String(name || "").toLowerCase();
+  if(/\.pdf$/.test(n)) return "application/pdf";
+  if(/\.(jpe?g)$/.test(n)) return "image/jpeg";
+  if(/\.png$/.test(n)) return "image/png";
+  if(/\.webp$/.test(n)) return "image/webp";
+  if(/\.gif$/.test(n)) return "image/gif";
+  return "application/octet-stream";
+}
+function fileCleanStoredName(name){
+  /* Upload path: tickets/20261116-vevg5g-1TZQRZ.pdf — asli naam aakhri hissa he */
+  return String(name || "").replace(/^\d{8}-[a-z0-9]{4,8}-/i, "");
+}
+function fileRecoverOrphans(cb){
+  var done = function(n){ if(cb) cb(n); };
+  if(!githubSyncConfigured()){ done(0); return; }
+  ghApi("/contents/tickets").then(function(list){
+    if(!Array.isArray(list)){ done(0); return; }
+    var havePath = {}, deadPath = {};
+    (S.fileTickets || []).forEach(function(f){ if(f && f.file) havePath[f.file] = 1; });
+    (S.fileTombstones || []).forEach(function(t){ if(t && t.file) deadPath[t.file] = 1; });
+    var added = 0;
+    list.forEach(function(it){
+      if(!it || it.type !== "file" || !it.path) return;
+      if(havePath[it.path] || deadPath[it.path]) return;
+      var name = fileCleanStoredName(it.name || it.path.split("/").pop());
+      if(!/\.(pdf|jpe?g|png|webp|gif)$/i.test(name)) return;
+      var g = fileGuess(name);
+      var m = String(it.name || "").match(/^(\d{4})(\d{2})(\d{2})/);
+      var at = m ? new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]), 12, 0, 0).getTime() : Date.now();
+      S.fileTickets.push({
+        id: fileUid(), title: name, name: name, file: it.path,
+        size: Number(it.size) || 0, type: fileTypeOf(name),
+        client: g.client || "", pnr: g.pnr || "", note: "",
+        uploadedAt: at, sha: it.sha || ""
+      });
+      havePath[it.path] = 1;
+      added++;
+    });
+    if(added){
+      S.__ts = Date.now();
+      try{ saveLocal(); }catch(e){}
+    }
+    done(added);
+  }).catch(function(){ done(0); });
+}
+/* Files tab / Refresh — pull + missing metadata repair ek saath. */
+function fileRefreshList(cb){
+  syncPull(function(ok){
+    fileRecoverOrphans(function(n){
+      fileSyncInfo = { at: Date.now(), ok: !!ok, recovered: n };
+      if(n) syncPush();
+      if(cb) cb(ok, n);
+    });
+  });
 }
 function doPush(after){
   var pat = String(S.settings.githubPat || "").trim();
@@ -4123,10 +4183,7 @@ function render(){
     filesSyncedAt = Date.now();
     setTimeout(function(){
       if(currentTab !== "files") return;
-      syncPull(function(ok){
-        fileSyncInfo = { at: Date.now(), ok: !!ok };
-        if(currentTab === "files") render();
-      });
+      fileRefreshList(function(){ if(currentTab === "files") render(); });
     }, 80);
   }
   applyStatPrivacy();
@@ -8922,7 +8979,8 @@ function viewFiles(){
   if(fileSyncInfo.at){
     html += '<div class="hint" style="margin-top:4px;">Last GitHub check: '
           + esc(new Date(fileSyncInfo.at).toLocaleTimeString())
-          + ' — ' + esc(syncStatusMsg || (fileSyncInfo.ok ? "✓ updated" : "local list shown")) + '</div>';
+          + ' — ' + esc(syncStatusMsg || (fileSyncInfo.ok ? "✓ updated" : "local list shown"))
+          + (fileSyncInfo.recovered ? ' · ' + fileSyncInfo.recovered + ' missing file(s) wapas mili' : '') + '</div>';
   }
   html += '<div class="hint">List GitHub sync se aati hai — app kholne ya tab par wapas aane par khud update hoti hai. File pehli dafa kholne par download hoti hai, phir device par cache rehti hai.</div>';
   html += '</div>';
@@ -9193,7 +9251,7 @@ function fileDeleteEntry(f){
   if(!confirm("Delete this " + what + " from all devices?" + (kind === "file" ? "\n\nThe file will also be removed from GitHub." : ""))) return;
   if(kind !== "file"){
     S.fileTickets = (S.fileTickets || []).filter(function(x){ return x.id !== f.id; });
-    fileAddTombstone(f.id);
+    fileAddTombstone(f.id, f.file);
     saveNow(function(){ fileSetFlash("✓ Deleted."); render(); });
     return;
   }
@@ -9206,7 +9264,7 @@ function fileDeleteEntry(f){
                 : ghApi(path).then(function(j){ return delWith(j.sha); });
   p.then(function(){
     S.fileTickets = (S.fileTickets || []).filter(function(x){ return x.id !== f.id; });
-    fileAddTombstone(f.id);
+    fileAddTombstone(f.id, f.file);
     delete fileBlobMem[f.id];
     fileCacheDel(f.id);
     saveNow(function(){
@@ -9244,9 +9302,10 @@ function bindFilesTab(app){
     rf.disabled = true;
     fileSetFlash("GitHub se latest list aa rahi hai…"); render();
     filesSyncedAt = Date.now();
-    syncPull(function(ok){
-      fileSyncInfo = { at: Date.now(), ok: !!ok };
-      fileSetFlash(ok ? "✓ List update ho gayi." : "GitHub se list nahi aayi — jo local list hai wo dikh rahi hai.", !ok);
+    fileRefreshList(function(ok, n){
+      fileSetFlash(ok
+        ? ("✓ List update ho gayi." + (n ? " " + n + " missing file(s) GitHub se wapas mili." : ""))
+        : "GitHub se list nahi aayi — jo local list hai wo dikh rahi hai.", !ok);
       if(currentTab === "files") render();
     });
   };
