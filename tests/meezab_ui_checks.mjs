@@ -294,6 +294,18 @@ const cRun = (code) => vm.runInContext(code, countryCtx);
 assert.equal(cRun('countryName("AE")'), "UAE");
 assert.equal(cRun('countryName("SA")'), "Saudi Arabia");
 
+/* Time ab 12-ghante am/pm mein (v2.99) — pehle 24-ghante aa raha tha. */
+const timeCtx = vm.createContext({});
+vm.runInContext(grab("function mezTime(", "function mezStamp(") + ";this.__mezTime = mezTime;", timeCtx);
+assert.equal(timeCtx.__mezTime("2026-12-10T23:05:00"), "11:05 pm");
+assert.equal(timeCtx.__mezTime("2026-12-10T00:30:00"), "12:30 am");
+assert.equal(timeCtx.__mezTime("2026-12-10T12:00:00"), "12:00 pm");
+assert.equal(timeCtx.__mezTime("2026-12-10T09:45:00"), "9:45 am");
+assert.equal(timeCtx.__mezTime(""), "");
+
+/* Auto-refresh dobara default ON — 5 minute (v2.99) */
+assert.ok(/country: null, auto: 5,/.test(html), "auto-refresh default should be 5 minutes");
+
 /* ---- Auto-refresh helpers ---- */
 const autoSource = grab("var MEZ_AUTO_CAP", "function ignavSearch(");
 const autoCtx = vm.createContext({ localStorage: { getItem: () => null, setItem: () => {} }, Date, JSON, Number, Math,

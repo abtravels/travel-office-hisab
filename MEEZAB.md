@@ -14,7 +14,7 @@ never in the HTML or committed files. Existing KV binding is required.
 `adults` (1–10), `children` (0–10), `infants_on_lap` (0–10), `infants_in_seat`
 (0–10, and lap + seat together at most 10), and optional `max_stops: 0`. It logs
 in, verifies the session, starts the search, and polls supplier completion. Every result page is collected (250 per page,
-max 10 pages / 2,500 options) before normalizing, so the app really sees all
+max 6 pages / 1,500 options, `MEZ_MAX_PAGES`, max 12) before normalizing, so the app really sees all
 fares the search returned. Only normalized prices, airlines and segments are
 returned; supplier access tokens and session cookies remain server-side.
 Complete results are cached for ten minutes (`MEZ_CACHE_TTL`) as a fallback: a
@@ -39,11 +39,21 @@ new portal search (used by the app's ↻ / auto-refresh). Cached responses carry
 ## Auto-refresh and country search (v2.79)
 
 The app refreshes the current route on a timer (`Auto refresh`: off / 3 / 5 / 10
-minutes). Refreshes are `fresh: true`, skip the Worker cache, and only run while
-the Price Lookup tab is open and visible (`document.hidden` pauses them). Because
-every refresh spends from the 4000/day Worker budget, auto-refresh is capped at 240
-per day per browser (localStorage counter `ab_mez_auto_used`) while the ↻ button
-works any number of times.
+minutes, **default 5**). Refreshes are `fresh: true`, skip the Worker cache, and
+only run while the Price Lookup tab is open and visible (`document.hidden` pauses
+them). Because every refresh spends from the 4000/day Worker budget,
+auto-refresh is capped at 240 per day per browser (localStorage counter
+`ab_mez_auto_used`) while the ↻ button works any number of times.
+
+## Speed (v2.99)
+
+A round trip used to take 60-90 seconds and could fail on bigger routes. Two
+changes: the completion poll now stops as soon as the portal's option count has
+not moved for five polls after at least twelve, instead of always waiting for
+`isSearchCompleted` (the reply is then labelled `partial`, which is honest — the
+fares shown are live), and pages are capped at six (1,500 fares, cheapest first)
+instead of ten, with a 24 MB JSON budget instead of 40 MB. The app shows a live
+elapsed-seconds counter in the wait card so a long round trip is visibly moving.
 
 Typing a country or city instead of an IATA code in **To** ("UAE", "Saudi
 Arabia", "Dubai") runs a country search. The app resolves the airports from its
