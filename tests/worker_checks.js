@@ -245,8 +245,10 @@
 
       /* event soon still schedules */
       var F = envWithDO();
-      var soon = new Date(Date.now() + 21 * 60000);
-      var hh = String(soon.getUTCHours() + 5).padStart(2, "0");
+      /* PKT clock: +5h shift, taake raat 12 baje ke baad bhi hour 00-23 rahe
+         (pehle "24:xx" ban jata tha aur check raat ke waqt flaky ho jata tha). */
+      var soon = new Date(Date.now() + 21 * 60000 + 5 * 3600000);
+      var hh = String(soon.getUTCHours()).padStart(2, "0");
       var mm = String(soon.getUTCMinutes()).padStart(2, "0");
       SENT.length = 0;
       await W.cmdRemind(F.env, "1", ["Call " + hh + ":" + mm + " bje"], {});
