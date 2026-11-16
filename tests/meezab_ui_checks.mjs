@@ -36,6 +36,10 @@ assert.equal(run("mezBagKg('30KG-30KG')"), 30);
 assert.equal(run("mezBagKg('25kg')"), 25);
 assert.equal(run("mezBagKg('40KG-7KG')"), 40);
 assert.equal(run("mezBagKg('')"), -1);
+/* Portal ke do aur format (v2.86 ke live search mein mile) */
+assert.equal(run("mezBagKg('0Kilograms-0Kilograms')"), 0);
+assert.equal(run("mezBagKg('0Nil')"), 0);
+assert.equal(run("mezBagKg('30Kilograms-30Kilograms')"), 30);
 
 context.MEZ.fares = [
   { amount: 27760, airline_code: "EY", airline: "Etihad Airways", stops: 1, baggage: "0KG-0KG", duration_min: 600 },
@@ -161,6 +165,10 @@ assert.ok(pout.includes('id="mezPax0" hidden'), "breakdown should stay folded by
 assert.ok(/Adult<span class="mez-pax-n">× 2<\/span>[\s\S]{0,80}PKR 69610/.test(pout), "per-adult fare missing from the breakdown");
 assert.ok(/Child<span class="mez-pax-n">× 1<\/span>[\s\S]{0,80}PKR 50000/.test(pout), "per-child fare missing from the breakdown");
 assert.ok(pout.includes("Baggage 20 kg"), "child baggage missing from the breakdown");
+/* Portal format "0Kilograms-0Kilograms" bhi saaf label de (v2.86 live bug) */
+assert.equal(vm.runInContext("mezBaggageLabel('0Kilograms-0Kilograms')", partyCtx), "No checked bag");
+assert.equal(vm.runInContext("mezBaggageLabel('0Nil')", partyCtx), "No checked bag");
+assert.equal(vm.runInContext("mezBaggageLabel('30Kilograms-30Kilograms')", partyCtx), "Baggage 30 kg");
 assert.ok(pout.includes("2 adults + 1 child · Economy"), "header does not show the party");
 // Single adult par breakdown nahi — card waisa hi rahe
 assert.ok(/per adult/.test(out) && !out.includes("Per-passenger breakdown"), "1-adult card should not show a breakdown");
