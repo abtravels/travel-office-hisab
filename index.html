@@ -637,6 +637,16 @@
   select.fa-sm{height:34px; min-height:34px; font-size:13.5px; padding:5px 8px;}
   .fa-compact > div{min-width:88px;}
   .fa-compact label{font-size:11.5px; margin-bottom:3px;}
+  /* Trip / class / passengers — ek summary line, tap par khulti he (v2.98).
+     Pehle ye 6 boxes hamesha khule rehte thay, is liye form lamba lagta tha. */
+  .fa-more{margin-top:8px; border:1px solid var(--line); border-radius:12px; background:var(--field);}
+  .fa-more > summary{list-style:none; cursor:pointer; display:flex; align-items:center; gap:6px; padding:9px 10px; font-size:12.5px; font-weight:700; color:var(--ink);}
+  .fa-more > summary::-webkit-details-marker{display:none;}
+  .fa-more > summary::before{content:"▸"; font-size:10px; color:var(--muted);}
+  .fa-more[open] > summary::before{content:"▾";}
+  .fa-more > summary .fa-more-edit{margin-left:auto; font-size:11px; font-weight:700; color:var(--blue);}
+  .fa-more .fa-more-body{padding:0 10px 10px;}
+  .fa-more .row.fa-compact{margin-top:0 !important;}
   .fa-nonstop{display:flex; gap:8px; align-items:center; margin:10px 0 0; font-size:13px; font-weight:600;}
   /* Band field saaf nazar aaye (maslan Return date jab trip one-way ho) */
   input:disabled, select:disabled, textarea:disabled{opacity:.45;}
@@ -675,7 +685,7 @@
   <div class="brand">
     <img src="logo.png" alt="AB Travels" decoding="async" onerror="this.style.display='none'">
     <div style="min-width:0;">
-      <h1>AB Travels <span class="ver" id="verBadge">v2.96</span></h1>
+      <h1>AB Travels <span class="ver" id="verBadge">v2.98</span></h1>
       <div class="tag">Ahmed Brothers Hajj &amp; Umra Services (Pvt) Ltd</div>
     </div>
     <button id="brandFares" class="brand-fares" type="button" title="Price Lookup — flight fares" aria-label="Price Lookup — flight fares">✈</button>
@@ -744,7 +754,7 @@
 <script>
 /* ================= DATA ================= */
 var KEY = "travelOfficeHisab";
-var APP_VER = "2.96";
+var APP_VER = "2.98";
 var MONTH_NAMES = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
 /* Cloudflare Worker — Ignav flight prices proxy (free plan, no credit card) */
 var IGNAV_WORKER_CODE = "// AB Travels - Ignav flight prices proxy (Cloudflare Worker)\n// Ignav API key SERVER par rehti hai - app/browser mein kabhi nahi aati.\n//\n// SETUP (ek dafa, ~5 min, free):\n// 1) ignav.com/signup -> free account -> dashboard se API key\n// 2) cloudflare.com -> free account -> Workers & Pages -> Create Worker -> yeh code paste -> Deploy\n// 3) Worker -> Settings -> Variables and Secrets -> secret add karein:\n//      IGNAV_API_KEY = (aap ki Ignav key)\n// 4) Worker URL (https://xxx.workers.dev) app -> Settings -> Flight prices -> paste -> Save & test\n\nexport default {\n  async fetch(request, env) {\n    const cors = {\n      'Access-Control-Allow-Origin': env.ALLOWED_ORIGIN || '*',\n      'Access-Control-Allow-Methods': 'GET,POST,OPTIONS',\n      'Access-Control-Allow-Headers': 'Content-Type',\n      'Access-Control-Max-Age': '86400'\n    };\n    const url = new URL(request.url);\n    if (request.method === 'OPTIONS') return new Response(null, { status: 204, headers: cors });\n    if (!env.IGNAV_API_KEY) {\n      return new Response(JSON.stringify({ error: { code: 'no_key', message: 'IGNAV_API_KEY secret is not set in the Worker.' } }), { status: 500, headers: Object.assign({ 'Content-Type': 'application/json' }, cors) });\n    }\n    const base = 'https://ignav.com/api';\n    let target = '';\n    let init = { method: 'GET', headers: { 'X-Api-Key': env.IGNAV_API_KEY } };\n    if (url.pathname === '/health') {\n      target = base + '/health';\n    } else if (url.pathname === '/fares') {\n      if (request.method !== 'POST') return new Response(JSON.stringify({ error: { message: 'POST only' } }), { status: 405, headers: cors });\n      const body = await request.text();\n      target = base + '/fares/one-way';\n      init = { method: 'POST', headers: { 'X-Api-Key': env.IGNAV_API_KEY, 'Content-Type': 'application/json' }, body };\n    } else if (url.pathname === '/search') {\n      if (request.method !== 'POST') return new Response(JSON.stringify({ error: { message: 'POST only' } }), { status: 405, headers: cors });\n      const body = await request.text();\n      target = base + '/fares/search';\n      init = { method: 'POST', headers: { 'X-Api-Key': env.IGNAV_API_KEY, 'Content-Type': 'application/json' }, body };\n    } else if (url.pathname === '/round-trip') {\n      if (request.method !== 'POST') return new Response(JSON.stringify({ error: { message: 'POST only' } }), { status: 405, headers: cors });\n      const body = await request.text();\n      target = base + '/fares/round-trip';\n      init = { method: 'POST', headers: { 'X-Api-Key': env.IGNAV_API_KEY, 'Content-Type': 'application/json' }, body };\n    } else if (url.pathname === '/booking-links') {\n      if (request.method !== 'POST') return new Response(JSON.stringify({ error: { message: 'POST only' } }), { status: 405, headers: cors });\n      const body = await request.text();\n      target = base + '/fares/booking-links';\n      init = { method: 'POST', headers: { 'X-Api-Key': env.IGNAV_API_KEY, 'Content-Type': 'application/json' }, body };\n    } else {\n      return new Response(JSON.stringify({ error: { message: 'not found' } }), { status: 404, headers: Object.assign({ 'Content-Type': 'application/json' }, cors) });\n    }\n    try {\n      const r = await fetch(target, init);\n      const text = await r.text();\n      return new Response(text, { status: r.status, headers: Object.assign({ 'Content-Type': 'application/json' }, cors) });\n    } catch (e) {\n      return new Response(JSON.stringify({ error: { message: String((e && e.message) || e) } }), { status: 502, headers: Object.assign({ 'Content-Type': 'application/json' }, cors) });\n    }\n  }\n};\n";
@@ -6035,22 +6045,25 @@ function ignavBookingLinks(ignavId){
 }
 function viewFares(){
   var configured = !!(ignavProxy() || ignavKey());
+  /* Pichhli dafa ka route yaad rakhein — roz wahi sector search hota he. */
+  var last = mezLastRead();
+  var lastDate = (last.date && last.date >= today()) ? last.date : today();
   var html = '<div class="card"><h2>🔍 Price Lookup</h2>';
   /* Lambi hidayat chhup gayi — tab compact rahe, zaroorat par tap kar ke kholein */
-  html += '<details class="fa-help"><summary>' + (configured ? "Setup / help" : "⚠ Setup baqi he — tap karein") + '</summary>'
+  html += '<details class="fa-help"><summary>' + "Setup / help" + '</summary>'
         + '<div class="hint" style="margin-top:6px;">'
         + '<b>Meezab</b> = live PKR fares (Worker ka <code>/meezab/search</code>, wahi Worker jo Telegram bot chalata he) — '
         + 'one-way, round trip aur multi-city (2 legs), cabin Economy/Premium/Business/First. '
         + '<b>Ignav</b> ke liye Settings → “Flight prices — Ignav” mein Worker URL save karein. '
         + 'Country search: “To” mein IATA code ki jagah country likhein (UAE, Saudi Arabia) — us country ke airports ke sab se saste fares aayenge (har airport ek search). '
-        + '<b>Meezab rozana budget:</b> 150 search/din (country search har airport par ek leta he) — jo route 10 minute ke cache mein he wo free he. '
+        + '<b>Meezab rozana budget:</b> 4000 search/din (country search har airport par ek leta he) — practically koi rukawat nahi. '
         + 'Jo airline API mein nahi (kuch LCCs) wo result mein nahi aati — har fare ke sath Sasta / Google Flights / Skyscanner / Kayak links bhi milte hain. '
         + 'Prices <b>indicative</b> hain; Ignav ki pehli 1,000 requests one-time free, uske baad $2/1,000.'
         + '</div></details>';
   html += '<div class="row" style="margin-top:8px; align-items:flex-end;">'
-        + '<div><label>From</label><input id="faFrom" placeholder="KHI / Karachi" autocomplete="off" style="text-transform:uppercase; font-size:18px; font-weight:700; letter-spacing:.12em;"><div class="hint airport-info" style="margin-top:2px;"></div></div>'
+        + '<div><label>From</label><input id="faFrom" value="'+esc(last.from || "")+'" placeholder="KHI / Karachi" autocomplete="off" style="text-transform:uppercase; font-size:18px; font-weight:700; letter-spacing:.12em;"><div class="hint airport-info" style="margin-top:2px;"></div></div>'
         + '<div class="fa-arrow" style="display:flex; align-items:center; padding-bottom:10px; font-size:20px;">→</div>'
-        + '<div><label>To</label><input id="faTo" placeholder="DXB / Dubai" autocomplete="off" style="text-transform:uppercase; font-size:18px; font-weight:700; letter-spacing:.12em;"><div class="hint airport-info" style="margin-top:2px;"></div></div>'
+        + '<div><label>To</label><input id="faTo" value="'+esc(last.to || "")+'" placeholder="DXB / Dubai" autocomplete="off" style="text-transform:uppercase; font-size:18px; font-weight:700; letter-spacing:.12em;"><div class="hint airport-info" style="margin-top:2px;"></div></div>'
         + '</div>';
   html += '<div style="display:flex; justify-content:flex-end; margin-top:4px;"><button type="button" class="btn small" id="faSwap" title="From aur To badal dein" style="margin:0; padding:4px 10px; font-size:12px;">⇄ Swap</button></div>';
   html += '<div id="faLeg2Wrap" style="display:none; border:1px dashed var(--line); border-radius:12px; padding:10px; margin-top:8px;">'
@@ -6064,27 +6077,32 @@ function viewFares(){
         + '<div class="row" style="margin-top:8px;"><div><label>Leg 2 departure date</label><input id="faDate2" type="date" value="'+today()+'"></div></div>'
         + '</div>';
   html += '<div class="row" style="margin-top:8px;">'
-        + '<div><label>Departure date</label><input id="faDate" type="date" value="'+today()+'"></div>'
+        + '<div><label>Departure date</label><input id="faDate" type="date" value="'+lastDate+'"></div>'
         + '<div><label>Return date</label><input id="faRet" type="date" value="'+today()+'" disabled></div>'
         + '</div>';
-  html += '<div class="row fa-compact" style="margin-top:8px;">'
+  /* Trip / class / poore passengers ek hi summary line mein — default band, tap par
+     khulti he. Isi se form chhota lagta he (v2.98). */
+  html += '<details class="fa-more" id="faMore"><summary><span id="faMoreText">One-way · Any class · 1 adult</span>'
+        + '<span class="fa-more-edit">change</span></summary><div class="fa-more-body">'
+        + '<div class="row fa-compact">'
         + '<div><label>Trip</label><select id="faTrip" class="fa-sm"><option value="one">One-way</option><option value="round">Round trip</option><option value="multi">Multi-city</option></select></div>'
         + '<div><label>Class</label><select id="faClass" class="fa-sm"><option value="">Any</option><option value="economy">Economy</option><option value="premium_economy">Premium economy</option><option value="business">Business</option><option value="first">First</option></select></div>'
         + '<div><label>Adults</label><select id="faAdults" class="fa-sm">'+[1,2,3,4,5,6,7,8,9,10].map(function(n){ return '<option value="'+n+'">'+n+'</option>'; }).join('')+'</select></div>'
         + '<div><label>Children</label><select id="faChildren" class="fa-sm">'+[0,1,2,3,4,5,6,7,8,9,10].map(function(n){ return '<option value="'+n+'">'+n+'</option>'; }).join('')+'</select></div>'
         + '<div><label>Infants lap</label><select id="faInfantsLap" class="fa-sm">'+[0,1,2,3,4,5,6,7,8,9,10].map(function(n){ return '<option value="'+n+'">'+n+'</option>'; }).join('')+'</select></div>'
         + '<div><label>Infants seat</label><select id="faInfantsSeat" class="fa-sm">'+[0,1,2,3,4,5,6,7,8,9,10].map(function(n){ return '<option value="'+n+'">'+n+'</option>'; }).join('')+'</select></div>'
-        + '</div>';
+        + '</div></div></details>';
   html += '<label class="fa-nonstop"><input type="checkbox" id="faNonStop" style="width:auto;"> Non-stop only</label>';
   html += '<button class="btn primary" id="faMeezab" style="width:100%; margin-top:10px; background:#2563eb; color:#fff;">Meezab Air — live PKR fares</button>';
-  html += '<button class="btn" id="faSearch" style="width:100%; margin-top:8px; background:#4b5563; color:#fff;">🔍 Ignav search</button>';
-  html += '<div class="hint" style="margin-top:6px;">Meezab: one-way / round trip / multi-city (2 legs) · Economy / Premium / Business / First — upar wala route, date aur passengers, <b>saari</b> flights, PKR mein. '
-        + 'Total poore party ka hota he; card par tap kar ke per-adult / per-child / per-infant dekh lein. '
-        + '<b>Note:</b> Meezab portal ke fares Economy-class ke aate hain — Business/First chunne par portal supplier badalta he, price wohi rehta he.</div>'
-        + '<div id="faMeezabCountry"></div><div id="faMeezabResults"></div>';
-  html += '<div id="faStatus" class="hint" style="margin-top:8px; font-weight:600;"></div>';
+  if(configured) html += '<button class="btn" id="faSearch" style="width:100%; margin-top:8px; background:#4b5563; color:#fff;">🔍 Ignav search</button>';
+  html += '<div class="hint" style="margin-top:6px;">Meezab: PKR mein <b>saari</b> flights, total poore party ka. Fares portal ke Economy-class ke hote hain.</div>';
+  html += '<div id="mezMsg" class="hint" style="margin-top:6px; font-weight:600;"></div>';
+  html += '<div id="faStatus" class="hint" style="margin-top:6px; font-weight:600;"></div>';
   html += '</div>';
 
+  /* Results form card ke BAHAR — pehle andar nested cards banti thin. */
+  html += '<div id="faMeezabCountry"></div>';
+  html += '<div id="faMeezabResults"></div>';
   html += '<div id="faResults"></div>';
   html += '<div id="faSastaResults"></div>';
   return html;
@@ -6351,7 +6369,7 @@ function faLoadBookingLinks(ignavId, btn){
 /* stage/error DOM se alag rakhe jate hain — tab badalne par app.innerHTML dobara banti he,
    is liye "search chal rahi he" / error ka message state se wapas banaya jata he (v2.82). */
 var MEZ = { fares: [], info: null, page: 1, size: 10, sort: "price", stops: "all", baggage: "all", airline: "",
-  busy: false, payload: null, lastRunAt: 0, autoErr: "", country: null, auto: 5,
+  busy: false, payload: null, lastRunAt: 0, autoErr: "", country: null, auto: 0,
   budget: null,
   stage: "", stageNote: "", error: "",
   /* Tab switch / phone sleep par chal rahi search adhoori reh jati he — ye fields
@@ -6866,6 +6884,7 @@ function mezRender(){
     + (info.complete ? '' : ' · <b>partial</b> — suppliers abhi search kar rahe the')
     + (info.observed_at ? ' · fetched ' + esc(mezStamp(info.observed_at)) : '')
     + (info.cached ? ' · <span title="Worker cache se aaya — Meezab budget bacha">cached</span>' : '')
+    + (info.stale ? ' · <b style="color:var(--red);" title="' + esc(info.staleReason || "") + '">purana data — live search fail hui</b>' : '')
     + (MEZ.budget && MEZ.budget.left != null ? ' · <span title="Meezab ka rozana search budget">budget ' + esc(String(MEZ.budget.left)) + '/' + esc(String(MEZ.budget.cap || 0)) + ' bache</span>' : '')
     + (info.auto ? ' · <b style="color:var(--green);">auto-refreshed</b>' : '')
     + (MEZ.autoErr ? ' · <span style="color:var(--red);font-weight:700;">refresh fail: ' + esc(MEZ.autoErr) + '</span>' : '') + '</div>';
@@ -6991,6 +7010,7 @@ async function mezFetchSearch(payload, opts){
     err.resetAt = (j && j.reset_at) || "";
     throw err;
   }
+  if(j && j.error && !((j.fares || []).length)) throw new Error(String(j.error));
   if(j && j.budget) MEZ.budget = j.budget;
   return j || {};
 }
@@ -7019,6 +7039,7 @@ function mezApply(j, payload, keep){
   MEZ.fares = Array.isArray(j.fares) ? j.fares : [];
   MEZ.info = { origin:payload.origin, destination:payload.destination, date:payload.departure_date,
     total:j.total, complete:!!j.complete, observed_at:j.observed_at, cached:!!j.cached,
+    stale:!!j.stale, staleReason:j.stale_reason || "",
     trip:tripType, cabin:cabin, ret:payload.return_date || "",
     legs:trip.legs || payload.legs || null,
     pax:j.pax || mezPaxFromPayload(payload), age:keep ? Date.now() : 0 };
@@ -7034,7 +7055,13 @@ function mezShowResults(){
     if(!MEZ.busy && !MEZ.country) mezClearStage();
     liveHost.innerHTML = mezPanelHtml();
     if(!liveHost.innerHTML){
-      liveHost.innerHTML = '<div class="card"><div class="empty">Is search mein koi matching fare nahi mila.</div></div>';
+      var zi = MEZ.info || {};
+      liveHost.innerHTML = '<div class="card">'
+        + '<div class="empty">' + (zi.total ? 'Meezab ne ' + esc(String(zi.total)) + ' option bataye magar koi fare wapas nahi aaya.' : 'Is search mein koi fare nahi mila.') + '</div>'
+        + '<div class="hint" style="text-align:center;">' + (zi.complete === false
+            ? 'Suppliers abhi load ho rahe thay — ↻ se dobara try karein.'
+            : 'Doosri date ya route try karein.') + '</div>'
+        + '</div>';
     }
     mezBindPanel();
     return;
@@ -7043,6 +7070,109 @@ function mezShowResults(){
 }
 function mezWaitCard(title, note){
   return '<div class="card"><b>' + esc(title) + '</b><div class="hint" style="margin-top:4px;">' + note + '</div></div>';
+}
+/* Form ke andar chhoti message line — validation/limit ki baatein wahin dikhein
+   (pehle results host mein jati thin, jo ab form ke neeche alag card he). */
+function mezMsg(text){
+  var el = document.getElementById("mezMsg");
+  if(!el) return;
+  el.textContent = text || "";
+  el.style.color = text ? "var(--red)" : "";
+  if(text && el.scrollIntoView){ try{ el.scrollIntoView({ block:"nearest" }); }catch(e){} }
+}
+/* Naya search mukammal hone par results tak le jayein — warna user ko lagta he
+   kuch hua hi nahi (form itna lamba he ke results screen se neeche hote hain). */
+function mezScrollToResults(){
+  var el = document.getElementById("mezHead") || document.getElementById("mezCountryHead");
+  if(!el) return;
+  try{ el.scrollIntoView({ block:"start" }); }catch(e){}
+}
+/* Aakhri search yaad rakhein — roz wahi sector dobara search hota he. */
+function mezLastRead(){
+  try{ return JSON.parse(localStorage.getItem("ab_mez_last") || "null") || {}; }catch(e){ return {}; }
+}
+function mezLastSave(p){
+  if(!p) return;
+  try{
+    localStorage.setItem("ab_mez_last", JSON.stringify({
+      from:p.origin || "", to:p.destination || "", date:p.departure_date || "",
+      trip:p.trip_type || "oneway", ret:p.return_date || "",
+      cls:p.cabin_class || "", adults:p.adults || 1, children:p.children || 0,
+      lap:p.infants_on_lap || 0, seat:p.infants_in_seat || 0, at:Date.now()
+    }));
+  }catch(e){}
+}
+/* ---------- Price Lookup form ka haal (v2.98) ----------
+   Pehle sirf From/To/date yaad rehte thay — tab switch ya reload par trip,
+   class aur passengers default ho jate thay. Ab poora form sessionStorage
+   mein rehta he (aakhri search se pehle wohi bharosa mand he). */
+var MEZ_FORM_KEY = "ab_mez_form";
+function mezFormFields(){
+  return ["faFrom","faTo","faDate","faRet","faTrip","faClass",
+    "faAdults","faChildren","faInfantsLap","faInfantsSeat"];
+}
+function mezFormRead(){
+  var o = {};
+  mezFormFields().forEach(function(id){ var el = document.getElementById(id); if(el) o[id] = el.value; });
+  var ns = document.getElementById("faNonStop");
+  if(ns) o.faNonStop = !!ns.checked;
+  return o;
+}
+function mezFormSave(){
+  try{ sessionStorage.setItem(MEZ_FORM_KEY, JSON.stringify(mezFormRead())); }catch(e){}
+}
+/* Trip ke hisab se form: return date chalu/band, leg 2 nazar aaye/chhupe. */
+function mezTripUI(keepRet){
+  var sel = document.getElementById("faTrip");
+  var trip = sel ? String(sel.value || "one") : "one";
+  var ret = document.getElementById("faRet");
+  if(ret){
+    ret.disabled = trip !== "round";
+    if(trip !== "round" && !keepRet) ret.value = "";
+  }
+  var leg2 = document.getElementById("faLeg2Wrap");
+  if(leg2) leg2.style.display = (trip === "multi") ? "block" : "none";
+  refreshDateDisplays(document.getElementById("app"));
+}
+/* "Round trip · Business · 2 adults + 1 child" — summary line. */
+function mezFormSummary(){
+  var el = document.getElementById("faMoreText");
+  if(!el) return;
+  var v = function(id){ return (document.getElementById(id)||{}).value || ""; };
+  var cls = v("faClass");
+  var pax = mezPaxText({ adults:Number(v("faAdults")) || 1, children:Number(v("faChildren")) || 0,
+    infants:(Number(v("faInfantsLap")) || 0) + (Number(v("faInfantsSeat")) || 0) });
+  el.textContent = mezTripLabel(v("faTrip") || "one") + " · "
+    + (cls ? mezCabinLabel(mezCabinClass(cls)) : "Any class") + " · " + pax;
+}
+/* Pichhli dafa ka form wapas — sessionStorage pehle, warna aakhri search. */
+function mezFormApply(){
+  var saved = null;
+  try{ saved = JSON.parse(sessionStorage.getItem(MEZ_FORM_KEY) || "null"); }catch(e){ saved = null; }
+  var last = mezLastRead();
+  var src = saved || {};
+  var pick = function(a, b, c){
+    if(a !== undefined && a !== null && a !== "") return a;
+    if(b !== undefined && b !== null && b !== "") return b;
+    return c;
+  };
+  var setv = function(id, v){ var el = document.getElementById(id); if(el && v != null && v !== "") el.value = String(v); };
+  setv("faFrom", pick(src.faFrom, last.from, ""));
+  setv("faTo", pick(src.faTo, last.to, ""));
+  var d = pick(src.faDate, last.date, "");
+  if(d && d >= today()) setv("faDate", d);
+  setv("faTrip", pick(src.faTrip, last.trip === "round" ? "round" : last.trip === "multi" ? "multi" : "", "one"));
+  setv("faClass", pick(src.faClass, last.cls, ""));
+  setv("faAdults", pick(src.faAdults, last.adults, "1"));
+  setv("faChildren", pick(src.faChildren, last.children, "0"));
+  setv("faInfantsLap", pick(src.faInfantsLap, last.lap, "0"));
+  setv("faInfantsSeat", pick(src.faInfantsSeat, last.seat, "0"));
+  var ret = pick(src.faRet, last.ret, "");
+  if(ret) setv("faRet", ret);
+  var ns = document.getElementById("faNonStop");
+  if(ns && typeof src.faNonStop === "boolean") ns.checked = src.faNonStop;
+  mezTripUI(true);
+  mezFormSummary();
 }
 /* Results host ka woh hissa jo fares ke baghair bhi dikhana he — tab switch par
    app.innerHTML dobara banti he, is liye "search chal rahi he" aur error message
@@ -7299,6 +7429,7 @@ async function mezCountryRun(plan, base, picks){
   MEZ.country.busy = false;
   mezPendClear();
   mezRenderCountry();
+  mezScrollToResults();
   var best = mezCountryRows().filter(function(r){ return r.cheapest != null; })[0];
   if(best) mezPickDestination(best.destination);
 }
@@ -7307,9 +7438,15 @@ async function meezabLookup(){
   if(!host || MEZ.busy || (btn && btn.disabled)) return;
   var val = function(id){ return (document.getElementById(id)||{}).value || ""; };
   var pax = faPaxCounts();
+  /* Portal (aur airlines) mein har infant ke liye ek adult chahiye — warna
+     search ya to fail hoti he ya bewajah lambi. */
+  if((pax.lap + pax.seat) > pax.adults){
+    mezMsg("Har infant ke liye ek adult zaroori he — infants (lap + seat mila kar) adults se zyada nahi ho sakte.");
+    return;
+  }
   /* Meezab portal jaisa poora party — 10 adult / 10 child / 10 infant tak. */
   if(pax.adults > MEZ_MAX_ADULTS || pax.children > MEZ_MAX_CHILDREN || (pax.lap + pax.seat) > MEZ_MAX_INFANTS){
-    host.textContent = "Meezab mein 10 adult, 10 child aur 10 infant (lap + seat mila kar) tak search ho sakti he."; return;
+    mezMsg("Meezab mein 10 adult, 10 child aur 10 infant (lap + seat mila kar) tak search ho sakti he."); return;
   }
   /* v2.88: one-way, round trip aur multi-city (2 legs) — teeno portal se.
      Cabin bhi portal jaisa (Economy / Premium / Business / First). */
@@ -7318,14 +7455,14 @@ async function meezabLookup(){
   var cls = String(val("faClass") || "").toLowerCase();
   var origin = val("faFrom").trim().toUpperCase(), toRaw = val("faTo").trim(), date = val("faDate");
   if(!/^[A-Z]{3}$/.test(origin) || !date){
-    host.textContent = "From ka IATA code (misal KHI) aur departure date dalein."; return;
+    mezMsg("From ka IATA code (misal KHI) aur departure date dalein."); return;
   }
   var ret = val("faRet");
   if(trip === "round" && !ret){
-    host.textContent = "Round trip ke liye Return date bhi chunein."; return;
+    mezMsg("Round trip ke liye Return date bhi chunein."); return;
   }
   if(trip === "round" && ret < date){
-    host.textContent = "Return date departure se pehle nahi ho sakti."; return;
+    mezMsg("Return date departure se pehle nahi ho sakti."); return;
   }
   var leg2From = "", leg2To = "", leg2Date = "";
   if(trip === "multi"){
@@ -7333,13 +7470,13 @@ async function meezabLookup(){
     leg2To = val("faTo2").trim().toUpperCase();
     leg2Date = val("faDate2");
     if(!/^[A-Z]{3}$/.test(leg2From) || !/^[A-Z]{3}$/.test(leg2To) || !leg2Date){
-      host.textContent = "Multi-city ke liye Leg 2 ka From, To aur date bhi dalein."; return;
+      mezMsg("Multi-city ke liye Leg 2 ka From, To aur date bhi dalein."); return;
     }
     if(leg2From === leg2To){
-      host.textContent = "Leg 2 mein From aur To alag hone chahiye."; return;
+      mezMsg("Leg 2 mein From aur To alag hone chahiye."); return;
     }
     if(leg2Date < date){
-      host.textContent = "Leg 2 ki date leg 1 se pehle nahi ho sakti."; return;
+      mezMsg("Leg 2 ki date leg 1 se pehle nahi ho sakti."); return;
     }
   }
   var toUp = toRaw.toUpperCase();
@@ -7350,8 +7487,7 @@ async function meezabLookup(){
   var aliasHit = /^[A-Z]{2,3}$/.test(toUp) ? AB_COUNTRY_ALIAS[toUp.toLowerCase()] : "";
   if(trip !== "one" && (!/^[A-Z]{3}$/.test(toUp) || aliasHit)){
     mezClearStage();
-    host.textContent = "Round trip aur multi-city ke liye To mein IATA code dalein (misal DXB). "
-      + "Country search sirf one-way ke liye he."; return;
+    mezMsg("Round trip aur multi-city ke liye To mein IATA code dalein (misal DXB). Country search sirf one-way ke liye he."); return;
   }
   /* Country/city search ke liye airport list zaroori he — pehle load karwa lein. */
   mezSetStage("Airports ki list load ho rahi he…");
@@ -7377,14 +7513,13 @@ async function meezabLookup(){
     var toKnown = airportFind(toUp);
     if(!toKnown && countryCandidates(toRaw, 1).length){
       mezClearStage();
-      host.textContent = "Round trip aur multi-city ke liye To mein airport ka IATA code dalein (misal DXB). "
-        + "Country search sirf one-way ke liye he."; return;
+      mezMsg("Round trip aur multi-city ke liye To mein airport ka IATA code dalein (misal DXB). Country search sirf one-way ke liye he."); return;
     }
     plan = { kind:"iata", label:toUp, total:1, list:[ toKnown || { iata:toUp } ] };
   }
   if(!plan || !plan.list.length){
     mezClearStage();
-    host.textContent = "To mein IATA code (DXB) ya country/city ka naam (UAE, Dubai) dalein."; return;
+    mezMsg("To mein IATA code (DXB) ya country/city ka naam (UAE, Dubai) dalein."); return;
   }
   var mainTo = plan.list[0].iata;
   var payload = { origin:origin, destination:mainTo, departure_date:date,
@@ -7397,14 +7532,18 @@ async function meezabLookup(){
       { origin:leg2From, destination:leg2To, date:leg2Date } ];
   } else payload.trip_type = "oneway";
   if((document.getElementById("faNonStop")||{}).checked) payload.max_stops = 0;
+  /* Form ka haal aur aakhri search dono yaad rakhein — country search bhi. */
+  mezFormSave();
+  mezLastSave(payload);
   var picks = plan.list.filter(function(a){ return a.iata && a.iata !== origin; })
     .slice(0, MEZ_COUNTRY_MAX).map(function(a){
       return { iata:a.iata, city:a.city || "", name:a.name || "" };
     });
-  if(!picks.length){ mezClearStage(); host.textContent = "Is naam se koi airport nahi mila."; return; }
+  if(!picks.length){ mezClearStage(); mezMsg("Is naam se koi airport nahi mila."); return; }
   MEZ.busy = true;
   MEZ.runStart = Date.now();
   MEZ.error = "";
+  mezMsg("");
   /* Search ke inputs yaad rakhein — tab switch / reload ke baad resume ke liye. */
   mezPendSave({ from:origin, to:toRaw, date:date,
     trip:trip, ret:ret || "", cls:payload.cabin_class,
@@ -7426,6 +7565,7 @@ async function meezabLookup(){
       mezClearStage();
       mezPendClear();
       mezShowResults();
+      mezScrollToResults();
       mezAutoStart();
     } else {
       await mezCountryRun(plan, payload, picks);
@@ -10987,6 +11127,17 @@ function bind(){
   });
   var faSearchBtn = document.getElementById("faSearch");
   if(faSearchBtn) faSearchBtn.onclick = ignavSearch;
+  /* From/To mein Enter dabane par seedha Meezab search (airport list khuli ho to
+     Enter us row ko chunta he — us waqt search nahi). */
+  ["faFrom","faTo"].forEach(function(id){
+    var inp = document.getElementById(id);
+    if(!inp) return;
+    inp.addEventListener("keydown", function(ev){
+      if(ev.key !== "Enter" || (typeof AB_DROP !== "undefined" && AB_DROP && AB_DROP.input === inp)) return;
+      ev.preventDefault();
+      meezabLookup();
+    });
+  });
   var faSwapBtn = document.getElementById("faSwap");
   if(faSwapBtn) faSwapBtn.onclick = function(){
     var a = document.getElementById("faFrom"), b = document.getElementById("faTo");
@@ -10996,21 +11147,35 @@ function bind(){
   };
   var faMeezabBtn = document.getElementById("faMeezab");
   if(faMeezabBtn) faMeezabBtn.onclick = meezabLookup;
+  /* Price Lookup ke From/To par bhi airport suggestions — pehle sirf invoice
+     wale fields par thi, yahan code haath se likhna parta tha (v2.98). */
+  ["faFrom","faTo","faFrom2","faTo2"].forEach(function(id){
+    if(document.getElementById(id)) bindAirportField(id);
+  });
   /* Auto-refresh timer hamesha chalta rahe — tick khud check karta he ke kuch karna he ya nahi. */
   mezAutoStart();
   var faTripSel = document.getElementById("faTrip");
   if(faTripSel) faTripSel.onchange = function(){
-    var ret = document.getElementById("faRet");
-    var leg2 = document.getElementById("faLeg2Wrap");
-    var isRound = this.value === "round";
-    var isMulti = this.value === "multi";
-    if(ret){
-      ret.disabled = !isRound;
-      if(!isRound) ret.value = "";
-    }
-    if(leg2) leg2.style.display = isMulti ? "block" : "none";
-    refreshDateDisplays(document.getElementById("app"));
+    mezTripUI();
+    mezFormSummary();
+    mezFormSave();
   };
+  /* Trip ke ilawa jo bhi badle — summary update ho aur form yaad rahe. */
+  ["faClass","faAdults","faChildren","faInfantsLap","faInfantsSeat","faDate","faRet"].forEach(function(id){
+    var el = document.getElementById(id);
+    if(!el) return;
+    el.addEventListener("change", function(){ mezMsg(""); mezFormSummary(); mezFormSave(); });
+  });
+  ["faFrom","faTo"].forEach(function(id){
+    var el = document.getElementById(id);
+    if(!el) return;
+    el.addEventListener("input", function(){ mezMsg(""); mezFormSave(); });
+    el.addEventListener("change", mezFormSave);
+  });
+  var faNonStopEl = document.getElementById("faNonStop");
+  if(faNonStopEl) faNonStopEl.addEventListener("change", mezFormSave);
+  /* Route, date, trip, class aur passengers — sab wapas. */
+  if(document.getElementById("faMore")) mezFormApply();
 
   // ===== PDF to Word =====
   var pwPick = document.getElementById("pwPickBtn");
