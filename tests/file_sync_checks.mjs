@@ -60,7 +60,7 @@ assert.equal(S.fileTombstones[0].id, "z");
 /* ---- syncPull merge logic maujood he (source level) ---- */
 assert.ok(/fileMergeRemote\(data\.fileTickets\)/.test(html), "syncPull must merge remote ticket files");
 assert.ok(/data\.fileTickets = fileUnionLists\(/.test(html), "pull must union both file lists");
-assert.ok(/fileAddTombstone\(f\.id\)/.test(html), "delete must record a tombstone");
+assert.ok(/fileAddTombstone\(f\.id, f\.file\)/.test(html), "delete must record a tombstone");
 assert.ok(/fileTombstones/.test(html), "state must carry tombstones");
 
 console.log("Ticket-file sync checks passed: union, tombstones, merge counts, 300 cap.");

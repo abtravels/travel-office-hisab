@@ -138,6 +138,6 @@ async function pull(local, remote) {
 /* ---- F: source level guards ---- */
 assert.ok(/fileMergeRemote\(data\.fileTickets\)/.test(html), "syncPull must merge remote ticket files");
 assert.ok(/data\.fileTickets = fileUnionLists\(/.test(html), "pull must union both file lists");
-assert.ok(/fileAddTombstone\(f\.id\)/.test(html), "delete must record a tombstone");
+assert.ok(/fileAddTombstone\(f\.id, f\.file\)/.test(html), "delete must record a tombstone");
 
 console.log("syncPull checks passed: remote file merges even when local is newer, union push, tombstones both ways, no needless push.");
