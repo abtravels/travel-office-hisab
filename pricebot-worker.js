@@ -2349,70 +2349,56 @@ async function mezRunSearch(env, q, opts) {
   // spent - a login or HTTP failure above costs nothing.
   await env.KV.put(budgetKey, String(used + 1), { expirationTtl: 172800 });
   const PAGE = 250;
-  /* Fares price ke hisab se sorted aate hain, is liye pehli 6 pages (1500 fares)
-     mein sab se saste fares mojood hote hain. 10 pages ki jagah 6 se round trip
-     ~30 second tez ho jata he; MEZ_MAX_PAGES se barhaya ja sakta he (max 12). */
+  /* "Sary results" — koi page chhoda nahi jata: jitne pages portal deta he sab
+     (max MEZ_MAX_PAGES, default 10 = 2,500 options; env se 20 tak). */
   const MAX_PAGES = Number(env.MEZ_MAX_PAGES) > 0
-    ? Math.min(12, Math.floor(Number(env.MEZ_MAX_PAGES))) : 6;
-  /* CPU budget: portal ka har page 6-10 MB JSON hota he aur Cloudflare ka CPU
-     limit tootne par 1102 (503) aata he. Pages ka jod is budget se zyada na ho —
-     fares price ke hisab se sorted aate hain, is liye jo pages chhoot jate hain
-     un mein sirf mehnge fares hote hain. */
-  const MEZ_JSON_BUDGET = Number(env.MEZ_JSON_BUDGET) > 0 ? Number(env.MEZ_JSON_BUDGET) : 24 * 1048576;
+    ? Math.min(20, Math.floor(Number(env.MEZ_MAX_PAGES))) : 10;
   const pageBody = (index, size) => ({ searchID: state.SearchID,
     sortBy_ColumnName: "OptionTotal_WithPM_Agent_Currency_Amount", sortBy_Descending: false,
     pageIndex: index, pageSize: size || PAGE, minPrice: 0, maxPrice: 0,
     airlineCodes: [], flightTimeFilter: [], stopsFilter: [] });
   /* Pehla page aane tak intezar. Poll chhote page (size 1) se — poora 6-10 MB
      page har 2 second parse karna hi CPU limit tor deta tha (round trip mein
-     16 polls = 80 MB). Chhoti poll ~1s leti he, is liye 1.2s ka gap. */
-  let status = null, total = 0, complete = false, lastTotal = -1, stable = 0;
-  /* Round trip / multi-city portal par 40-70 second lete hain. Poora intezar sirf
-     tab karein jab tak count barh raha ho — count 5 polls tak na badle to jo
-     fares aa chuki hain wohi live hain (jawab "partial" label ke sath jata he). */
-  for (let i = 0; i < 40; i++) {
+     16 polls = 80 MB). Chhoti poll ~1s leti he, is liye 1s ka gap. */
+  let status = null, total = 0, complete = false;
+  /* Koi fare chhoot na jaye: portal ke "search complete" ka poora intezar
+     (round trip mein 40-70s, 45 polls tak). */
+  for (let i = 0; i < 45; i++) {
     await new Promise(resolve => setTimeout(resolve, i < 4 ? 700 : 1000));
     status = await mezPost(cookie, "GetFlightListUpdate", pageBody(1, 1));
-    const seen = Number(status?.Flight_Result?.totalResultCount) || 0;
-    total = Math.max(total, seen);
+    total = Math.max(total, Number(status?.Flight_Result?.totalResultCount) || 0);
     if (status.SearchUpdateResult?.isSearchCompleted) { complete = true; break; }
-    if (total > 0 && total === lastTotal) {
-      stable++;
-      if (stable >= 5 && i >= 12) break;
-    } else stable = 0;
-    lastTotal = total;
   }
   status = null;
-  /* Pages parallel lein — sequential 10 page x 7s = 70s+ lagta tha. Har page
-     foran normalize ho kar raw JSON chhod di jati he, is liye memory theek
-     rehti he. Jod MEZ_JSON_BUDGET se zyada ho to sirf pehle wale rakhein
-     (fares price ke hisab se sorted aate hain, is liye sasti fares pehle). */
+  /* Pages 3 ke batch mein: 10 pages ek saath parse karne se memory/CPU limit
+     (503) tootti thi. Har batch normalize ho kar raw JSON chhod di jati he, is
+     liye sab pages aate hain aur koi fare drop nahi hota. */
   const jobCount = Math.max(1, Math.min(MAX_PAGES, Math.ceil(total / PAGE) || 1));
-  const jobs = Array.from({ length: jobCount }, (_, k) => k + 1);
-  const settled = await Promise.all(jobs.map(async (p) => {
-    try {
-      const r = await fetch(MEZ_BASE + "GetFlightListUpdate", {
-        method: "POST", redirect: "follow", signal: AbortSignal.timeout(60000),
-        headers: { "Content-Type": "application/json", Cookie: cookie },
-        body: JSON.stringify(pageBody(p, PAGE)) });
-      if (!r.ok) { if (r.status === 401 || r.status === 403) mezSession = null; throw new Error("HTTP " + r.status); }
-      const text = await r.text();
-      return { p, bytes: text.length, res: JSON.parse(text) };
-    } catch (e) {
-      console.warn("Meezab page " + p + " failed: " + ((e && e.message) || e));
-      return null;
-    }
-  }));
   const fares = [];
-  let jsonUsed = 0;
-  for (const item of settled) {
-    if (!item) continue;
-    if (jsonUsed + item.bytes > MEZ_JSON_BUDGET && fares.length) continue;
-    jsonUsed += item.bytes;
-    const part = mezPageFares(item.res, q);
-    complete = complete || part.complete;
-    total = Math.max(total, part.total);
-    for (const f of part.fares) fares.push(f);
+  const PAGE_BATCH = 3;
+  for (let first = 1; first <= jobCount; first += PAGE_BATCH) {
+    const batch = [];
+    for (let p = first; p < first + PAGE_BATCH && p <= jobCount; p++) batch.push(p);
+    const settled = await Promise.all(batch.map(async (p) => {
+      try {
+        const r = await fetch(MEZ_BASE + "GetFlightListUpdate", {
+          method: "POST", redirect: "follow", signal: AbortSignal.timeout(60000),
+          headers: { "Content-Type": "application/json", Cookie: cookie },
+          body: JSON.stringify(pageBody(p, PAGE)) });
+        if (!r.ok) { if (r.status === 401 || r.status === 403) mezSession = null; throw new Error("HTTP " + r.status); }
+        return { p, res: await r.json() };
+      } catch (e) {
+        console.warn("Meezab page " + p + " failed: " + ((e && e.message) || e));
+        return null;
+      }
+    }));
+    for (const item of settled) {
+      if (!item) continue;
+      const part = mezPageFares(item.res, q);
+      complete = complete || part.complete;
+      total = Math.max(total, part.total);
+      for (const f of part.fares) fares.push(f);
+    }
   }
   const output = mezFinishResult(fares, q, complete, total);
   /* Cache likhi hamesha jati he (fallback ke liye), magar padhi sirf tab jati
@@ -2588,7 +2574,7 @@ async function statusPage(env) {
       info = "<li>Webhook: <span style=\"color:var(--gold)\">check slow</span> <small>(Telegram jawab nahi de raha - bot par message bhej kar test karein)</small></li>";
     }
   }
-  return page("AB Travels worker", "<h1>✈️ AB Travels worker <small>v2.99</small></h1><ul>" + rows.join("") + info +
+  return page("AB Travels worker", "<h1>✈️ AB Travels worker <small>v3.00</small></h1><ul>" + rows.join("") + info +
     "<li>Today's searches: <b>" + esc(used) + "</b> / " + budgetCap(env) + "</li>" +
     "<li>Owner chat: <code>" + esc(owner) + "</code></li>" +
     "<li>Team alerts: " + (team.length ? team.map(function (c) { return "<code>" + esc(c) + "</code>"; }).join(", ") : "<i>sirf owner</i>") + "</li></ul>" +

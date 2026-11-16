@@ -14,7 +14,7 @@ never in the HTML or committed files. Existing KV binding is required.
 `adults` (1–10), `children` (0–10), `infants_on_lap` (0–10), `infants_in_seat`
 (0–10, and lap + seat together at most 10), and optional `max_stops: 0`. It logs
 in, verifies the session, starts the search, and polls supplier completion. Every result page is collected (250 per page,
-max 6 pages / 1,500 options, `MEZ_MAX_PAGES`, max 12) before normalizing, so the app really sees all
+max 10 pages / 2,500 options, `MEZ_MAX_PAGES`, up to 20) before normalizing, so the app really sees all
 fares the search returned. Only normalized prices, airlines and segments are
 returned; supplier access tokens and session cookies remain server-side.
 Complete results are cached for ten minutes (`MEZ_CACHE_TTL`) as a fallback: a
@@ -45,15 +45,19 @@ them). Because every refresh spends from the 4000/day Worker budget,
 auto-refresh is capped at 240 per day per browser (localStorage counter
 `ab_mez_auto_used`) while the ↻ button works any number of times.
 
-## Speed (v2.99)
+## Speed (v3.00)
 
-A round trip used to take 60-90 seconds and could fail on bigger routes. Two
-changes: the completion poll now stops as soon as the portal's option count has
-not moved for five polls after at least twelve, instead of always waiting for
-`isSearchCompleted` (the reply is then labelled `partial`, which is honest — the
-fares shown are live), and pages are capped at six (1,500 fares, cheapest first)
-instead of ten, with a 24 MB JSON budget instead of 40 MB. The app shows a live
-elapsed-seconds counter in the wait card so a long round trip is visibly moving.
+Nothing is dropped. The worker waits for the portal's own `isSearchCompleted`
+(up to 45 polls) so every fare the portal returns is included, and every page up
+to `MEZ_MAX_PAGES` (default 10 = 2,500 options, up to 20) is fetched. Pages are
+fetched three at a time and normalized batch by batch, which keeps memory low -
+ten parallel 6-10 MB pages used to cross the Worker's memory/CPU limit (503) and
+the request failed. A reply is `partial` only when the portal itself did not
+finish inside the polling window; the fares in it are live, and `partial` never
+means a page was skipped.
+
+The app shows a compact animated loading bar with elapsed seconds while the
+search runs, instead of the long "20-60 second" text line.
 
 Typing a country or city instead of an IATA code in **To** ("UAE", "Saudi
 Arabia", "Dubai") runs a country search. The app resolves the airports from its

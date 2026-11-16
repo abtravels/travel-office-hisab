@@ -29,9 +29,11 @@ class ReleaseChecks(unittest.TestCase):
         self.assertNotIn("used >= 60", body)
         # A unit is spent only after the portal accepted the search.
         self.assertGreater(body.index("await env.KV.put(budgetKey"), body.index("if (!state?.SearchID)"))
-        # Pages are capped (6 by default) so a round trip stays fast.
+        # Pages are capped (10 by default) and fetched in small batches so
+        # nothing is dropped and the CPU limit is not crossed.
         self.assertIn("const MAX_PAGES = Number(env.MEZ_MAX_PAGES) > 0", body)
-        self.assertIn("stable >= 5 && i >= 12", body)
+        self.assertIn("const PAGE_BATCH = 3;", body)
+        self.assertNotIn("stable >= 5", body)
 
 
 if __name__ == "__main__":
