@@ -3,7 +3,7 @@ import fs from "node:fs";
 import vm from "node:vm";
 const source = fs.readFileSync(new URL("../pricebot-worker.js", import.meta.url), "utf8")
   .replace("export class WatchIndex", "class WatchIndex").replace("export default", "const worker =");
-const context = vm.createContext({ console, Date, URL, Response, Request, AbortSignal, setTimeout });
+const context = vm.createContext({ console, Date, URL, Response, Request, AbortSignal, setTimeout, crypto, btoa });
 vm.runInContext(source, context);
 const query = {origin:"KHI",destination:"DXB",departure_date:new Date(Date.now()+7*86400000).toISOString().slice(0,10)};
 context.query = query;
@@ -26,12 +26,45 @@ context.invalid = {...query, infants_on_lap:6, infants_in_seat:6};
 assert.throws(() => vm.runInContext("mezQuery(invalid)", context), /infants .* 10 se zyada/);
 context.invalid = {...query, adults:0};
 assert.throws(() => vm.runInContext("mezQuery(invalid)", context), /adult 1 se 10/);
-context.invalid = {...query, return_date:"2026-12-20"};
-assert.throws(() => vm.runInContext("mezQuery(invalid)", context), /one-way/);
+context.invalid = {...query, trip_type:"round"};   // round trip bina return date
+assert.throws(() => vm.runInContext("mezQuery(invalid)", context), /Return: valid future date/);
+context.invalid = {...query, trip_type:"round", return_date:"2020-01-01"};
+assert.throws(() => vm.runInContext("mezQuery(invalid)", context), /Return: valid future date/);
+context.invalid = {...query, trip_type:"multi", legs:[{origin:"KHI",destination:"DXB",date:query.departure_date}]};
+assert.throws(() => vm.runInContext("mezQuery(invalid)", context), /kam az kam 2 legs/);
+/* Trip types (v2.88): portal ke values OneWay / Round / MultiCity hain. */
+context.rt = {...query, trip_type:"round",
+  return_date:new Date(Date.now()+14*86400000).toISOString().slice(0,10)};
+const rtq = vm.runInContext("mezQuery(rt)", context);
+context.rtq = rtq;
+assert.equal(rtq.trip_type,"round");
+assert.equal(rtq.return_date, context.rt.return_date);
+const rtPortal = vm.runInContext("mezPortalQuery(rtq, {})", context);
+assert.equal(rtPortal.FlightDirection,"Round");
+assert.equal(rtPortal.ArrivalDate, context.rt.return_date + "T00:00:00");
+assert.equal(rtPortal.MultiCityArray.length,0);
+context.mc = {...query, trip_type:"multi", legs:[
+  {origin:"KHI", destination:"DXB", date:query.departure_date},
+  {origin:"DXB", destination:"LHR", date:new Date(Date.now()+9*86400000).toISOString().slice(0,10)}]};
+const mcq = vm.runInContext("mezQuery(mc)", context);
+context.mcq = mcq;
+assert.equal(mcq.trip_type,"multi");
+assert.equal(mcq.legs.length,2);
+const mcPortal = vm.runInContext("mezPortalQuery(mcq, {})", context);
+assert.equal(mcPortal.FlightDirection,"MultiCity");
+assert.equal(JSON.stringify(mcPortal.MultiCityArray.map(l => Object.keys(l).join(","))),
+  JSON.stringify(["DepartureDate,FromIATA,ToIATA","DepartureDate,FromIATA,ToIATA"]));
+assert.equal(JSON.stringify(mcPortal.MultiCityArray.map(l => l.FromIATA + l.ToIATA)),
+  JSON.stringify(["KHIDXB","DXBLHR"]));
+assert.equal(mcPortal.ArrivalDate, mcq.legs[1].date + "T00:00:00");
+/* Cabin portal jaisa — "" / any = Economy. */
+assert.equal(vm.runInContext("mezQuery({...query, cabin_class:'business'}).cabin", context), "Business");
+assert.equal(vm.runInContext("mezQuery({...query, cabin_class:'premium_economy'}).cabin", context), "PremiumEconomy");
+assert.equal(vm.runInContext("mezQuery(query).cabin", context), "Economy");
 context.invalid = {...query, departure_date:"2026-02-30"};
 assert.throws(() => vm.runInContext("mezQuery(invalid)", context), /valid future date/);
 context.invalid = {...query, destination:"KHI"};
-assert.throws(() => vm.runInContext("mezQuery(invalid)", context), /different/);
+assert.throws(() => vm.runInContext("mezQuery(invalid)", context), /alag hone chahiye/);
 context.result = {
   SearchUpdateResult:{isSearchCompleted:true}, Flight_Result:{totalResultCount:3,flightDataSet:{
     FlightOption:[
@@ -121,6 +154,52 @@ const merged = vm.runInContext("mezNormalize(pages, query)", context);
 assert.equal(merged.fares.length,2);
 assert.equal(merged.total,4);
 assert.equal(merged.fares[0].amount,19990);
+/* Round trip (v2.88): ek option ke andar 2 legs — outbound + return. */
+context.rtResult = {
+  SearchUpdateResult:{isSearchCompleted:true},
+  Flight_Result:{totalResultCount:1,flightDataSet:{
+    FlightOption:[{ID:7,OptionTotal_WithPM_Agent_Currency_Amount:88720,Agent_Currency:"PKR",
+      ValidatingCarrier:"FZ",ValidatingCarrierName:"Flydubai",BaggageInfoADT:"20KG"}],
+    FlightData:[
+      {ID:70,FlightOptionID:7,FlightDuration:145,DepartureDate:"2026-12-10T16:25:00"},
+      {ID:71,FlightOptionID:7,FlightDuration:120,DepartureDate:"2026-12-20T06:00:00"}],
+    FlightSegment:[
+      {ID:700,FlightDataID:70,DepartureIata:"KHI",ArrivalIata:"DXB",
+        DepartureDate:"2026-12-10T16:25:00",ArrivalDate:"2026-12-10T17:50:00",
+        MarketingAirline:"FZ",FlightNumber:"332",AirCraft:"7M8",FlightMinutes:145},
+      {ID:701,FlightDataID:71,DepartureIata:"DXB",ArrivalIata:"KHI",
+        DepartureDate:"2026-12-20T06:00:00",ArrivalDate:"2026-12-20T08:00:00",
+        MarketingAirline:"FZ",FlightNumber:"331",AirCraft:"7M8",FlightMinutes:120}]
+  }}
+};
+context.rtNormalizeQuery = {trip_type:"round",origin:"KHI",destination:"DXB",
+  departure_date:context.rt.return_date && query.departure_date, return_date:context.rt.return_date,cabin:"Economy",nonstop:false};
+const rtNorm = vm.runInContext("mezNormalize(rtResult, rtNormalizeQuery)", context);
+assert.equal(rtNorm.fares.length,1);
+assert.equal(rtNorm.trip.type,"round");
+assert.equal(rtNorm.trip.legs.length,2);
+assert.equal(rtNorm.trip.legs[1].origin,"DXB");
+const rtFare = rtNorm.fares[0];
+assert.equal(rtFare.legs.length,2);
+assert.equal(rtFare.legs[0].from,"KHI"); assert.equal(rtFare.legs[0].to,"DXB");
+assert.equal(rtFare.legs[1].from,"DXB"); assert.equal(rtFare.legs[1].to,"KHI");
+assert.equal(rtFare.legs[0].segments.length,1);       // segments leg-wise hi rehte hain
+assert.equal(rtFare.segments.length,1);               // top-level = pehli leg
+assert.equal(rtFare.duration_min,265);                // dono legs ka jod
+assert.equal(rtFare.cabin,"Economy");
+// nonstop filter har leg par lagta he — dono single-segment hain, to fare bachta he
+assert.equal(vm.runInContext("mezNormalize(rtResult, {...rtNormalizeQuery, nonstop:true}).fares.length", context),1);
+// same price magar mukhtalif return flight = alag fare (dedupe return leg ko dekhta he)
+context.rtTwo = JSON.parse(JSON.stringify(context.rtResult));
+context.rtTwo.Flight_Result.flightDataSet.FlightOption.push(
+  {ID:8,OptionTotal_WithPM_Agent_Currency_Amount:88720,Agent_Currency:"PKR",ValidatingCarrier:"FZ"});
+context.rtTwo.Flight_Result.flightDataSet.FlightData.push(
+  {ID:72,FlightOptionID:8,FlightDuration:150,DepartureDate:"2026-12-20T22:00:00"});
+context.rtTwo.Flight_Result.flightDataSet.FlightSegment.push(
+  {ID:702,FlightDataID:72,DepartureIata:"DXB",ArrivalIata:"KHI",
+   DepartureDate:"2026-12-20T22:00:00",ArrivalDate:"2026-12-21T00:15:00",
+   MarketingAirline:"FZ",FlightNumber:"335",AirCraft:"7M8",FlightMinutes:150});
+assert.equal(vm.runInContext("mezNormalize(rtTwo, rtNormalizeQuery).fares.length", context),2);
 // portal occasionally returns a wild wrong amount (e.g. 8,077,840 PKR economy fare)
 context.wild = JSON.parse(JSON.stringify(context.pages));
 context.wild[1].Flight_Result.flightDataSet.FlightOption.push(

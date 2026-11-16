@@ -1,8 +1,10 @@
 # Meezab fare lookup
 
 The app's Price Lookup includes a separate Meezab button using the selected route,
-date and passengers. Support: one-way, Economy, prices in PKR, and the full
-portal party — up to 10 adults, 10 children and 10 infants (lap + seat together).
+date and passengers. Support: one-way, round trip and multi-city (up to 4 legs),
+cabin selection (Economy / Premium / Business / First), prices in PKR, and the
+full portal party — up to 10 adults, 10 children and 10 infants (lap + seat
+together).
 
 Worker secrets: `MEZ_USER`, `MEZ_PASS`. Optional `MEZ_SUBCOMPANY` defaults to the
 view-only account's company ID `278`. Set these through Cloudflare secrets,
@@ -56,6 +58,57 @@ Each fare carries `airline_code`, `platform`, `duration_min`, `stops`, `stops_at
 `flight`, `aircraft`, `cls`, `minutes`, `layover_min`, `bus`. Times stay as the
 portal's local wall-clock strings (no UTC conversion), because each airport has
 its own offset.
+
+## Trip types: round trip and multi-city (v2.88)
+
+The portal does not use the words "round trip" the way the app does. Its search
+query carries `FlightDirection` with three values — `OneWay`, `Round` (not
+"RoundTrip") and `MultiCity` — plus the dates and a leg list:
+
+```json
+{ "FlightDirection": "Round", "DepartureDate": "2026-12-10T00:00:00",
+  "ArrivalDate": "2026-12-20T00:00:00", "MultiCityArray": [] }
+```
+
+```json
+{ "FlightDirection": "MultiCity", "DepartureDate": "2026-12-10T00:00:00",
+  "ArrivalDate": "2026-12-15T00:00:00",
+  "MultiCityArray": [
+    { "DepartureDate": "2026-12-10T00:00:00", "FromIATA": "KHI", "ToIATA": "DXB" },
+    { "DepartureDate": "2026-12-15T00:00:00", "FromIATA": "DXB", "ToIATA": "LHR" } ] }
+```
+
+Top-level `FlightFrom`/`FlightTo` stay the first leg; `ArrivalDate` is the return
+date for `Round` and the last leg's date for `MultiCity`. The trace ID and
+`SearchDateTime` also match the portal byte-for-byte now (16 random bytes base64,
+`+05:00` offset). Live checks on 16 November 2026:
+
+- `Round` KHI–DXB 10→20 Dec: 2,429 options, 2 legs per option, cheapest 88,720 PKR.
+- `MultiCity` KHI–DXB–LHR 10/15 Dec: 1,317 options, 2 legs, cheapest 96,754 PKR.
+- Cabin `Business` / `First` / `PremiumEconomy` are accepted, but the portal
+  keeps returning Economy-class fares (`FlightClass: "Economy"`) — on KHI–DXB
+  and KHI–LHR the prices were identical to Economy. The cabin only changes which
+  suppliers answer, so the app offers the choice with an honest note instead of
+  filtering fares that do not exist.
+
+`POST /meezab/search` now also accepts `trip_type` (`oneway` / `round` /
+`multi`), `return_date`, `legs: [{ origin, destination, date }]` and
+`cabin_class` (`economy` / `premium_economy` / `business` / `first`). Old
+clients that send only `return_date` or `legs` still work (the shape decides the
+trip type). Validation rejects a missing/earlier return date, fewer than two
+legs, more than four legs, out-of-order leg dates and same From/To on a leg.
+
+Every fare now carries `trip_type`, `cabin` and `legs: [...]`; each leg has its
+own `from`/`to`, `departure`/`arrival`, `duration_min`, `stops`, `stops_at` and
+`segments`. Top-level `departure`/`arrival` remain the first leg / last arrival
+and `duration_min` is the sum of the legs. Duplicate-fare keys include every leg,
+so two round trips with the same price but different return flights stay
+separate. The reply adds `trip: { type, cabin, legs }`.
+
+In the app the card shows one block per leg — **Outbound** / **Return** for round
+trips, **Leg 1 / Leg 2 …** for multi-city — with a trip chip and the whole route
+in the results header. Country/city search stays one-way only, as before, because
+a round trip is not a set of alternative airports.
 
 ## Passengers: total price + per-person breakdown (v2.86)
 

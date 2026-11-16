@@ -173,6 +173,110 @@ assert.ok(pout.includes("2 adults + 1 child · Economy"), "header does not show 
 // Single adult par breakdown nahi — card waisa hi rahe
 assert.ok(/per adult/.test(out) && !out.includes("Per-passenger breakdown"), "1-adult card should not show a breakdown");
 
+/* ---- Round trip / multi-city cards + header (v2.88) ---- */
+const ekSeg = page.MEZ.fares[1].segments[0];
+const rtFare = Object.assign({}, page.MEZ.fares[1], {
+  amount: 88720, trip_type: "round", cabin: "Business",
+  departure: "2026-12-10T07:15:00", arrival: "2026-12-20T08:00:00", duration_min: 260,
+  segments: [ekSeg],
+  legs: [
+    { from: "KHI", to: "DXB", from_city: "Karachi", to_city: "Dubai",
+      departure: "2026-12-10T07:15:00", arrival: "2026-12-10T08:35:00",
+      duration_min: 140, stops: 0, stops_at: "", segments: [ekSeg] },
+    { from: "DXB", to: "KHI", from_city: "Dubai", to_city: "Karachi",
+      departure: "2026-12-20T06:00:00", arrival: "2026-12-20T08:00:00",
+      duration_min: 120, stops: 0, stops_at: "",
+      segments: [{ from: "DXB", to: "KHI", from_city: "Dubai", to_city: "Karachi",
+        departure: "2026-12-20T06:00:00", arrival: "2026-12-20T08:00:00", flight: "EK604",
+        aircraft: "77W", cls: "Y", minutes: 120, layover_min: 0 }] }
+  ]
+});
+const rtCtx = vm.createContext(Object.assign({}, page, {
+  MEZ: Object.assign({}, page.MEZ, {
+    fares: [rtFare],
+    info: { origin: "KHI", destination: "DXB", date: "2026-12-10", ret: "2026-12-20",
+      trip: "round", cabin: "Business", total: 12, complete: true,
+      pax: { adults: 1, children: 0, infants: 0 } }
+  })
+}));
+rtCtx.host = { innerHTML: "", querySelector: () => null, querySelectorAll: () => [] };
+rtCtx.document = { getElementById: (id) => (id === "faMeezabResults" ? rtCtx.host : null) };
+vm.runInContext(renderSource + "\nmezRender();", rtCtx);
+const rout = rtCtx.host.innerHTML;
+assert.ok(rout.includes("Round trip · 10 Dec 2026 – 20 Dec 2026"), "round-trip header lacks both dates");
+assert.ok(rout.includes("· Business"), "round-trip header lacks the cabin");
+assert.ok(rout.includes("Outbound") && rout.includes("Return"), "round-trip card should split outbound and return");
+assert.ok(rout.includes("EK605") && rout.includes("EK604"), "round-trip card should list both legs' flights");
+assert.ok(rout.includes(">Round trip<"), "round-trip chip missing on the card");
+assert.ok(!/\b10 days\b/.test(rout), "round-trip card should not add the ground time to the duration");
+
+const mcFare = Object.assign({}, rtFare, {
+  amount: 96754, trip_type: "multi", cabin: "Economy",
+  departure: "2026-12-10T07:15:00", arrival: "2026-12-15T12:00:00", duration_min: 300,
+  legs: [
+    rtFare.legs[0],
+    { from: "DXB", to: "LHR", from_city: "Dubai", to_city: "London",
+      departure: "2026-12-15T09:00:00", arrival: "2026-12-15T12:00:00",
+      duration_min: 180, stops: 0, stops_at: "",
+      segments: [{ from: "DXB", to: "LHR", from_city: "Dubai", to_city: "London",
+        departure: "2026-12-15T09:00:00", arrival: "2026-12-15T12:00:00", flight: "EK001",
+        aircraft: "388", cls: "Y", minutes: 180, layover_min: 0 }] }
+  ]
+});
+const mcCtx = vm.createContext(Object.assign({}, page, {
+  MEZ: Object.assign({}, page.MEZ, {
+    fares: [mcFare],
+    info: { origin: "KHI", destination: "DXB", date: "2026-12-10", trip: "multi", cabin: "Economy",
+      legs: [{ origin: "KHI", destination: "DXB", date: "2026-12-10" },
+             { origin: "DXB", destination: "LHR", date: "2026-12-15" }],
+      total: 9, complete: true, pax: { adults: 1, children: 0, infants: 0 } }
+  })
+}));
+mcCtx.host = { innerHTML: "", querySelector: () => null, querySelectorAll: () => [] };
+mcCtx.document = { getElementById: (id) => (id === "faMeezabResults" ? mcCtx.host : null) };
+vm.runInContext(renderSource + "\nmezRender();", mcCtx);
+const mcout = mcCtx.host.innerHTML;
+assert.ok(mcout.includes("Meezab — KHI → DXB → LHR"), "multi-city header should show the whole route");
+assert.ok(mcout.includes("Multi-city · 10 Dec 2026 · 15 Dec 2026"), "multi-city header dates wrong");
+assert.ok(mcout.includes("Leg 1") && mcout.includes("Leg 2"), "multi-city card should label each leg");
+assert.ok(mcout.includes("EK001"), "multi-city card misses the second leg");
+assert.ok(mcout.includes(">Multi-city<"), "multi-city chip missing on the card");
+
+/* Server response se trip/cabin/legs info mein aayein */
+assert.equal(vm.runInContext("mezCabinLabel('PremiumEconomy')", renderContext), "Premium Economy");
+assert.equal(vm.runInContext("mezCabinClass('premium_economy')", renderContext), "PremiumEconomy");
+assert.equal(vm.runInContext("mezTripLabel('round')", renderContext), "Round trip");
+const applyCtx = vm.createContext(Object.assign({}, page, {
+  MEZ: { fares: [], info: null, page: 1, airline: "", busy: false }
+}));
+vm.runInContext(renderSource + `
+mezApply({ fares: [], total: 3, complete: true, trip: { type: "round", cabin: "Business",
+  legs: [{ origin: "KHI", destination: "DXB", date: "2026-12-10" },
+         { origin: "DXB", destination: "KHI", date: "2026-12-20" }] },
+  pax: { adults: 2, children: 1, infants: 0 } },
+{ origin: "KHI", destination: "DXB", departure_date: "2026-12-10", trip_type: "round",
+  return_date: "2026-12-20", cabin_class: "business" }, false);`, applyCtx);
+const applied = vm.runInContext("MEZ.info", applyCtx);
+assert.equal(applied.trip, "round");
+assert.equal(applied.cabin, "Business");
+assert.equal(applied.ret, "2026-12-20");
+assert.equal(applied.legs.length, 2);
+
+/* Form se resume tak trip type save/restore hota he */
+assert.ok(/trip:trip, ret:ret \|\| "", cls:payload\.cabin_class/.test(html), "pending search does not save the trip type");
+assert.ok(/leg2:\(trip === "multi"\)/.test(html), "pending search does not save the second leg");
+assert.ok(/set\("faTrip", pd\.trip \|\| "one"\)/.test(html), "resume does not restore the trip type");
+assert.ok(/set\("faRet", pd\.ret\)/.test(html), "resume does not restore the return date");
+assert.ok(/set\("faDate2", pd\.leg2\.date/.test(html), "resume does not restore the second leg date");
+assert.ok(/set\("faClass", pd\.cls\)/.test(html), "resume does not restore the cabin");
+/* Round trip / multi-city IATA-only: country alias (UAE/USA) aur naam dono reject */
+assert.ok(/trip !== "one" && \(!\/\^\[A-Z\]\{3\}\$\/\.test\(toUp\) \|\| aliasHit\)/.test(html),
+  "round trip / multi-city guard missing");
+assert.ok(/countryCandidates\(toRaw, 1\)\.length/.test(html),
+  "3-letter country names are not filtered out of the IATA check");
+assert.ok(/payload\.trip_type = "round"; payload\.return_date = ret/.test(html), "round-trip payload missing");
+assert.ok(/payload\.legs = \[ \{ origin:origin, destination:mainTo, date:date \}/.test(html), "multi-city payload missing");
+
 /* ---- Country code + airport matching ---- */
 const countrySource = grab("var AB_COUNTRY_NAMES", "function airportsCache(");
 const countryCtx = vm.createContext({ AB_COUNTRY_NAMES: {} });
@@ -307,6 +411,7 @@ const panelCtx = vm.createContext({
   MEZ: { stage:"", stageNote:"", error:"", busy:false, fares:[] },
   esc: (s) => String(s == null ? "" : s).replace(/[&<>"]/g, (c) => ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;" }[c])),
   mezDate: (s) => String(s || "").slice(0, 10),
+  mezTripLabel: (t) => (t === "round" ? "Round trip" : (t === "multi" ? "Multi-city" : "One-way")),
   mezPendRead: () => null
 });
 vm.runInContext(panelSource, panelCtx);

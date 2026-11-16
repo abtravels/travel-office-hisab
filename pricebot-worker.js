@@ -1938,17 +1938,70 @@ function mezPaxCount(value, min, max, label) {
     throw new Error("Meezab " + label + " " + min + " se " + max + " tak ho sakte hain.");
   return n;
 }
-function mezQuery(q) {
-  const origin = String(q.origin || "").toUpperCase(), destination = String(q.destination || "").toUpperCase();
-  const date = String(q.departure_date || "");
-  if (!/^[A-Z]{3}$/.test(origin) || !/^[A-Z]{3}$/.test(destination) || origin === destination)
-    throw new Error("Valid, different From/To IATA codes are required.");
+/* Meezab ke trip types portal ke radio values hi hain: OneWay / Round / MultiCity.
+   Cabin bhi portal jaisa: Economy / PremiumEconomy / Business / First. */
+const MEZ_MAX_LEGS = 4;
+const MEZ_CABINS = {
+  "": "Economy", any: "Economy", economy: "Economy",
+  premium_economy: "PremiumEconomy", premiumeconomy: "PremiumEconomy", "premium economy": "PremiumEconomy",
+  business: "Business", first: "First"
+};
+function mezIata(v, label) {
+  const code = String(v || "").trim().toUpperCase();
+  if (!/^[A-Z]{3}$/.test(code)) throw new Error("Valid " + label + " IATA code chahiye (misal KHI).");
+  return code;
+}
+function mezFlightDate(v, label) {
+  const date = String(v || "").slice(0, 10);
   const today = new Date(Date.now() + 5 * 3600000).toISOString().slice(0, 10);
   if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || !Number.isFinite(Date.parse(date)) ||
       new Date(date).toISOString().slice(0, 10) !== date || date < today ||
-      Date.parse(date) > Date.now() + 365 * 86400000) throw new Error("Select a valid future date within one year.");
-  if (q.return_date || q.legs || (q.cabin_class && q.cabin_class !== "economy"))
-    throw new Error("Meezab currently supports one-way, Economy.");
+      Date.parse(date) > Date.now() + 365 * 86400000)
+    throw new Error(label + ": valid future date chahiye (ek saal ke andar).");
+  return date;
+}
+function mezTripType(q) {
+  const raw = String((q && (q.trip_type || q.trip)) || "").toLowerCase().replace(/[\s_-]+/g, "");
+  if (raw === "round" || raw === "roundtrip" || raw === "rt") return "round";
+  if (raw === "multi" || raw === "multicity" || raw === "mc") return "multi";
+  if (raw === "oneway" || raw === "one") return "oneway";
+  // Purane clients trip_type nahi bhejte — shape se pehchan lein.
+  if (Array.isArray(q && q.legs) && q.legs.length) return "multi";
+  if (q && q.return_date) return "round";
+  return "oneway";
+}
+function mezQuery(q) {
+  q = q || {};
+  const tripType = mezTripType(q);
+  const origin = mezIata(q.origin, "From");
+  const departure = mezFlightDate(q.departure_date, "Departure");
+  let destination = "", returnDate = "", legs = [];
+  if (tripType === "multi") {
+    const raw = Array.isArray(q.legs) ? q.legs : [];
+    if (raw.length < 2) throw new Error("Multi-city ke liye kam az kam 2 legs chahiye.");
+    if (raw.length > MEZ_MAX_LEGS) throw new Error("Multi-city mein " + MEZ_MAX_LEGS + " legs tak search ho sakti hain.");
+    let prev = "";
+    legs = raw.map((l, i) => {
+      const from = mezIata(l && (l.origin || l.from), "leg " + (i + 1) + " From");
+      const to = mezIata(l && (l.destination || l.to), "leg " + (i + 1) + " To");
+      if (from === to) throw new Error("Leg " + (i + 1) + " mein From aur To alag hone chahiye.");
+      const date = mezFlightDate(l && (l.date || l.departure_date), "Leg " + (i + 1) + " date");
+      if (prev && date < prev) throw new Error("Multi-city legs ki dates tarteeb mein honi chahiye.");
+      prev = date;
+      return { origin: from, destination: to, date };
+    });
+    // Pehli leg hi "main" route he — portal bhi wohi top-level fields bhejta he.
+    destination = legs[0].destination;
+  } else {
+    destination = mezIata(q.destination, "To");
+    if (origin === destination) throw new Error("From aur To alag hone chahiye.");
+  }
+  if (tripType === "round") {
+    returnDate = mezFlightDate(q.return_date, "Return");
+    if (returnDate < departure) throw new Error("Return date departure se pehle nahi ho sakti.");
+  }
+  const cabin = MEZ_CABINS[String(q.cabin_class == null ? "" : q.cabin_class).toLowerCase().trim()];
+  /* Wohi cabin values jo portal bhejta he — warna default Economy. */
   const adults = mezPaxCount(q.adults, 1, MEZ_MAX_ADULTS, "mein adult");
   const children = mezPaxCount(q.children, 0, MEZ_MAX_CHILDREN, "mein child");
   const lap = mezPaxCount(q.infants_on_lap, 0, MEZ_MAX_INFANTS, "mein lap infant");
@@ -1957,7 +2010,8 @@ function mezQuery(q) {
   if (infants > MEZ_MAX_INFANTS)
     throw new Error("Meezab mein infants (lap + seat) " + MEZ_MAX_INFANTS + " se zyada nahi ho sakte.");
   /* Portal infants ko ek hi group mein leta he — lap aur seat dono "Infant". */
-  return { origin, destination, departure_date: date, nonstop: q.max_stops === 0,
+  return { trip_type: tripType, origin, destination, departure_date: departure, return_date: returnDate,
+    legs, cabin: cabin || "Economy", nonstop: q.max_stops === 0,
     adults, children, infants, infants_on_lap: lap, infants_in_seat: seat };
 }
 /* Portal ke passenger objects — jitne log, utne. IDs unique hone chahiye,
@@ -1966,7 +2020,7 @@ function mezPaxObject(kind, i) {
   const p = (kind === "adt" ? "PAX" : kind === "chd" ? "CHD" : "INF") + (i + 1);
   const refKey = kind === "adt" ? "AdultRefID" : "ChildRefID";
   const o = { ID: "" };
-  o[refKey] = crypto.randomUUID();
+  o[refKey] = mezTraceId();
   o[refKey + "_NDC_OmanAir"] = p;
   o[refKey + "_NDC_Emirates"] = "T" + (i + 1);
   o[refKey + "_NDC_Serene"] = p;
@@ -2050,11 +2104,16 @@ function mezNormalize(pages, q) {
   for (const o of options) {
     const amount = Number(o.OptionTotal_WithPM_Agent_Currency_Amount);
     if (!(amount > 0) || o.Agent_Currency !== "PKR") continue;
-    const myLegs = legsByOption.get(o.ID) || [];
-    const segments = [];
+    /* Round trip aur multi-city mein ek option ke andar kai legs hote hain
+       (outbound + return, ya city 1→2→3). Har leg alag rakhna zaroori he,
+       warna app dono ko ek hi journey samajh kar ghalat layover dikhata he. */
+    const myLegs = (legsByOption.get(o.ID) || []).slice()
+      .sort((a, b) => String(a.DepartureDate).localeCompare(String(b.DepartureDate)));
+    const legGroups = [];
     for (const leg of myLegs) {
       const part = (segsByLeg.get(leg.ID) || []).slice()
         .sort((a, b) => String(a.DepartureDate).localeCompare(String(b.DepartureDate)));
+      const segments = [];
       for (const s of part) {
         const aircraft = String(s.AirCraft || "").toUpperCase();
         const from = String(s.DepartureIata || "").toUpperCase();
@@ -2074,21 +2133,41 @@ function mezNormalize(pages, q) {
           bus: aircraft === "BUS" || from === "XNB" || to === "XNB"
         });
       }
+      if (!segments.length) continue;
+      segments.sort((a, b) => String(a.departure).localeCompare(String(b.departure)));
+      // Portal layover agle segment par nahi, pichle segment par likhta he —
+      // "layover before" bana dein taake app seedha dikha sake.
+      const waits = segments.map(s => s.layover_after || 0);
+      for (let i = 0; i < segments.length; i++) {
+        segments[i].layover_min = i ? waits[i - 1] : 0;
+        delete segments[i].layover_after;
+      }
+      const lf = segments[0], ll = segments[segments.length - 1];
+      const lspan = (mezTimeOf(ll.arrival) - mezTimeOf(lf.departure)) / 60000;
+      // FlightDuration portal par aksar ghalat (maslan 60) hota he; segments ka
+      // jod (flight + layover) hi bharosa mand he.
+      const lmins = segments.reduce((n, s) => n + (s.minutes || 0) + (s.layover_min || 0), 0)
+        || (Number.isFinite(lspan) ? Math.max(0, Math.round(lspan)) : 0);
+      legGroups.push({
+        from: lf.from, to: ll.to,
+        from_city: lf.from_city, to_city: ll.to_city,
+        departure: lf.departure, arrival: ll.arrival,
+        duration_min: lmins,
+        stops: Math.max(0, segments.length - 1),
+        stops_at: segments.slice(0, -1).map(s => s.to).join(" · "),
+        seats: segments.reduce((n, s) => {
+          const v = Number(s.seats);
+          return Number.isFinite(v) && v > 0 ? Math.min(n || v, v) : n;
+        }, 0),
+        segments
+      });
     }
-    segments.sort((a, b) => String(a.departure).localeCompare(String(b.departure)));
-    // Portal layover agle segment par nahi, pichle segment par likhta he —
-    // "layover before" bana dein taake app seedha dikha sake.
-    const waits = segments.map(s => s.layover_after || 0);
-    for (let i = 0; i < segments.length; i++) {
-      segments[i].layover_min = i ? waits[i - 1] : 0;
-      delete segments[i].layover_after;
-    }
-    if (!segments.length || (q.nonstop && segments.length !== 1)) continue;
+    if (!legGroups.length) continue;
+    /* Non-stop filter har leg par lagta he (return bhi non-stop ho). */
+    if (q.nonstop && legGroups.some(g => g.segments.length !== 1)) continue;
+    const outbound = legGroups[0];
+    const segments = outbound.segments;
     const first = segments[0], last = segments[segments.length - 1];
-    const span = (mezTimeOf(last.arrival) - mezTimeOf(first.departure)) / 60000;
-    // FlightDuration portal par aksar ghalat (maslan 60) hota he; segments ka
-    // jod (flight + layover) hi bharosa mand he.
-    const bySegments = segments.reduce((n, s) => n + (s.minutes || 0) + (s.layover_min || 0), 0);
     const airlineCode = String(o.ValidatingCarrier || "").toUpperCase();
     /* Portal total poore party ka hota he. Har group ka apna fare bhi aata he —
        app usi se "per adult / child / infant" breakdown dikhata he. */
@@ -2098,8 +2177,10 @@ function mezNormalize(pages, q) {
       perInfant = mezPaxFare(o, "Infant");
     const partySum = perAdult * paxCounts.adults + perChild * paxCounts.children
       + perInfant * paxCounts.infants;
+    const totalSeats = legGroups.reduce((n, g) => (n && g.seats ? Math.min(n, g.seats) : (n || g.seats)), 0);
     fares.push({
       amount, currency: "PKR",
+      trip_type: (q && q.trip_type) || "oneway",
       /* amount = poore party ka total (portal jaisa). per_pax = breakdown; kisi
          group ka fare portal ne na diya ho to us se total dobara na banayein. */
       pax: paxCounts,
@@ -2113,16 +2194,18 @@ function mezNormalize(pages, q) {
       baggage: o.BaggageInfoADT || "",
       baggage_child: o.BaggageInfoCNN || "",
       baggage_infant: o.BaggageInfoINF || "",
-      departure: first.departure, arrival: last.arrival,
-      duration_min: bySegments || Number(myLegs[0] && myLegs[0].FlightDuration) || (Number.isFinite(span) ? Math.max(0, Math.round(span)) : 0),
-      stops: Math.max(0, segments.length - 1),
-      stops_at: segments.slice(0, -1).map(s => s.to).join(" · "),
+      /* Top-level fields = pehli leg (card ka summary) — poore trip ke legs
+         neeche "legs" mein hain. */
+      departure: outbound.departure, arrival: legGroups[legGroups.length - 1].arrival,
+      duration_min: legGroups.reduce((n, g) => n + (g.duration_min || 0), 0)
+        || Number(myLegs[0] && myLegs[0].FlightDuration) || 0,
+      stops: outbound.stops,
+      stops_at: outbound.stops_at,
       overnight: String(first.departure).slice(0, 10) !== String(last.arrival).slice(0, 10),
-      seats: segments.reduce((n, s) => {
-        const v = Number(s.seats);
-        return Number.isFinite(v) && v > 0 ? Math.min(n || v, v) : n;
-      }, 0),
-      segments
+      cabin: (q && q.cabin) || "Economy",
+      seats: totalSeats,
+      segments,
+      legs: legGroups
     });
   }
   // Portal kabhi kabhi ghalat PKR amount bhejta he (maslan KHI-DXB par 8,077,840) —
@@ -2136,15 +2219,26 @@ function mezNormalize(pages, q) {
     if (kept.length) pool = kept;
   }
   // Wohi fare kai suppliers se aata he — amount + flights se duplicate hata dein.
+  // Round trip mein return leg bhi key ka hissa he, warna do alag return wale
+  // fares ek hi samajh kar gir jate.
+  const fareKey = f => f.amount + "|" + (f.legs || []).map(g =>
+    g.segments.map(s => s.flight + s.departure + s.arrival).join(",")).join("||");
   const seen = new Set(), unique = [];
   for (const f of pool.sort((a, b) => a.amount - b.amount || a.duration_min - b.duration_min)) {
-    const key = f.amount + "|" + f.segments.map(s => s.flight + s.departure + s.arrival).join("|");
+    const key = fareKey(f);
     if (seen.has(key)) continue;
     seen.add(key);
     unique.push(f);
   }
   return { source: "Meezab Air", observed_at: new Date().toISOString(),
     complete, total: total || options.length,
+    trip: { type: (q && q.trip_type) || "oneway",
+      cabin: (q && q.cabin) || "Economy",
+      legs: (q && q.trip_type === "multi" && q.legs.length) ? q.legs
+        : (q && q.trip_type === "round")
+          ? [{ origin: q.origin, destination: q.destination, date: q.departure_date },
+             { origin: q.destination, destination: q.origin, date: q.return_date }]
+          : [{ origin: q.origin, destination: q.destination, date: q.departure_date }] },
     pax: { adults: (q && q.adults) || 1, children: (q && q.children) || 0,
       infants: (q && q.infants) || 0, infants_on_lap: (q && q.infants_on_lap) || 0,
       infants_in_seat: (q && q.infants_in_seat) || 0 },
@@ -2177,10 +2271,43 @@ function mezBudgetError(cap) {
   return e;
 }
 
+/* Portal ka trace ID 16 random bytes ka base64 he; SearchDateTime bhi +05:00
+   offset ke sath jata he — bilkul wohi shape jo portal bhejta he. */
+function mezTraceId() {
+  const b = new Uint8Array(16);
+  crypto.getRandomValues(b);
+  let s = "";
+  for (const x of b) s += String.fromCharCode(x);
+  return btoa(s);
+}
+function mezPkNow() {
+  return new Date(Date.now() + 5 * 3600000).toISOString().replace("Z", "+05:00");
+}
+/* Portal ki query — trip type ke hisab se direction, dates aur MultiCityArray. */
+function mezPortalQuery(q, env) {
+  const multi = q.trip_type === "multi" && q.legs.length
+    ? q.legs.map(l => ({ DepartureDate: l.date + "T00:00:00", FromIATA: l.origin, ToIATA: l.destination }))
+    : [];
+  const arrival = q.trip_type === "round" ? q.return_date
+    : (multi.length ? q.legs[q.legs.length - 1].date : q.departure_date);
+  return {
+    ID: "", SearchDateTime: mezPkNow(), TraceId_Travelport: mezTraceId(),
+    FlightDirection: q.trip_type === "round" ? "Round" : (q.trip_type === "multi" ? "MultiCity" : "OneWay"),
+    DepartureDate: q.departure_date + "T00:00:00", ArrivalDate: arrival + "T00:00:00",
+    DepartureDateString: "", ArrivalDateString: "",
+    FlightFrom: q.origin, FlightFrom_Text: q.origin, FlightTo: q.destination, FlightTo_Text: q.destination,
+    Cabin: q.cabin || "Economy", MaxTransfers: 0, PreferredAirline: "", Currency: "PKR", MultiCityArray: multi,
+    AdultClsArray: Array.from({ length: q.adults || 1 }, (_, i) => mezPaxObject("adt", i)),
+    ChildClsArray: Array.from({ length: q.children || 0 }, (_, i) => mezPaxObject("chd", i)),
+    InfantClsArray: Array.from({ length: q.infants || 0 }, (_, i) => mezPaxObject("inf", i)),
+    Adults: q.adults || 1, Child: q.children || 0, Infant: q.infants || 0,
+    isDomestic: false, IsUmrahFareSearch: false, IsAnciSelected: false
+  };
+}
 /* Ek route ki poori search — country search bhi isi ko call karta he. */
 async function mezRunSearch(env, q, opts) {
   const fresh = !!(opts && opts.fresh);
-  const key = "meezab:fare:v1:" + JSON.stringify(q);
+  const key = "meezab:fare:v2:" + JSON.stringify(q);
   const cached = fresh ? null : await env.KV.get(key, "json");
   if (cached) return Object.assign({}, cached, { cached: true });
   // Best-effort daily budget shared across routes and users (MEZ_DAILY_CAP).
@@ -2189,19 +2316,8 @@ async function mezRunSearch(env, q, opts) {
   const used = Number(await env.KV.get(budgetKey)) || 0;
   if (used >= cap) throw mezBudgetError(cap);
   const cookie = await mezLogin(env);
-  const trace = crypto.randomUUID();
-  const query = {
-    ID: "", SearchDateTime: new Date().toISOString(), TraceId_Travelport: trace,
-    FlightDirection: "OneWay", DepartureDate: q.departure_date + "T00:00:00",
-    ArrivalDate: q.departure_date + "T00:00:00", DepartureDateString: "", ArrivalDateString: "",
-    FlightFrom: q.origin, FlightFrom_Text: q.origin, FlightTo: q.destination, FlightTo_Text: q.destination,
-    Cabin: "Economy", MaxTransfers: 0, PreferredAirline: "", Currency: "PKR", MultiCityArray: [],
-    AdultClsArray: Array.from({ length: q.adults || 1 }, (_, i) => mezPaxObject("adt", i)),
-    ChildClsArray: Array.from({ length: q.children || 0 }, (_, i) => mezPaxObject("chd", i)),
-    InfantClsArray: Array.from({ length: q.infants || 0 }, (_, i) => mezPaxObject("inf", i)),
-    Adults: q.adults || 1, Child: q.children || 0, Infant: q.infants || 0,
-    isDomestic: false, IsUmrahFareSearch: false, IsAnciSelected: false
-  };
+  const query = mezPortalQuery(q, env);
+  const trace = query.TraceId_Travelport;
   const start = await mezPost(cookie, "GetFlightList", { loginID: env.MEZ_USER,
     subComapanyID: String(env.MEZ_SUBCOMPANY || "278"), traceId_Travelport: trace,
     searchQuery_obj: JSON.stringify(query), searchType: 1 });
@@ -2393,7 +2509,7 @@ async function statusPage(env) {
       info = "<li>Webhook: <span style=\"color:var(--gold)\">check slow</span> <small>(Telegram jawab nahi de raha - bot par message bhej kar test karein)</small></li>";
     }
   }
-  return page("AB Travels worker", "<h1>✈️ AB Travels worker <small>v2.87</small></h1><ul>" + rows.join("") + info +
+  return page("AB Travels worker", "<h1>✈️ AB Travels worker <small>v2.88</small></h1><ul>" + rows.join("") + info +
     "<li>Today's searches: <b>" + esc(used) + "</b> / " + budgetCap(env) + "</li>" +
     "<li>Owner chat: <code>" + esc(owner) + "</code></li>" +
     "<li>Team alerts: " + (team.length ? team.map(function (c) { return "<code>" + esc(c) + "</code>"; }).join(", ") : "<i>sirf owner</i>") + "</li></ul>" +
