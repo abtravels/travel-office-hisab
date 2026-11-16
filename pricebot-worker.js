@@ -1917,16 +1917,26 @@ async function mezLogin(env) {
   })();
   try { return await mezLoginPending; } finally { mezLoginPending = null; }
 }
-async function mezPost(cookie, endpoint, body) {
+async function mezPost(cookie, endpoint, body, timeoutMs) {
   if (!["GetFlightList", "GetFlightListUpdate"].includes(endpoint)) throw new Error("Meezab step unsupported: " + endpoint);
   const r = await mezStep(endpoint, () => fetch(MEZ_BASE + endpoint, {
-    method: "POST", redirect: "follow", signal: AbortSignal.timeout(25000),
+    method: "POST", redirect: "follow", signal: AbortSignal.timeout(Number(timeoutMs) || 25000),
     headers: { "Content-Type": "application/json", Cookie: cookie },
     body: JSON.stringify(body)
   }));
   if (r.status === 401 || r.status === 403) mezSession = null;
   if (!r.ok) throw new Error("Meezab " + endpoint + ": HTTP " + r.status);
   return mezStep(endpoint + "-json", () => r.json());
+}
+/* Poll ek dafa slow ho jaye to poora search na mare — ek retry, thora lamba
+   timeout. Pehle 25s par timeout hone se route 502 de deta tha (v3.01). */
+async function mezPoll(cookie, pageBody) {
+  try {
+    return await mezPost(cookie, "GetFlightListUpdate", pageBody, 35000);
+  } catch (e) {
+    await new Promise(resolve => setTimeout(resolve, 800));
+    return mezPost(cookie, "GetFlightListUpdate", pageBody, 35000);
+  }
 }
 /* Portal ek search mein poora party leta he (adult + child + infant), jaisa
    Meezab ki apni website par. Har group ki apni hadd he — is se zyada par
@@ -2279,7 +2289,7 @@ function mezBudgetReset() {
 }
 function mezBudgetError(cap) {
   const e = new Error("Aaj ki Meezab search limit (" + cap + ") khatam ho gayi - "
-    + "05:00 PKT (00:00 UTC) par reset hoti he. Purane (cached) routes ab bhi chalte hain.");
+    + "05:00 PKT (00:00 UTC) par reset hoti he.");
   e.code = 429;
   e.cap = cap;
   e.left = 0;
@@ -2362,10 +2372,18 @@ async function mezRunSearch(env, q, opts) {
      16 polls = 80 MB). Chhoti poll ~1s leti he, is liye 1s ka gap. */
   let status = null, total = 0, complete = false;
   /* Koi fare chhoot na jaye: portal ke "search complete" ka poora intezar
-     (round trip mein 40-70s, 45 polls tak). */
+     (round trip mein 40-70s, 45 polls tak). Ek poll fail ho jaye to search
+     khatam na ho — agla poll phir try hota he (v3.01). */
+  let pollFails = 0;
   for (let i = 0; i < 45; i++) {
     await new Promise(resolve => setTimeout(resolve, i < 4 ? 700 : 1000));
-    status = await mezPost(cookie, "GetFlightListUpdate", pageBody(1, 1));
+    try {
+      status = await mezPoll(cookie, pageBody(1, 1));
+      pollFails = 0;
+    } catch (e) {
+      if (++pollFails >= 3) throw e;
+      continue;
+    }
     total = Math.max(total, Number(status?.Flight_Result?.totalResultCount) || 0);
     if (status.SearchUpdateResult?.isSearchCompleted) { complete = true; break; }
   }
@@ -2574,7 +2592,7 @@ async function statusPage(env) {
       info = "<li>Webhook: <span style=\"color:var(--gold)\">check slow</span> <small>(Telegram jawab nahi de raha - bot par message bhej kar test karein)</small></li>";
     }
   }
-  return page("AB Travels worker", "<h1>✈️ AB Travels worker <small>v3.00</small></h1><ul>" + rows.join("") + info +
+  return page("AB Travels worker", "<h1>✈️ AB Travels worker <small>v3.01</small></h1><ul>" + rows.join("") + info +
     "<li>Today's searches: <b>" + esc(used) + "</b> / " + budgetCap(env) + "</li>" +
     "<li>Owner chat: <code>" + esc(owner) + "</code></li>" +
     "<li>Team alerts: " + (team.length ? team.map(function (c) { return "<code>" + esc(c) + "</code>"; }).join(", ") : "<i>sirf owner</i>") + "</li></ul>" +

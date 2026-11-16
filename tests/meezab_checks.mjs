@@ -213,4 +213,12 @@ assert.equal(vm.runInContext("mezNormalize(wild, query).fares.length", context),
 // auto-refresh: search core alag function he, taake fresh flag cache skip kar sake
 assert.equal(vm.runInContext("typeof mezRunSearch", context), "function");
 assert.equal(vm.runInContext("typeof meezabSearch", context), "function");
+/* v3.01: poll ek dafa slow ho to search na mare — retry helper + timeout badha */
+assert.equal(vm.runInContext("typeof mezPoll", context), "function");
+assert.ok(/mezPoll\(cookie, pageBody\(1, 1\)\)/.test(source), "the poll loop does not use the retrying helper");
+assert.ok(!/status = await mezPost\(cookie, "GetFlightListUpdate", pageBody\(1, 1\)\)/.test(source),
+  "the poll loop still calls mezPost directly (one slow poll kills the search)");
+assert.ok(/pollFails >= 3\) throw e;/.test(source), "repeated poll failures are not tolerated");
+/* Budget message: purane cached routes ka jhoota wada na kare (v3.01) */
+assert.ok(!/cached\) routes ab bhi chalte hain/.test(source), "budget error still promises cached results");
 console.log("Meezab checks passed: validation, passenger groups (10/10/10), fare currency, zero-price filtering, bus routing, token stripping, nonstop, duplicate fares, paging merge, wild-price filter, rich fields, per-passenger fares, refresh helper.");

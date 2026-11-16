@@ -418,6 +418,33 @@ assert.ok(/id="mezResumeBtn"/.test(html), "resume button markup missing");
 assert.ok(/MEZ\.stage === "loading"/.test(html), "loading stage not handled by panel");
 assert.ok(/mezBindPanel\(\)/.test(html), "panel is rendered without binding its buttons");
 assert.ok(/function mezWatchdog\(\)/.test(html), "stuck search watchdog missing");
+/* Watchdog request ke timeout se pehle nahi chalna chahiye (v3.01) */
+assert.ok(/Date\.now\(\) - MEZ\.runStart < 285000/.test(html),
+  "watchdog fires before the 5-minute client timeout");
+/* Search fail par error panel hamesha bane — catch mein busy abhi true hota he,
+   is liye wahan se loading card banta tha aur error kabhi nazi nahi aata (v3.01) */
+assert.ok(!/if\(errHost\) errHost\.innerHTML = mezPanelHtml\(\);/.test(html),
+  "error panel is still rendered while busy is true (spinner gets stuck)");
+assert.ok(/if\(h3\)\{ h3\.innerHTML = mezPanelHtml\(\); mezBindPanel\(\); \}/.test(html),
+  "finally does not unconditionally repaint the error panel");
+assert.ok(/function mezAbortStage\(/.test(html), "validation failure leaves the loading card behind");
+/* Country pick payload: refresh cabin/nonstop na khoye (v3.01) */
+assert.ok(/trip_type:"oneway", cabin_class:mezCabinClass\(c\.cabin \|\| "economy"\)/.test(html),
+  "country pick drops the cabin from the refresh payload");
+assert.ok(/if\(c\.nonstop\) MEZ\.payload\.max_stops = 0;/.test(html),
+  "country pick drops the non-stop filter from the refresh payload");
+assert.ok(/nonstop: base\.max_stops === 0,/.test(html), "country search does not remember the non-stop filter");
+/* Refresh fail: fares screen par barqarar rahein (v3.01) */
+assert.ok(/if\(MEZ\.fares\.length\)\{\s*\n\s*mezRender\(\);\s*\n\s*\} else if\(!auto\)/.test(html),
+  "refresh failure wipes the visible fares");
+/* Naya search purana refresh-error chip saaf kare (v3.01) */
+assert.ok(/MEZ\.error = "";\s*\n\s*\/\* Naya search/.test(html), "new search does not reset the header state");
+/* Budget message cache ka jhoota wada na kare (v3.01) */
+assert.ok(!/cache \(10 minute\) se foran aa jayega/.test(html), "budget card still promises a cache hit");
+/* Manual split button maujood he aur handler dead nahi (v3.01) */
+assert.ok(/id="applyMonth"/.test(html), "manual split button markup missing");
+assert.ok(/if\(!confirm\(msg\)\) return;/.test(html), "manual split does not ask for confirmation");
+assert.ok(/function applyMonthNow\(mid\)/.test(html), "applyMonthNow helper missing");
 assert.ok(/mezPendSave\(\{ from:origin/.test(html), "search inputs are not remembered");
 assert.ok(/mezPendClear\(\)/.test(html), "pending search is never cleared after success");
 assert.ok(!/faRenderPresets/.test(html), "popular-route preset renderer still present");
