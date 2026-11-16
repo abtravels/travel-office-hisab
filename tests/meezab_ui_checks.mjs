@@ -24,7 +24,7 @@ const aliasSrc = (() => {
 const source =
   countryMapSrc + "\n" +
   aliasSrc + "\n" +
-  grab("function mezBagKg(", "function mezAirlineStats(") +
+  grab("function mezBagTokens(", "function mezAirlineStats(") +
   grab("function mezAirlineStats(", "function mezLogoHtml(") +
   grab("function mezBase(", "function mezPageButtons(");
 const context = vm.createContext({ MEZ: { fares: [], stops: "all", baggage: "all", airline: "", sort: "price" } });
@@ -40,6 +40,15 @@ assert.equal(run("mezBagKg('')"), -1);
 assert.equal(run("mezBagKg('0Kilograms-0Kilograms')"), 0);
 assert.equal(run("mezBagKg('0Nil')"), 0);
 assert.equal(run("mezBagKg('30Kilograms-30Kilograms')"), 30);
+/* v2.91: baggage har direction ka alag + total — portal jaisa */
+assert.equal(run("mezBaggageLabel('25KG-25KG', [{segments:[{}]},{segments:[{}]}])"), "Baggage 25 kg + 25 kg = 50 kg");
+assert.equal(run("mezBaggageLabel('50Pounds-50Pounds-50Pounds', [{segments:[{}]},{segments:[{},{}]}])"), "Baggage 50 lb + 50 lb = 100 lb");
+assert.equal(run("mezBaggageLabel('1Pieces-1Pieces', [{segments:[{}]},{segments:[{}]}])"), "Baggage 1 piece + 1 piece = 2 pieces");
+assert.equal(run("mezBaggageLabel('0NA-0NA-30KG-30KG', [{segments:[{},{}]},{segments:[{},{}]}])"), "Baggage no bag + 30 kg");
+assert.equal(run("mezBaggageLabel('25KG-25KG', [{segments:[{}]}])"), "Baggage 25 kg");
+assert.equal(run("mezBagState('0Nil-30KGS')"), "checked");
+assert.equal(run("mezBagState('0Nil')"), "none");
+assert.equal(run("mezBagState('')"), "unknown");
 
 context.MEZ.fares = [
   { amount: 27760, airline_code: "EY", airline: "Etihad Airways", stops: 1, baggage: "0KG-0KG", duration_min: 600 },

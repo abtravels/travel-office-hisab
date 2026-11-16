@@ -744,7 +744,7 @@
 <script>
 /* ================= DATA ================= */
 var KEY = "travelOfficeHisab";
-var APP_VER = "2.90";
+var APP_VER = "2.91";
 var MONTH_NAMES = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
 /* Cloudflare Worker — Ignav flight prices proxy (free plan, no credit card) */
 var IGNAV_WORKER_CODE = "// AB Travels - Ignav flight prices proxy (Cloudflare Worker)\n// Ignav API key SERVER par rehti hai - app/browser mein kabhi nahi aati.\n//\n// SETUP (ek dafa, ~5 min, free):\n// 1) ignav.com/signup -> free account -> dashboard se API key\n// 2) cloudflare.com -> free account -> Workers & Pages -> Create Worker -> yeh code paste -> Deploy\n// 3) Worker -> Settings -> Variables and Secrets -> secret add karein:\n//      IGNAV_API_KEY = (aap ki Ignav key)\n// 4) Worker URL (https://xxx.workers.dev) app -> Settings -> Flight prices -> paste -> Save & test\n\nexport default {\n  async fetch(request, env) {\n    const cors = {\n      'Access-Control-Allow-Origin': env.ALLOWED_ORIGIN || '*',\n      'Access-Control-Allow-Methods': 'GET,POST,OPTIONS',\n      'Access-Control-Allow-Headers': 'Content-Type',\n      'Access-Control-Max-Age': '86400'\n    };\n    const url = new URL(request.url);\n    if (request.method === 'OPTIONS') return new Response(null, { status: 204, headers: cors });\n    if (!env.IGNAV_API_KEY) {\n      return new Response(JSON.stringify({ error: { code: 'no_key', message: 'IGNAV_API_KEY secret is not set in the Worker.' } }), { status: 500, headers: Object.assign({ 'Content-Type': 'application/json' }, cors) });\n    }\n    const base = 'https://ignav.com/api';\n    let target = '';\n    let init = { method: 'GET', headers: { 'X-Api-Key': env.IGNAV_API_KEY } };\n    if (url.pathname === '/health') {\n      target = base + '/health';\n    } else if (url.pathname === '/fares') {\n      if (request.method !== 'POST') return new Response(JSON.stringify({ error: { message: 'POST only' } }), { status: 405, headers: cors });\n      const body = await request.text();\n      target = base + '/fares/one-way';\n      init = { method: 'POST', headers: { 'X-Api-Key': env.IGNAV_API_KEY, 'Content-Type': 'application/json' }, body };\n    } else if (url.pathname === '/search') {\n      if (request.method !== 'POST') return new Response(JSON.stringify({ error: { message: 'POST only' } }), { status: 405, headers: cors });\n      const body = await request.text();\n      target = base + '/fares/search';\n      init = { method: 'POST', headers: { 'X-Api-Key': env.IGNAV_API_KEY, 'Content-Type': 'application/json' }, body };\n    } else if (url.pathname === '/round-trip') {\n      if (request.method !== 'POST') return new Response(JSON.stringify({ error: { message: 'POST only' } }), { status: 405, headers: cors });\n      const body = await request.text();\n      target = base + '/fares/round-trip';\n      init = { method: 'POST', headers: { 'X-Api-Key': env.IGNAV_API_KEY, 'Content-Type': 'application/json' }, body };\n    } else if (url.pathname === '/booking-links') {\n      if (request.method !== 'POST') return new Response(JSON.stringify({ error: { message: 'POST only' } }), { status: 405, headers: cors });\n      const body = await request.text();\n      target = base + '/fares/booking-links';\n      init = { method: 'POST', headers: { 'X-Api-Key': env.IGNAV_API_KEY, 'Content-Type': 'application/json' }, body };\n    } else {\n      return new Response(JSON.stringify({ error: { message: 'not found' } }), { status: 404, headers: Object.assign({ 'Content-Type': 'application/json' }, cors) });\n    }\n    try {\n      const r = await fetch(target, init);\n      const text = await r.text();\n      return new Response(text, { status: r.status, headers: Object.assign({ 'Content-Type': 'application/json' }, cors) });\n    } catch (e) {\n      return new Response(JSON.stringify({ error: { message: String((e && e.message) || e) } }), { status: 502, headers: Object.assign({ 'Content-Type': 'application/json' }, cors) });\n    }\n  }\n};\n";
@@ -6240,15 +6240,66 @@ function mezCity(name){
   var s = String(name||"").trim();
   return /^unknown$/i.test(s) ? "" : s;
 }
-function mezBaggageLabel(b){
-  var s = String(b||"").trim();
-  if(!s) return "";
-  /* Portal ke teen format: "30KG-30KG", "0Nil", "0Kilograms-0Kilograms".
-     Pehla number hi checked-bag weight he. */
-  var kg = mezBagKg(s);
-  if(kg < 0) return "";
-  if(kg === 0) return "No checked bag";
-  return "Baggage " + kg + " kg";
+/* Portal ka baggage string har SEGMENT ka ek token hota he, outbound pehle
+   phir return: "25KG-25KG", "50Pounds-50Pounds-50Pounds", "1Pieces-1Pieces",
+   "0NA-0NA-30KG-30KG". Har direction ka allowance us leg ka pehla token he
+   (portal bhi ek direction par ek hi weight likhta he). */
+function mezBagTokens(b){
+  return String(b||"").split("-").map(function(raw){
+    var m = String(raw||"").trim().match(/^(\d+)\s*([A-Za-z]+)?$/);
+    if(!m) return null;
+    var n = Number(m[1]) || 0;
+    if(!n) return null;
+    var u = String(m[2]||"").toLowerCase();
+    var unit = /pound|lb/.test(u) ? "lb" : (/piece|pc/.test(u) ? "pc" : "kg");
+    return { n:n, unit:unit };
+  });
+}
+function mezBagUnit(n, unit){
+  if(unit === "pc") return n + (n === 1 ? " piece" : " pieces");
+  if(unit === "lb") return n + " lb";
+  return n + " kg";
+}
+/* legs: [{segments:[...]}, ...] — token count per leg se direction pata chalta he. */
+function mezBagSummary(b, legs){
+  var toks = mezBagTokens(b);
+  if(!toks.some(Boolean)) return null;
+  var counts = (legs && legs.length)
+    ? legs.map(function(g){ return Math.max(1, (g && g.segments && g.segments.length) || 1); })
+    : [1];
+  var idx = 0, perLeg = [];
+  counts.forEach(function(c){
+    var first = null;
+    for(var i = 0; i < c && idx < toks.length; i++, idx++){ if(!first && toks[idx]) first = toks[idx]; }
+    perLeg.push(first);
+  });
+  if(!perLeg.some(Boolean)) return null;
+  var used = perLeg.filter(Boolean);
+  var unit = used[0].unit;
+  var same = used.every(function(t){ return t.unit === unit; });
+  var all = perLeg.every(Boolean);
+  var total = (same && all && used.length > 1) ? used.reduce(function(s,t){ return s + t.n; }, 0) : 0;
+  var parts = perLeg.map(function(t){ return t ? mezBagUnit(t.n, t.unit) : "no bag"; });
+  var text = parts.join(" + ") + (total ? " = " + mezBagUnit(total, unit) : "");
+  var dirs = parts.map(function(p, i){
+    return (perLeg.length > 1 ? (i === 0 ? "outbound" : (i === 1 ? "return" : "leg " + (i+1))) + " " : "") + p;
+  }).join(" · ");
+  return { text:text, dirs:dirs, total:total, unit:unit, parts:parts };
+}
+/* "checked" / "none" / "unknown" — filter ke liye. */
+function mezBagState(b){
+  var raw = String(b||"").trim();
+  if(!raw) return "unknown";
+  if(mezBagTokens(b).some(Boolean)) return "checked";
+  if(/(^|-)0|nil/i.test(raw)) return "none";
+  return "checked";
+}
+function mezBaggageLabel(b, legs){
+  var s = mezBagSummary(b, legs);
+  if(s) return "Baggage " + s.text;
+  var raw = String(b||"").trim();
+  if(!raw) return "";
+  return /(^|-)0|nil/i.test(raw) ? "No checked bag" : "";
 }
 /* Baggage string ("30KG-30KG" / "0Nil" / "0Kilograms-0Kilograms") se pehla
    checked-bag weight. -1 ka matlab portal ne kuch nahi bataya. */
@@ -6406,8 +6457,13 @@ function mezCardHtml(f, idx){
   else if(f.trip_type === "multi") h += '<span class="mez-chip info">Multi-city</span>';
   h += f.refundable ? '<span class="mez-chip ok">Refundable</span>' : '<span class="mez-chip">Non-refundable</span>';
   if(f.platform) h += '<span class="mez-chip plat" title="Kis platform/supplier se fare aaya">' + esc(f.platform) + '</span>';
-  var bag = mezBaggageLabel(f.baggage);
-  if(bag) h += '<span class="mez-chip' + (/^No checked/.test(bag) ? ' warn' : '') + '">' + esc(bag) + '</span>';
+  var bagSum = mezBagSummary(f.baggage, f.legs);
+  var bag = bagSum ? ("Baggage " + bagSum.text) : mezBaggageLabel(f.baggage, f.legs);
+  if(bag){
+    h += '<span class="mez-chip' + (/^No checked/.test(bag) ? ' warn' : '') + '"'
+      + (bagSum && bagSum.dirs ? ' title="' + esc(bagSum.dirs) + '"' : '')
+      + '>' + esc(bag) + '</span>';
+  }
   if(f.changeable) h += '<span class="mez-chip ok">Changeable</span>';
   if(viaAll) h += '<span class="mez-chip info">via ' + esc(viaAll) + '</span>';
   if(allSegs.some(function(s){ return s.bus; })) h += '<span class="mez-chip warn">Bus connection</span>';
@@ -6433,7 +6489,7 @@ function mezPaxBreakdownHtml(f, pax){
     rows.push('<tr><td>' + esc(label) + '<span class="mez-pax-n">× ' + n + '</span></td>'
       + '<td>' + (Number(per) ? esc(faMoney(per, f.currency)) : '<span class="mez-pax-na">—</span>') + '</td>'
       + '<td>' + (tot ? esc(faMoney(tot, f.currency)) : '<span class="mez-pax-na">—</span>') + '</td>'
-      + (bag === undefined ? '' : '<td>' + esc(mezBaggageLabel(bag) || "—") + '</td>') + '</tr>');
+      + (bag === undefined ? '' : '<td>' + esc(mezBaggageLabel(bag, f.legs) || "—") + '</td>') + '</tr>');
   }
   row("Adult", pax.adults, f.per_adult, f.baggage);
   row("Child", pax.children, f.per_child, f.baggage_child);
@@ -6462,9 +6518,9 @@ function mezBase(){
   }
   if(MEZ.baggage !== "all"){
     list = list.filter(function(f){
-      var kg = mezBagKg(f.baggage);
-      if(kg < 0) return false;                       // baggage maloom nahi
-      return MEZ.baggage === "checked" ? kg > 0 : kg === 0;
+      var st = mezBagState(f.baggage);
+      if(st === "unknown") return false;             // baggage maloom nahi
+      return MEZ.baggage === "checked" ? st === "checked" : st === "none";
     });
   }
   return list;
