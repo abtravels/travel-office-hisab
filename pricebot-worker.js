@@ -2350,40 +2350,32 @@ async function mezRunSearch(env, q, opts) {
   await env.KV.put(budgetKey, String(used + 1), { expirationTtl: 172800 });
   const PAGE = 250, MAX_PAGES = 10;
   /* CPU budget: portal ka har page 6-10 MB JSON hota he aur Cloudflare ka CPU
-     limit tootne par 1102 (503) aata he. Poll chhote page se hoti he, aur pages
-     ka jod is budget se zyada na ho — fares price ke hisab se sorted aate hain,
-     is liye jo pages chhoot jate hain un mein sirf mehnge fares hote hain. */
-  const MEZ_JSON_BUDGET = Number(env.MEZ_JSON_BUDGET) > 0 ? Number(env.MEZ_JSON_BUDGET) : 22 * 1048576;
-  let jsonUsed = 0;
+     limit tootne par 1102 (503) aata he. Pages ka jod is budget se zyada na ho —
+     fares price ke hisab se sorted aate hain, is liye jo pages chhoot jate hain
+     un mein sirf mehnge fares hote hain. */
+  const MEZ_JSON_BUDGET = Number(env.MEZ_JSON_BUDGET) > 0 ? Number(env.MEZ_JSON_BUDGET) : 40 * 1048576;
   const pageBody = (index, size) => ({ searchID: state.SearchID,
     sortBy_ColumnName: "OptionTotal_WithPM_Agent_Currency_Amount", sortBy_Descending: false,
     pageIndex: index, pageSize: size || PAGE, minPrice: 0, maxPrice: 0,
     airlineCodes: [], flightTimeFilter: [], stopsFilter: [] });
-  /* Pehla page aane tak intezar — pageSize 1 se poll karein. Poora page har 2.5
-     second parse karna hi CPU limit tor deta tha (round trip mein 16 polls). */
-  let result = null, total = 0, complete = false;
-  for (let i = 0; i < 40; i++) {
-    await new Promise(resolve => setTimeout(resolve, 2000));
-    result = await mezPost(cookie, "GetFlightListUpdate", pageBody(1, 1));
-    total = Math.max(total, Number(result?.Flight_Result?.totalResultCount) || 0);
-    if (result.SearchUpdateResult?.isSearchCompleted) { complete = true; break; }
+  /* Pehla page aane tak intezar. Poll chhote page (size 1) se — poora 6-10 MB
+     page har 2 second parse karna hi CPU limit tor deta tha (round trip mein
+     16 polls = 80 MB). Chhoti poll ~1s leti he, is liye 1.2s ka gap. */
+  let status = null, total = 0, complete = false;
+  for (let i = 0; i < 45; i++) {
+    await new Promise(resolve => setTimeout(resolve, 1200));
+    status = await mezPost(cookie, "GetFlightListUpdate", pageBody(1, 1));
+    total = Math.max(total, Number(status?.Flight_Result?.totalResultCount) || 0);
+    if (status.SearchUpdateResult?.isSearchCompleted) { complete = true; break; }
   }
-  /* Har page alag process — raw JSON dobara na rakhein (warna 16 MB+ pages se
-     Worker ka memory limit toot kar Cloudflare 1102 deta he). */
-  const fares = [];
-  const absorb = (res, bytes) => {
-    if (!res) return 0;
-    jsonUsed += bytes || 0;
-    const part = mezPageFares(res, q);
-    complete = complete || part.complete;
-    total = Math.max(total, part.total);
-    for (const f of part.fares) fares.push(f);
-    return (res?.Flight_Result?.flightDataSet?.FlightOption || []).length;
-  };
-  absorb(result, 0);
-  result = null;
-  for (let p = 1; p <= MAX_PAGES && (p - 1) * PAGE < total; p++) {
-    let pageRes = null, pageBytes = 0;
+  status = null;
+  /* Pages parallel lein — sequential 10 page x 7s = 70s+ lagta tha. Har page
+     foran normalize ho kar raw JSON chhod di jati he, is liye memory theek
+     rehti he. Jod MEZ_JSON_BUDGET se zyada ho to sirf pehle wale rakhein
+     (fares price ke hisab se sorted aate hain, is liye sasti fares pehle). */
+  const jobCount = Math.max(1, Math.min(MAX_PAGES, Math.ceil(total / PAGE) || 1));
+  const jobs = Array.from({ length: jobCount }, (_, k) => k + 1);
+  const settled = await Promise.all(jobs.map(async (p) => {
     try {
       const r = await fetch(MEZ_BASE + "GetFlightListUpdate", {
         method: "POST", redirect: "follow", signal: AbortSignal.timeout(60000),
@@ -2391,15 +2383,22 @@ async function mezRunSearch(env, q, opts) {
         body: JSON.stringify(pageBody(p, PAGE)) });
       if (!r.ok) { if (r.status === 401 || r.status === 403) mezSession = null; throw new Error("HTTP " + r.status); }
       const text = await r.text();
-      pageBytes = text.length;
-      if (jsonUsed + pageBytes > MEZ_JSON_BUDGET && fares.length) break;
-      pageRes = JSON.parse(text);
+      return { p, bytes: text.length, res: JSON.parse(text) };
     } catch (e) {
       console.warn("Meezab page " + p + " failed: " + ((e && e.message) || e));
-      break;
+      return null;
     }
-    if (!absorb(pageRes, pageBytes)) break;
-    pageRes = null;
+  }));
+  const fares = [];
+  let jsonUsed = 0;
+  for (const item of settled) {
+    if (!item) continue;
+    if (jsonUsed + item.bytes > MEZ_JSON_BUDGET && fares.length) continue;
+    jsonUsed += item.bytes;
+    const part = mezPageFares(item.res, q);
+    complete = complete || part.complete;
+    total = Math.max(total, part.total);
+    for (const f of part.fares) fares.push(f);
   }
   const output = mezFinishResult(fares, q, complete, total);
   /* Cache likhi hamesha jati he (fallback ke liye), magar padhi sirf tab jati
