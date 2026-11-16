@@ -438,7 +438,8 @@ assert.ok(/nonstop: base\.max_stops === 0,/.test(html), "country search does not
 assert.ok(/if\(MEZ\.fares\.length\)\{\s*\n\s*mezRender\(\);\s*\n\s*\} else if\(!auto\)/.test(html),
   "refresh failure wipes the visible fares");
 /* Naya search purana refresh-error chip saaf kare (v3.01) */
-assert.ok(/MEZ\.error = "";\s*\n\s*\/\* Naya search/.test(html), "new search does not reset the header state");
+assert.ok(/MEZ\.autoErr = "";\s*\n\s*var val = function/.test(html),
+  "new search does not reset the header refresh-error chip");
 /* Budget message cache ka jhoota wada na kare (v3.01) */
 assert.ok(!/cache \(10 minute\) se foran aa jayega/.test(html), "budget card still promises a cache hit");
 /* Manual split button maujood he aur handler dead nahi (v3.01) */

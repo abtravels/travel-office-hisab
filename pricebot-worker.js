@@ -2335,6 +2335,10 @@ function mezPortalQuery(q, env) {
    memory limit nahi tootti; (2) prices hamesha live — cache sirf tab jab caller
    saaf tor par `cache:true` bheje (auto-refresh/`fresh` par kabhi nahi). */
 async function mezRunSearch(env, q, opts) {
+  /* Poori search ki apni deadline — browser ka timeout 300s he, is liye us se
+     pehle thora sa pehle ruk kar jo fares mil chuki hain wo de dein. Warna
+     portal slow hone par client ko kuch bhi nahi milta (v3.01). */
+  const deadline = Date.now() + 275000;
   const fresh = !!(opts && opts.fresh);
   const wantCache = !fresh && !!(opts && opts.cache);
   const key = "meezab:fare:v3:" + JSON.stringify(q);
@@ -2377,6 +2381,7 @@ async function mezRunSearch(env, q, opts) {
   let pollFails = 0;
   for (let i = 0; i < 45; i++) {
     await new Promise(resolve => setTimeout(resolve, i < 4 ? 700 : 1000));
+    if (Date.now() > deadline) break;   // portal bohat slow — jo mila he wohi de dein
     try {
       status = await mezPoll(cookie, pageBody(1, 1));
       pollFails = 0;
@@ -2395,6 +2400,9 @@ async function mezRunSearch(env, q, opts) {
   const fares = [];
   const PAGE_BATCH = 3;
   for (let first = 1; first <= jobCount; first += PAGE_BATCH) {
+    /* Deadline ke qareeb: baqi pages chhor dein, jo fares mil chuki hain de dein
+       (complete false rahega, app user ko "partial" bata deta he). */
+    if (Date.now() > deadline && fares.length) { complete = false; break; }
     const batch = [];
     for (let p = first; p < first + PAGE_BATCH && p <= jobCount; p++) batch.push(p);
     const settled = await Promise.all(batch.map(async (p) => {
