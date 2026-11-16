@@ -744,7 +744,7 @@
 <script>
 /* ================= DATA ================= */
 var KEY = "travelOfficeHisab";
-var APP_VER = "2.91";
+var APP_VER = "2.92";
 var MONTH_NAMES = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
 /* Cloudflare Worker — Ignav flight prices proxy (free plan, no credit card) */
 var IGNAV_WORKER_CODE = "// AB Travels - Ignav flight prices proxy (Cloudflare Worker)\n// Ignav API key SERVER par rehti hai - app/browser mein kabhi nahi aati.\n//\n// SETUP (ek dafa, ~5 min, free):\n// 1) ignav.com/signup -> free account -> dashboard se API key\n// 2) cloudflare.com -> free account -> Workers & Pages -> Create Worker -> yeh code paste -> Deploy\n// 3) Worker -> Settings -> Variables and Secrets -> secret add karein:\n//      IGNAV_API_KEY = (aap ki Ignav key)\n// 4) Worker URL (https://xxx.workers.dev) app -> Settings -> Flight prices -> paste -> Save & test\n\nexport default {\n  async fetch(request, env) {\n    const cors = {\n      'Access-Control-Allow-Origin': env.ALLOWED_ORIGIN || '*',\n      'Access-Control-Allow-Methods': 'GET,POST,OPTIONS',\n      'Access-Control-Allow-Headers': 'Content-Type',\n      'Access-Control-Max-Age': '86400'\n    };\n    const url = new URL(request.url);\n    if (request.method === 'OPTIONS') return new Response(null, { status: 204, headers: cors });\n    if (!env.IGNAV_API_KEY) {\n      return new Response(JSON.stringify({ error: { code: 'no_key', message: 'IGNAV_API_KEY secret is not set in the Worker.' } }), { status: 500, headers: Object.assign({ 'Content-Type': 'application/json' }, cors) });\n    }\n    const base = 'https://ignav.com/api';\n    let target = '';\n    let init = { method: 'GET', headers: { 'X-Api-Key': env.IGNAV_API_KEY } };\n    if (url.pathname === '/health') {\n      target = base + '/health';\n    } else if (url.pathname === '/fares') {\n      if (request.method !== 'POST') return new Response(JSON.stringify({ error: { message: 'POST only' } }), { status: 405, headers: cors });\n      const body = await request.text();\n      target = base + '/fares/one-way';\n      init = { method: 'POST', headers: { 'X-Api-Key': env.IGNAV_API_KEY, 'Content-Type': 'application/json' }, body };\n    } else if (url.pathname === '/search') {\n      if (request.method !== 'POST') return new Response(JSON.stringify({ error: { message: 'POST only' } }), { status: 405, headers: cors });\n      const body = await request.text();\n      target = base + '/fares/search';\n      init = { method: 'POST', headers: { 'X-Api-Key': env.IGNAV_API_KEY, 'Content-Type': 'application/json' }, body };\n    } else if (url.pathname === '/round-trip') {\n      if (request.method !== 'POST') return new Response(JSON.stringify({ error: { message: 'POST only' } }), { status: 405, headers: cors });\n      const body = await request.text();\n      target = base + '/fares/round-trip';\n      init = { method: 'POST', headers: { 'X-Api-Key': env.IGNAV_API_KEY, 'Content-Type': 'application/json' }, body };\n    } else if (url.pathname === '/booking-links') {\n      if (request.method !== 'POST') return new Response(JSON.stringify({ error: { message: 'POST only' } }), { status: 405, headers: cors });\n      const body = await request.text();\n      target = base + '/fares/booking-links';\n      init = { method: 'POST', headers: { 'X-Api-Key': env.IGNAV_API_KEY, 'Content-Type': 'application/json' }, body };\n    } else {\n      return new Response(JSON.stringify({ error: { message: 'not found' } }), { status: 404, headers: Object.assign({ 'Content-Type': 'application/json' }, cors) });\n    }\n    try {\n      const r = await fetch(target, init);\n      const text = await r.text();\n      return new Response(text, { status: r.status, headers: Object.assign({ 'Content-Type': 'application/json' }, cors) });\n    } catch (e) {\n      return new Response(JSON.stringify({ error: { message: String((e && e.message) || e) } }), { status: 502, headers: Object.assign({ 'Content-Type': 'application/json' }, cors) });\n    }\n  }\n};\n";
@@ -849,7 +849,8 @@ function blankState(){
     invoices: [],      // {id, date, savedAt, d} — sale se link na ho to yahan save hoti hai
     airlineIds: [],    // {id, name, login, pass, note} — password protected section
     clients: [],       // {id, name, phone, nic, passExp, note} — Customers tab
-    fileTickets: []    // {id, name, file, size, type, client, pnr, note, uploadedAt, sha} - shared ticket files
+    fileTickets: [],   // {id, name, file, size, type, client, pnr, note, uploadedAt, sha} - shared ticket files
+    fileTombstones: [] // {id, at} - delete ki hui files, taake sync unhe wapas na laaye
   };
 }
 function load(){
@@ -871,6 +872,7 @@ function load(){
     if(!s.qarzaPaid) s.qarzaPaid = [];
     if(!s.clients) s.clients = [];
     if(!s.fileTickets) s.fileTickets = [];
+    if(!s.fileTombstones) s.fileTombstones = [];
     ensureSettings(s);
     // Staff portal URL — ek dafa seed karein (agar user ne khud clear kiya ho to dobara na bhare)
     if(!s.settings.staffUrlSeeded){
@@ -929,7 +931,9 @@ function saveNow(cb){ S.__ts = Date.now(); saveLocal(); if(syncTimer) clearTimeo
 var syncTimer = null;
 var ghSyncSha = null;
 var GH_SYNC_PATH = "HisabData.json";
+var syncStatusMsg = "";
 function setSyncStatus(msg, bad){
+  syncStatusMsg = String(msg || "");
   var el = document.getElementById("syncStatus");
   if(el){ el.textContent = msg; el.style.color = bad ? "var(--red)" : "var(--green)"; }
 }
@@ -999,7 +1003,7 @@ function mergeMissingAppData(data, local){
   if(!data || typeof data !== "object") return data;
   var L = local || S || {};
   var arrKeys = ["draws","receivables","tickets","waseem","charityPaid","qarzaPaid","qarzaPayments",
-                 "bills","invoices","airlineIds","clients","fileTickets"];
+                 "bills","invoices","airlineIds","clients","fileTickets","fileTombstones"];
   arrKeys.forEach(function(k){
     if(!Array.isArray(data[k])){
       data[k] = Array.isArray(L[k]) ? JSON.parse(JSON.stringify(L[k])) : [];
@@ -1032,6 +1036,53 @@ function mergeRecentFileTickets(data, local){
       data.fileTickets.push(f); ids[f.id] = 1;
     }
   });
+}
+/* ---------- ticket files: union sync ----------
+   Files additive hain (upload = naya item). Pehle poora state last-writer-wins
+   tha, is liye mobile ka purana push PC ki nayi file ko dhak deta tha aur
+   phir mobile "local is newer" keh kar pull bhi chhor deta tha.
+   Ab dono lists ka union hota he; delete ka faisla tombstones se hota he. */
+function fileIdMap(list){
+  var ids = {};
+  (Array.isArray(list) ? list : []).forEach(function(f){ if(f && f.id) ids[f.id] = 1; });
+  return ids;
+}
+function fileUnionLists(localArr, remoteArr, tombstones){
+  var dead = fileIdMap(tombstones), seen = {}, out = [];
+  [localArr, remoteArr].forEach(function(arr){
+    (Array.isArray(arr) ? arr : []).forEach(function(f){
+      if(!f || !f.id || dead[f.id] || seen[f.id]) return;
+      seen[f.id] = 1; out.push(f);
+    });
+  });
+  return out;
+}
+function fileTombstoneMerge(localT, remoteT){
+  var seen = {}, out = [];
+  [localT, remoteT].forEach(function(arr){
+    (Array.isArray(arr) ? arr : []).forEach(function(t){
+      if(!t || !t.id || seen[t.id]) return;
+      seen[t.id] = 1; out.push(t);
+    });
+  });
+  return out.slice(-300);
+}
+function fileAddTombstone(id){
+  if(!id) return;
+  if(!Array.isArray(S.fileTombstones)) S.fileTombstones = [];
+  if(!S.fileTombstones.some(function(t){ return t && t.id === id; })){
+    S.fileTombstones.push({ id: id, at: Date.now() });
+  }
+  if(S.fileTombstones.length > 300) S.fileTombstones = S.fileTombstones.slice(-300);
+}
+/* Remote list se jo files is device par nahi hain, unhe local mein milayein.
+   Wapas: kitni nayi entries mili. */
+function fileMergeRemote(remote){
+  var before = fileIdMap(S.fileTickets);
+  S.fileTickets = fileUnionLists(S.fileTickets, remote, S.fileTombstones);
+  var added = 0;
+  S.fileTickets.forEach(function(f){ if(!before[f.id]) added++; });
+  return added;
 }
 function doPush(after){
   var pat = String(S.settings.githubPat || "").trim();
@@ -1104,8 +1155,17 @@ function syncPull(cb){
                    || (S.draws && S.draws.length > 0) || (S.receivables && S.receivables.length > 0);
       var remoteTs = Number(data.__ts) || 0;
       var localTs = Number(S.__ts) || 0;
+      /* Ticket files additive hain — remote ki nayi files HAR surat mein le lein.
+         Warna is device ka purana push unhe dhak deta he aur file kabhi nahi aati. */
+      S.fileTombstones = fileTombstoneMerge(S.fileTombstones, data.fileTombstones);
+      var filesAdded = fileMergeRemote(data.fileTickets);
+      if(filesAdded){
+        S.__ts = Date.now();
+        localStorage.setItem(KEY, JSON.stringify(S));
+      }
       if(localTs > remoteTs){
-        setSyncStatus("GitHub had older data — your newer data was sent to GitHub");
+        setSyncStatus((filesAdded ? "✓ " + filesAdded + " ticket file(s) GitHub se mili. " : "")
+          + "GitHub had older data — your newer data was sent to GitHub");
         doPush();
         if(cb) cb(false);
         return;
@@ -1121,7 +1181,8 @@ function syncPull(cb){
         return;
       }
       if(localHas && remoteTs <= localTs){
-        setSyncStatus("✓ Local data is newer — old data from GitHub was not loaded");
+        setSyncStatus((filesAdded ? "✓ " + filesAdded + " ticket file(s) GitHub se mili. " : "")
+          + "✓ Local data is newer — old data from GitHub was not loaded");
         if(cb) cb(false);
         return;
       }
@@ -1131,14 +1192,21 @@ function syncPull(cb){
       data.settings.importId = S.settings.importId || "";
       mergeMissingAppData(data, S);   // purani sync file se naye sections mat mitayein
       mergeRecentFileTickets(data, S);
+      /* Local-only ticket files remote list mein bhi shamil karein — dono taraf ek list. */
+      data.fileTombstones = fileTombstoneMerge(S.fileTombstones, data.fileTombstones);
+      var remoteFileCount = Array.isArray(data.fileTickets) ? data.fileTickets.length : 0;
+      data.fileTickets = fileUnionLists(S.fileTickets, data.fileTickets, data.fileTombstones);
+      var pushMergedFiles = data.fileTickets.length > remoteFileCount;
       S = data;
       ensureSettings(S);
       _monthAgg = null;
       migrateAutoQarza();
       localStorage.setItem(KEY, JSON.stringify(S));
       selectedMonth = null;
-      setSyncStatus("✓ Data loaded from GitHub");
+      setSyncStatus("✓ Data loaded from GitHub"
+        + (pushMergedFiles ? " (" + (data.fileTickets.length - remoteFileCount) + " local ticket file(s) bhi GitHub par bheji ja rahi hain)" : ""));
       if(cb) cb(true);
+      if(pushMergedFiles) syncPush();
     })
     .catch(function(e){
       var msg = String((e && e.message) || e);
@@ -4055,7 +4123,10 @@ function render(){
     filesSyncedAt = Date.now();
     setTimeout(function(){
       if(currentTab !== "files") return;
-      syncPull(function(){ if(currentTab === "files") render(); });
+      syncPull(function(ok){
+        fileSyncInfo = { at: Date.now(), ok: !!ok };
+        if(currentTab === "files") render();
+      });
     }, 80);
   }
   applyStatPrivacy();
@@ -8368,6 +8439,7 @@ var FILE_MAX = 20 * 1024 * 1024;   /* 20 MB per file */
 var fileFlash = null;
 var fileBlobMem = {};
 var filesSyncedAt = 0;
+var fileSyncInfo = { at: 0, ok: null };
 
 function fileSetFlash(msg, bad){
   fileFlash = msg ? { msg: String(msg), bad: !!bad } : null;
@@ -8847,6 +8919,11 @@ function viewFiles(){
   } else {
     html += '<div class="empty">Abhi koi file upload nahi hui. Upar se PDF choose kar ke Upload dabayein.</div>';
   }
+  if(fileSyncInfo.at){
+    html += '<div class="hint" style="margin-top:4px;">Last GitHub check: '
+          + esc(new Date(fileSyncInfo.at).toLocaleTimeString())
+          + ' — ' + esc(syncStatusMsg || (fileSyncInfo.ok ? "✓ updated" : "local list shown")) + '</div>';
+  }
   html += '<div class="hint">List GitHub sync se aati hai — app kholne ya tab par wapas aane par khud update hoti hai. File pehli dafa kholne par download hoti hai, phir device par cache rehti hai.</div>';
   html += '</div>';
   return html;
@@ -9116,6 +9193,7 @@ function fileDeleteEntry(f){
   if(!confirm("Delete this " + what + " from all devices?" + (kind === "file" ? "\n\nThe file will also be removed from GitHub." : ""))) return;
   if(kind !== "file"){
     S.fileTickets = (S.fileTickets || []).filter(function(x){ return x.id !== f.id; });
+    fileAddTombstone(f.id);
     saveNow(function(){ fileSetFlash("✓ Deleted."); render(); });
     return;
   }
@@ -9128,6 +9206,7 @@ function fileDeleteEntry(f){
                 : ghApi(path).then(function(j){ return delWith(j.sha); });
   p.then(function(){
     S.fileTickets = (S.fileTickets || []).filter(function(x){ return x.id !== f.id; });
+    fileAddTombstone(f.id);
     delete fileBlobMem[f.id];
     fileCacheDel(f.id);
     saveNow(function(){
@@ -9166,6 +9245,7 @@ function bindFilesTab(app){
     fileSetFlash("GitHub se latest list aa rahi hai…"); render();
     filesSyncedAt = Date.now();
     syncPull(function(ok){
+      fileSyncInfo = { at: Date.now(), ok: !!ok };
       fileSetFlash(ok ? "✓ List update ho gayi." : "GitHub se list nahi aayi — jo local list hai wo dikh rahi hai.", !ok);
       if(currentTab === "files") render();
     });
