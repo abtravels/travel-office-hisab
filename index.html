@@ -664,6 +664,9 @@
   .mez-load-note{margin-top:7px; font-size:11.5px;}
   @media (prefers-reduced-motion: reduce){ .mez-load-bar > i{animation:none; left:0; width:100%;} }
   .fa-nonstop{display:flex; gap:8px; align-items:center; margin:10px 0 0; font-size:13px; font-weight:600;}
+  /* From/To ke neeche wali airport line ek hi line mein kate (ellipsis) —
+     warna lambi line box ki height badal deti he aur columns alag lagte hain. */
+  .airport-info{white-space:nowrap; overflow:hidden; text-overflow:ellipsis; min-height:15px;}
   /* Band field saaf nazar aaye (maslan Return date jab trip one-way ho) */
   input:disabled, select:disabled, textarea:disabled{opacity:.45;}
   /* Touch par tap ke baad blue ring chipki nahi rehti (keyboard walon ko ring milta rahe) */
@@ -701,7 +704,7 @@
   <div class="brand">
     <img src="logo.png" alt="AB Travels" decoding="async" onerror="this.style.display='none'">
     <div style="min-width:0;">
-      <h1>AB Travels <span class="ver" id="verBadge">v3.06</span></h1>
+      <h1>AB Travels <span class="ver" id="verBadge">v3.07</span></h1>
       <div class="tag">Ahmed Brothers Hajj &amp; Umra Services (Pvt) Ltd</div>
     </div>
     <button id="brandFares" class="brand-fares" type="button" title="Price Lookup — flight fares" aria-label="Price Lookup — flight fares">✈</button>
@@ -770,7 +773,7 @@
 <script>
 /* ================= DATA ================= */
 var KEY = "travelOfficeHisab";
-var APP_VER = "3.06";
+var APP_VER = "3.07";
 var MONTH_NAMES = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
 /* Cloudflare Worker — Ignav flight prices proxy (free plan, no credit card) */
 var IGNAV_WORKER_CODE = "// AB Travels - Ignav flight prices proxy (Cloudflare Worker)\n// Ignav API key SERVER par rehti hai - app/browser mein kabhi nahi aati.\n//\n// SETUP (ek dafa, ~5 min, free):\n// 1) ignav.com/signup -> free account -> dashboard se API key\n// 2) cloudflare.com -> free account -> Workers & Pages -> Create Worker -> yeh code paste -> Deploy\n// 3) Worker -> Settings -> Variables and Secrets -> secret add karein:\n//      IGNAV_API_KEY = (aap ki Ignav key)\n// 4) Worker URL (https://xxx.workers.dev) app -> Settings -> Flight prices -> paste -> Save & test\n\nexport default {\n  async fetch(request, env) {\n    const cors = {\n      'Access-Control-Allow-Origin': env.ALLOWED_ORIGIN || '*',\n      'Access-Control-Allow-Methods': 'GET,POST,OPTIONS',\n      'Access-Control-Allow-Headers': 'Content-Type',\n      'Access-Control-Max-Age': '86400'\n    };\n    const url = new URL(request.url);\n    if (request.method === 'OPTIONS') return new Response(null, { status: 204, headers: cors });\n    if (!env.IGNAV_API_KEY) {\n      return new Response(JSON.stringify({ error: { code: 'no_key', message: 'IGNAV_API_KEY secret is not set in the Worker.' } }), { status: 500, headers: Object.assign({ 'Content-Type': 'application/json' }, cors) });\n    }\n    const base = 'https://ignav.com/api';\n    let target = '';\n    let init = { method: 'GET', headers: { 'X-Api-Key': env.IGNAV_API_KEY } };\n    if (url.pathname === '/health') {\n      target = base + '/health';\n    } else if (url.pathname === '/fares') {\n      if (request.method !== 'POST') return new Response(JSON.stringify({ error: { message: 'POST only' } }), { status: 405, headers: cors });\n      const body = await request.text();\n      target = base + '/fares/one-way';\n      init = { method: 'POST', headers: { 'X-Api-Key': env.IGNAV_API_KEY, 'Content-Type': 'application/json' }, body };\n    } else if (url.pathname === '/search') {\n      if (request.method !== 'POST') return new Response(JSON.stringify({ error: { message: 'POST only' } }), { status: 405, headers: cors });\n      const body = await request.text();\n      target = base + '/fares/search';\n      init = { method: 'POST', headers: { 'X-Api-Key': env.IGNAV_API_KEY, 'Content-Type': 'application/json' }, body };\n    } else if (url.pathname === '/round-trip') {\n      if (request.method !== 'POST') return new Response(JSON.stringify({ error: { message: 'POST only' } }), { status: 405, headers: cors });\n      const body = await request.text();\n      target = base + '/fares/round-trip';\n      init = { method: 'POST', headers: { 'X-Api-Key': env.IGNAV_API_KEY, 'Content-Type': 'application/json' }, body };\n    } else if (url.pathname === '/booking-links') {\n      if (request.method !== 'POST') return new Response(JSON.stringify({ error: { message: 'POST only' } }), { status: 405, headers: cors });\n      const body = await request.text();\n      target = base + '/fares/booking-links';\n      init = { method: 'POST', headers: { 'X-Api-Key': env.IGNAV_API_KEY, 'Content-Type': 'application/json' }, body };\n    } else {\n      return new Response(JSON.stringify({ error: { message: 'not found' } }), { status: 404, headers: Object.assign({ 'Content-Type': 'application/json' }, cors) });\n    }\n    try {\n      const r = await fetch(target, init);\n      const text = await r.text();\n      return new Response(text, { status: r.status, headers: Object.assign({ 'Content-Type': 'application/json' }, cors) });\n    } catch (e) {\n      return new Response(JSON.stringify({ error: { message: String((e && e.message) || e) } }), { status: 502, headers: Object.assign({ 'Content-Type': 'application/json' }, cors) });\n    }\n  }\n};\n";
@@ -6080,18 +6083,18 @@ function viewFares(){
         + 'Jo airline API mein nahi (kuch LCCs) wo result mein nahi aati — har fare ke sath Sasta / Google Flights / Skyscanner / Kayak links bhi milte hain. '
         + 'Prices <b>indicative</b> hain; Ignav ki pehli 1,000 requests one-time free, uske baad $2/1,000.'
         + '</div></details>';
-  html += '<div class="row" style="margin-top:8px; align-items:flex-end;">'
+  html += '<div class="row" style="margin-top:8px; align-items:flex-start;">'
         + '<div><label>From</label><input id="faFrom" value="'+esc(last.from || "")+'" placeholder="KHI / Karachi" autocomplete="off" style="text-transform:uppercase; font-size:18px; font-weight:700; letter-spacing:.12em;"><div class="hint airport-info" style="margin-top:2px;"></div></div>'
-        + '<div class="fa-arrow" style="display:flex; align-items:center; padding-bottom:10px; font-size:20px;">→</div>'
+        + '<div class="fa-arrow" style="flex:0 0 26px; min-width:0; align-self:stretch; display:flex; align-items:center; justify-content:center; font-size:20px;">→</div>'
         + '<div><label>To</label><input id="faTo" value="'+esc(last.to || "")+'" placeholder="DXB / Dubai" autocomplete="off" style="text-transform:uppercase; font-size:18px; font-weight:700; letter-spacing:.12em;"><div class="hint airport-info" style="margin-top:2px;"></div></div>'
         + '</div>';
   html += '<div style="display:flex; justify-content:flex-end; margin-top:4px;"><button type="button" class="btn small" id="faSwap" title="From aur To badal dein" style="margin:0; padding:4px 10px; font-size:12px;">⇄ Swap</button></div>';
   html += '<div id="faLeg2Wrap" style="display:none; border:1px dashed var(--line); border-radius:12px; padding:10px; margin-top:8px;">'
         + '<div style="font-weight:800; font-size:13px; margin-bottom:2px;">Second leg — multi-city</div>'
         + '<div class="hint" style="margin-top:0;">Leg 1 ke baad leg 2 ki alag route/date — dono legs ek hi itinerary mein search hongi.</div>'
-        + '<div class="row" style="margin-top:8px; align-items:flex-end;">'
+        + '<div class="row" style="margin-top:8px; align-items:flex-start;">'
         + '<div><label>From (leg 2)</label><input id="faFrom2" placeholder="DXB / Dubai" autocomplete="off" style="text-transform:uppercase; font-weight:700;"><div class="hint airport-info" style="margin-top:2px;"></div></div>'
-        + '<div class="fa-arrow" style="display:flex; align-items:center; padding-bottom:10px; font-size:20px;">→</div>'
+        + '<div class="fa-arrow" style="flex:0 0 26px; min-width:0; align-self:stretch; display:flex; align-items:center; justify-content:center; font-size:20px;">→</div>'
         + '<div><label>To (leg 2)</label><input id="faTo2" placeholder="LHR / London" autocomplete="off" style="text-transform:uppercase; font-weight:700;"><div class="hint airport-info" style="margin-top:2px;"></div></div>'
         + '</div>'
         + '<div class="row" style="margin-top:8px;"><div><label>Leg 2 departure date</label><input id="faDate2" type="date" value="'+today()+'"></div></div>'
