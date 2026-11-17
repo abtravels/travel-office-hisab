@@ -701,7 +701,7 @@
   <div class="brand">
     <img src="logo.png" alt="AB Travels" decoding="async" onerror="this.style.display='none'">
     <div style="min-width:0;">
-      <h1>AB Travels <span class="ver" id="verBadge">v3.05</span></h1>
+      <h1>AB Travels <span class="ver" id="verBadge">v3.06</span></h1>
       <div class="tag">Ahmed Brothers Hajj &amp; Umra Services (Pvt) Ltd</div>
     </div>
     <button id="brandFares" class="brand-fares" type="button" title="Price Lookup — flight fares" aria-label="Price Lookup — flight fares">✈</button>
@@ -770,7 +770,7 @@
 <script>
 /* ================= DATA ================= */
 var KEY = "travelOfficeHisab";
-var APP_VER = "3.05";
+var APP_VER = "3.06";
 var MONTH_NAMES = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
 /* Cloudflare Worker — Ignav flight prices proxy (free plan, no credit card) */
 var IGNAV_WORKER_CODE = "// AB Travels - Ignav flight prices proxy (Cloudflare Worker)\n// Ignav API key SERVER par rehti hai - app/browser mein kabhi nahi aati.\n//\n// SETUP (ek dafa, ~5 min, free):\n// 1) ignav.com/signup -> free account -> dashboard se API key\n// 2) cloudflare.com -> free account -> Workers & Pages -> Create Worker -> yeh code paste -> Deploy\n// 3) Worker -> Settings -> Variables and Secrets -> secret add karein:\n//      IGNAV_API_KEY = (aap ki Ignav key)\n// 4) Worker URL (https://xxx.workers.dev) app -> Settings -> Flight prices -> paste -> Save & test\n\nexport default {\n  async fetch(request, env) {\n    const cors = {\n      'Access-Control-Allow-Origin': env.ALLOWED_ORIGIN || '*',\n      'Access-Control-Allow-Methods': 'GET,POST,OPTIONS',\n      'Access-Control-Allow-Headers': 'Content-Type',\n      'Access-Control-Max-Age': '86400'\n    };\n    const url = new URL(request.url);\n    if (request.method === 'OPTIONS') return new Response(null, { status: 204, headers: cors });\n    if (!env.IGNAV_API_KEY) {\n      return new Response(JSON.stringify({ error: { code: 'no_key', message: 'IGNAV_API_KEY secret is not set in the Worker.' } }), { status: 500, headers: Object.assign({ 'Content-Type': 'application/json' }, cors) });\n    }\n    const base = 'https://ignav.com/api';\n    let target = '';\n    let init = { method: 'GET', headers: { 'X-Api-Key': env.IGNAV_API_KEY } };\n    if (url.pathname === '/health') {\n      target = base + '/health';\n    } else if (url.pathname === '/fares') {\n      if (request.method !== 'POST') return new Response(JSON.stringify({ error: { message: 'POST only' } }), { status: 405, headers: cors });\n      const body = await request.text();\n      target = base + '/fares/one-way';\n      init = { method: 'POST', headers: { 'X-Api-Key': env.IGNAV_API_KEY, 'Content-Type': 'application/json' }, body };\n    } else if (url.pathname === '/search') {\n      if (request.method !== 'POST') return new Response(JSON.stringify({ error: { message: 'POST only' } }), { status: 405, headers: cors });\n      const body = await request.text();\n      target = base + '/fares/search';\n      init = { method: 'POST', headers: { 'X-Api-Key': env.IGNAV_API_KEY, 'Content-Type': 'application/json' }, body };\n    } else if (url.pathname === '/round-trip') {\n      if (request.method !== 'POST') return new Response(JSON.stringify({ error: { message: 'POST only' } }), { status: 405, headers: cors });\n      const body = await request.text();\n      target = base + '/fares/round-trip';\n      init = { method: 'POST', headers: { 'X-Api-Key': env.IGNAV_API_KEY, 'Content-Type': 'application/json' }, body };\n    } else if (url.pathname === '/booking-links') {\n      if (request.method !== 'POST') return new Response(JSON.stringify({ error: { message: 'POST only' } }), { status: 405, headers: cors });\n      const body = await request.text();\n      target = base + '/fares/booking-links';\n      init = { method: 'POST', headers: { 'X-Api-Key': env.IGNAV_API_KEY, 'Content-Type': 'application/json' }, body };\n    } else {\n      return new Response(JSON.stringify({ error: { message: 'not found' } }), { status: 404, headers: Object.assign({ 'Content-Type': 'application/json' }, cors) });\n    }\n    try {\n      const r = await fetch(target, init);\n      const text = await r.text();\n      return new Response(text, { status: r.status, headers: Object.assign({ 'Content-Type': 'application/json' }, cors) });\n    } catch (e) {\n      return new Response(JSON.stringify({ error: { message: String((e && e.message) || e) } }), { status: 502, headers: Object.assign({ 'Content-Type': 'application/json' }, cors) });\n    }\n  }\n};\n";
@@ -6120,8 +6120,7 @@ function viewFares(){
         + '<div class="fa-more-body">'
         + '<label for="mezComm">Tax per person (Rs)</label>'
         + '<input id="mezComm" class="fa-comm" type="number" min="0" step="500" inputmode="numeric" value="' + (taxNow ? esc(String(taxNow)) : "") + '" placeholder="0">'
-        + '<div class="hint" style="margin-top:6px;">Tax is already added to every price below - it is never shown as a separate line, so a screenshot does not reveal it. '
-        + 'To see the base fare, long-press a price.</div>'
+        + '<div class="hint" style="margin-top:6px;">Tax is already added to every price below - it is never shown as a separate line, so a screenshot does not reveal it.</div>'
         + '</div></details>';
   html += '<button class="btn primary" id="faMeezab" style="width:100%; margin-top:10px; background:#2563eb; color:#fff;">Meezab Air — live PKR fares</button>';
   if(configured) html += '<button class="btn" id="faSearch" style="width:100%; margin-top:8px; background:#4b5563; color:#fff;">🔍 Ignav search</button>';
@@ -6207,8 +6206,7 @@ function faOfferCard(o, curr){
     +   '<div style="flex:1; min-width:0;">'
     +     '<div style="display:flex; justify-content:space-between; gap:8px; align-items:baseline; flex-wrap:wrap;">'
     +       '<div><b>'+esc(code)+(first.flight_number ? ' '+esc(first.flight_number) : '')+'</b> <span style="color:var(--muted); font-size:12px;">'+esc(airlineName)+(rawLegs.length > 2 ? ' · '+rawLegs.length+' legs' : '')+'</span></div>'
-    +       '<div style="font-size:19px; font-weight:800; color:var(--blue); white-space:nowrap;"'
-    +         (ignSell ? ' title="base fare ' + esc(price) + '"' : '') + '>'+esc(priceOut)+'</div>'
+    +       '<div style="font-size:19px; font-weight:800; color:var(--blue); white-space:nowrap;">'+esc(priceOut)+'</div>'
     +     '</div>'
     +     legsHtml
     +     '<div style="font-size:11.5px; color:var(--muted); margin-top:3px;">'
@@ -6641,7 +6639,7 @@ function mezCardHtml(f, idx){
     + (f.airline_code ? '<span class="mez-code">' + esc(f.airline_code) + '</span>' : '') + '</div>'
     + '<div class="mez-sub">' + esc(allSegs.map(function(s){ return s.flight; }).filter(Boolean).join(" · "))
     + (f.overnight ? ' · overnight' : '') + '</div></div>'
-    + '<div class="mez-price"><b title="' + esc(commTot > 0 ? ("base fare " + faMoney(f.amount, f.currency)) : "") + '">'
+    + '<div class="mez-price"><b>'
     + esc(faMoney((Number(f.amount) || 0) + commTot, f.currency)) + '</b><small>'
     + (hasBreak ? esc("total · " + mezPaxText(pax)) : "per adult") + '</small></div></div>';
   groups.forEach(function(g, gi){
