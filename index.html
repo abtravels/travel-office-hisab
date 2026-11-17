@@ -701,7 +701,7 @@
   <div class="brand">
     <img src="logo.png" alt="AB Travels" decoding="async" onerror="this.style.display='none'">
     <div style="min-width:0;">
-      <h1>AB Travels <span class="ver" id="verBadge">v3.03</span></h1>
+      <h1>AB Travels <span class="ver" id="verBadge">v3.04</span></h1>
       <div class="tag">Ahmed Brothers Hajj &amp; Umra Services (Pvt) Ltd</div>
     </div>
     <button id="brandFares" class="brand-fares" type="button" title="Price Lookup — flight fares" aria-label="Price Lookup — flight fares">✈</button>
@@ -770,7 +770,7 @@
 <script>
 /* ================= DATA ================= */
 var KEY = "travelOfficeHisab";
-var APP_VER = "3.03";
+var APP_VER = "3.04";
 var MONTH_NAMES = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
 /* Cloudflare Worker — Ignav flight prices proxy (free plan, no credit card) */
 var IGNAV_WORKER_CODE = "// AB Travels - Ignav flight prices proxy (Cloudflare Worker)\n// Ignav API key SERVER par rehti hai - app/browser mein kabhi nahi aati.\n//\n// SETUP (ek dafa, ~5 min, free):\n// 1) ignav.com/signup -> free account -> dashboard se API key\n// 2) cloudflare.com -> free account -> Workers & Pages -> Create Worker -> yeh code paste -> Deploy\n// 3) Worker -> Settings -> Variables and Secrets -> secret add karein:\n//      IGNAV_API_KEY = (aap ki Ignav key)\n// 4) Worker URL (https://xxx.workers.dev) app -> Settings -> Flight prices -> paste -> Save & test\n\nexport default {\n  async fetch(request, env) {\n    const cors = {\n      'Access-Control-Allow-Origin': env.ALLOWED_ORIGIN || '*',\n      'Access-Control-Allow-Methods': 'GET,POST,OPTIONS',\n      'Access-Control-Allow-Headers': 'Content-Type',\n      'Access-Control-Max-Age': '86400'\n    };\n    const url = new URL(request.url);\n    if (request.method === 'OPTIONS') return new Response(null, { status: 204, headers: cors });\n    if (!env.IGNAV_API_KEY) {\n      return new Response(JSON.stringify({ error: { code: 'no_key', message: 'IGNAV_API_KEY secret is not set in the Worker.' } }), { status: 500, headers: Object.assign({ 'Content-Type': 'application/json' }, cors) });\n    }\n    const base = 'https://ignav.com/api';\n    let target = '';\n    let init = { method: 'GET', headers: { 'X-Api-Key': env.IGNAV_API_KEY } };\n    if (url.pathname === '/health') {\n      target = base + '/health';\n    } else if (url.pathname === '/fares') {\n      if (request.method !== 'POST') return new Response(JSON.stringify({ error: { message: 'POST only' } }), { status: 405, headers: cors });\n      const body = await request.text();\n      target = base + '/fares/one-way';\n      init = { method: 'POST', headers: { 'X-Api-Key': env.IGNAV_API_KEY, 'Content-Type': 'application/json' }, body };\n    } else if (url.pathname === '/search') {\n      if (request.method !== 'POST') return new Response(JSON.stringify({ error: { message: 'POST only' } }), { status: 405, headers: cors });\n      const body = await request.text();\n      target = base + '/fares/search';\n      init = { method: 'POST', headers: { 'X-Api-Key': env.IGNAV_API_KEY, 'Content-Type': 'application/json' }, body };\n    } else if (url.pathname === '/round-trip') {\n      if (request.method !== 'POST') return new Response(JSON.stringify({ error: { message: 'POST only' } }), { status: 405, headers: cors });\n      const body = await request.text();\n      target = base + '/fares/round-trip';\n      init = { method: 'POST', headers: { 'X-Api-Key': env.IGNAV_API_KEY, 'Content-Type': 'application/json' }, body };\n    } else if (url.pathname === '/booking-links') {\n      if (request.method !== 'POST') return new Response(JSON.stringify({ error: { message: 'POST only' } }), { status: 405, headers: cors });\n      const body = await request.text();\n      target = base + '/fares/booking-links';\n      init = { method: 'POST', headers: { 'X-Api-Key': env.IGNAV_API_KEY, 'Content-Type': 'application/json' }, body };\n    } else {\n      return new Response(JSON.stringify({ error: { message: 'not found' } }), { status: 404, headers: Object.assign({ 'Content-Type': 'application/json' }, cors) });\n    }\n    try {\n      const r = await fetch(target, init);\n      const text = await r.text();\n      return new Response(text, { status: r.status, headers: Object.assign({ 'Content-Type': 'application/json' }, cors) });\n    } catch (e) {\n      return new Response(JSON.stringify({ error: { message: String((e && e.message) || e) } }), { status: 502, headers: Object.assign({ 'Content-Type': 'application/json' }, cors) });\n    }\n  }\n};\n";
@@ -6117,7 +6117,7 @@ function viewFares(){
   html += '<div class="row" style="margin-top:8px; align-items:flex-end;">'
         + '<div style="flex:0 0 170px;"><label>Commission / person (Rs)</label>'
         + '<input id="mezComm" class="fa-comm" type="number" min="0" step="500" inputmode="numeric" value="' + (mezComm() ? esc(String(mezComm())) : "") + '" placeholder="0"></div>'
-        + '<div class="hint" style="flex:1; margin:0 0 8px;">Aap ka commission fare mein jud kar <b>selling price</b> ban jata he — har fare card par green mein, aur airline strip / country list mein bhi.</div>'
+        + '<div class="hint" style="flex:1; margin:0 0 8px;">Commission price mein hi shamil ho jata he — alag line nazar nahi aati, is liye screenshot bhejne par markup zahir nahi hota. Asli fare chahiye to price par long-press karein.</div>'
         + '</div>';
   html += '<button class="btn primary" id="faMeezab" style="width:100%; margin-top:10px; background:#2563eb; color:#fff;">Meezab Air — live PKR fares</button>';
   if(configured) html += '<button class="btn" id="faSearch" style="width:100%; margin-top:8px; background:#4b5563; color:#fff;">🔍 Ignav search</button>';
@@ -6203,9 +6203,9 @@ function faOfferCard(o, curr){
     +   '<div style="flex:1; min-width:0;">'
     +     '<div style="display:flex; justify-content:space-between; gap:8px; align-items:baseline; flex-wrap:wrap;">'
     +       '<div><b>'+esc(code)+(first.flight_number ? ' '+esc(first.flight_number) : '')+'</b> <span style="color:var(--muted); font-size:12px;">'+esc(airlineName)+(rawLegs.length > 2 ? ' · '+rawLegs.length+' legs' : '')+'</span></div>'
-    +       '<div style="font-size:19px; font-weight:800; color:var(--blue); white-space:nowrap;">'+esc(priceOut)+'</div>'
+    +       '<div style="font-size:19px; font-weight:800; color:var(--blue); white-space:nowrap;"'
+    +         (ignSell ? ' title="base fare ' + esc(price) + '"' : '') + '>'+esc(priceOut)+'</div>'
     +     '</div>'
-    +     (ignSell ? '<div style="font-size:11px; color:var(--green); font-weight:700;">fare ' + esc(price) + ' + commission = ' + esc(priceOut) + '</div>' : '')
     +     legsHtml
     +     '<div style="font-size:11.5px; color:var(--muted); margin-top:3px;">'
     +       (cabin ? esc(cabin) : '')
@@ -6631,11 +6631,9 @@ function mezCardHtml(f, idx){
     + (f.airline_code ? '<span class="mez-code">' + esc(f.airline_code) + '</span>' : '') + '</div>'
     + '<div class="mez-sub">' + esc(allSegs.map(function(s){ return s.flight; }).filter(Boolean).join(" · "))
     + (f.overnight ? ' · overnight' : '') + '</div></div>'
-    + '<div class="mez-price"><b>' + esc(faMoney(f.amount, f.currency)) + '</b><small>'
-    + (hasBreak ? esc("total · " + mezPaxText(pax)) : "per adult") + '</small>'
-    + (commTot > 0 ? '<div class="sell"><b>' + esc(faMoney((Number(f.amount) || 0) + commTot, f.currency)) + '</b>'
-        + '<small>sell · +' + esc(faMoney(commTot, f.currency)) + ' comm</small></div>' : '')
-    + '</div></div>';
+    + '<div class="mez-price"><b title="' + esc(commTot > 0 ? ("base fare " + faMoney(f.amount, f.currency)) : "") + '">'
+    + esc(faMoney((Number(f.amount) || 0) + commTot, f.currency)) + '</b><small>'
+    + (hasBreak ? esc("total · " + mezPaxText(pax)) : "per adult") + '</small></div></div>';
   groups.forEach(function(g, gi){
     var gs = g.segments || [];
     h += '<div class="mez-trip">';
@@ -6710,9 +6708,10 @@ function mezPaxBreakdownHtml(f, pax){
   function row(label, n, per, bag){
     n = Number(n) || 0;
     if(!n) return;
-    var tot = (Number(per) || 0) * n;
+    var each = (Number(per) || 0) + mezComm();          // commission price mein hi shamil
+    var tot = each * n;
     rows.push('<tr><td>' + esc(label) + '<span class="mez-pax-n">× ' + n + '</span></td>'
-      + '<td>' + (Number(per) ? esc(faMoney(per, f.currency)) : '<span class="mez-pax-na">—</span>') + '</td>'
+      + '<td>' + (Number(per) ? esc(faMoney(each, f.currency)) : '<span class="mez-pax-na">—</span>') + '</td>'
       + '<td>' + (tot ? esc(faMoney(tot, f.currency)) : '<span class="mez-pax-na">—</span>') + '</td>'
       + (bag === undefined ? '' : '<td>' + esc(mezBaggageLabel(bag, f.legs) || "—") + '</td>') + '</tr>');
   }
@@ -6720,13 +6719,14 @@ function mezPaxBreakdownHtml(f, pax){
   row("Child", pax.children, f.per_child, f.baggage_child);
   row("Infant", pax.infants, f.per_infant, f.baggage_infant);
   if(!rows.length) return "";
-  var sum = (Number(f.per_adult) || 0) * (Number(pax.adults) || 0)
-    + (Number(f.per_child) || 0) * (Number(pax.children) || 0)
-    + (Number(f.per_infant) || 0) * (Number(pax.infants) || 0);
+  var sum = ((Number(f.per_adult) || 0) + mezComm()) * (Number(pax.adults) || 0)
+    + ((Number(f.per_child) || 0) + mezComm()) * (Number(pax.children) || 0)
+    + ((Number(f.per_infant) || 0) + mezComm()) * (Number(pax.infants) || 0);
+  var partyTotal = mezSellAmount(f.amount, pax);
   return '<table class="mez-pax-table"><thead><tr><th>Passenger</th><th>Per person</th><th>Total</th><th>Baggage</th></tr></thead>'
     + '<tbody>' + rows.join("") + '</tbody>'
-    + '<tfoot><tr><td>Party total</td><td></td><td>' + esc(faMoney(f.amount, f.currency)) + '</td><td></td></tr></tfoot></table>'
-    + (sum && Math.abs(sum - Number(f.amount)) > 1
+    + '<tfoot><tr><td>Party total</td><td></td><td>' + esc(faMoney(partyTotal, f.currency)) + '</td><td></td></tr></tfoot></table>'
+    + (sum && Math.abs(sum - partyTotal) > 1
       ? '<div class="mez-pax-note">Note: per-passenger fares ka jod portal ke total se thora mukhtalif he — '
         + 'portal ka total hi bharosa mand he.</div>' : '')
     + '<div class="mez-pax-note">Per-person fares markup ke baad ke agent fares hain (PKR), sirf reference ke liye.</div>';
@@ -6939,7 +6939,6 @@ function mezRender(){
     + (MEZ.budget && MEZ.budget.left != null ? ' · <span title="Meezab ka rozana search budget">budget ' + esc(String(MEZ.budget.left)) + '/' + esc(String(MEZ.budget.cap || 0)) + ' bache</span>' : '')
     + (info.auto ? ' · <b style="color:var(--green);">auto-refreshed</b>' : '')
     + (MEZ.autoErr ? ' · <span style="color:var(--red);font-weight:700;">refresh fail: ' + esc(MEZ.autoErr) + '</span>' : '')
-    + (mezComm() > 0 ? ' · <b style="color:var(--green);">commission ' + esc(faMoney(mezComm(), "PKR")) + '/person</b> (' + mezPaxParty(info.pax) + ' pax = ' + esc(faMoney(mezCommTotal(info.pax), "PKR")) + ')' : '')
     + '</div>';
   h += '<div class="mez-tools"><div><label for="mezSort">Sort</label><select id="mezSort">'
     + '<option value="price">Price (low → high)</option><option value="duration">Duration (shortest)</option>'
@@ -6967,8 +6966,7 @@ function mezRender(){
     stats.forEach(function(a){
       var sell = mezComm() > 0 ? mezSellAmount(a.cheapest, info.pax) : a.cheapest;
       h += '<button class="mez-air-btn' + (MEZ.airline === a.code ? ' on' : '') + '" data-mez-air="' + esc(a.code) + '" title="'
-        + esc(a.name) + ' — fare ' + esc(faMoney(a.cheapest, "PKR"))
-        + (mezComm() > 0 ? ' + commission = ' + esc(faMoney(sell, "PKR")) : '') + '">'
+        + esc(a.name) + '">'
         + mezAirIcon(a.code)
         + '<span><span class="nm">' + esc(a.name) + '</span><br><span class="pr">' + esc(faMoney(sell, "PKR"))
         + '</span> <span class="ct">(' + a.count + ')</span></span></button>';
@@ -7453,7 +7451,7 @@ function mezRenderCountry(){
       + '<span><span class="cc">' + esc(r.destination) + '</span><br><span class="cs">' + esc(mezCity(r.city) || r.destination)
       + ' · ' + esc(r.airline || "") + '</span><br><span class="mez-kid">' + esc(mezStopsText(r)) + ' · '
       + esc(faDurMins(r.duration_min) || "—") + '</span></span>'
-      + '<span class="cp" title="fare ' + esc(faMoney(r.cheapest, "PKR")) + (mezComm() > 0 ? ' + commission' : '') + '">'
+      + '<span class="cp">'
       + esc(faMoney(mezComm() > 0 ? mezSellAmount(r.cheapest, c.pax) : r.cheapest, "PKR"))
       + '<small>' + (r.count || r.fares.length) + ' fares</small></span>'
       + '</button>';

@@ -1,5 +1,13 @@
 # Travel Office Hisab - AB Travels
 
+## Commission price mein hi shamil — screenshot par markup nazar nahi aata (v3.04)
+- Pehle fare aur selling price **do alag number** dikhte thay (`fare` + green `sell · +20,000 comm`) — screenshot bhejne par client ko markup nazar aa jata tha.
+- Ab **sirf ek hi price** dikhta he, jis mein commission pehle se juda hua he. Kahin bhi "commission", "sell" ya "markup" ka lafz nahi aata.
+- Ye price **fare cards**, **airline strip**, **country list**, **per-passenger breakdown** (per person + party total) aur **Copy fare** ke text — sab jagah wahi final price he.
+- **Asli fare** chahiye to price par **long-press** karein — tooltip mein `base fare PKR …` mil jata he (screenshot mein nazar nahi aata).
+- Commission box waisa hi he (`Commission / person (Rs)`); `0` = sirf fare.
+- Sirf app ka change — Worker redeploy ki zaroorat nahi.
+
 ## Price Lookup: apna commission + selling price (v3.03)
 - Price Lookup ke form mein naya box **“Commission / person (Rs)”** — jo commission aap per passenger lena chahte hain wo likh dein.
 - Har fare card par ab do number: **fare** (Meezab ka) aur us ke neeche **green selling price** = fare + (commission × passengers), sath chhota note `sell · +20,000 comm`.
