@@ -652,6 +652,16 @@
   .fa-more > summary .fa-more-edit{margin-left:auto; font-size:11px; font-weight:700; color:var(--blue);}
   .fa-more .fa-more-body{padding:0 10px 10px;}
   .fa-more .row.fa-compact{margin-top:0 !important;}
+  /* Airline / B2B portals — ek hi jagah se khulne wali list (v3.08) */
+  .lk-ports{display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; margin-top:8px;}
+  .lk-port{display:flex; gap:4px; align-items:stretch; min-width:0;}
+  .lk-port-go{flex:1; min-width:0; text-align:left; font-size:13px; font-weight:700; padding:9px 10px;
+    border-radius:10px; border:1px solid var(--line); background:var(--field); color:var(--ink);
+    white-space:nowrap; overflow:hidden; text-overflow:ellipsis; cursor:pointer;}
+  .lk-port-go:hover{border-color:var(--blue); color:var(--blue);}
+  .lk-port-ed,.lk-port-del{flex:0 0 28px; min-width:0; border-radius:10px; border:1px solid var(--line);
+    background:transparent; color:var(--muted); font-size:12px; cursor:pointer;}
+  .lk-port-del:hover{color:var(--red); border-color:var(--red);}
   /* Search ke doran chalti hui bar (v3.00) — pehle lambi text line thi. */
   .mez-loading{padding:12px 14px;}
   .mez-load-top{display:flex; align-items:center; gap:8px; font-size:13px;}
@@ -704,7 +714,7 @@
   <div class="brand">
     <img src="logo.png" alt="AB Travels" decoding="async" onerror="this.style.display='none'">
     <div style="min-width:0;">
-      <h1>AB Travels <span class="ver" id="verBadge">v3.07</span></h1>
+      <h1>AB Travels <span class="ver" id="verBadge">v3.08</span></h1>
       <div class="tag">Ahmed Brothers Hajj &amp; Umra Services (Pvt) Ltd</div>
     </div>
     <button id="brandFares" class="brand-fares" type="button" title="Price Lookup — flight fares" aria-label="Price Lookup — flight fares">✈</button>
@@ -773,7 +783,7 @@
 <script>
 /* ================= DATA ================= */
 var KEY = "travelOfficeHisab";
-var APP_VER = "3.07";
+var APP_VER = "3.08";
 var MONTH_NAMES = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
 /* Cloudflare Worker — Ignav flight prices proxy (free plan, no credit card) */
 var IGNAV_WORKER_CODE = "// AB Travels - Ignav flight prices proxy (Cloudflare Worker)\n// Ignav API key SERVER par rehti hai - app/browser mein kabhi nahi aati.\n//\n// SETUP (ek dafa, ~5 min, free):\n// 1) ignav.com/signup -> free account -> dashboard se API key\n// 2) cloudflare.com -> free account -> Workers & Pages -> Create Worker -> yeh code paste -> Deploy\n// 3) Worker -> Settings -> Variables and Secrets -> secret add karein:\n//      IGNAV_API_KEY = (aap ki Ignav key)\n// 4) Worker URL (https://xxx.workers.dev) app -> Settings -> Flight prices -> paste -> Save & test\n\nexport default {\n  async fetch(request, env) {\n    const cors = {\n      'Access-Control-Allow-Origin': env.ALLOWED_ORIGIN || '*',\n      'Access-Control-Allow-Methods': 'GET,POST,OPTIONS',\n      'Access-Control-Allow-Headers': 'Content-Type',\n      'Access-Control-Max-Age': '86400'\n    };\n    const url = new URL(request.url);\n    if (request.method === 'OPTIONS') return new Response(null, { status: 204, headers: cors });\n    if (!env.IGNAV_API_KEY) {\n      return new Response(JSON.stringify({ error: { code: 'no_key', message: 'IGNAV_API_KEY secret is not set in the Worker.' } }), { status: 500, headers: Object.assign({ 'Content-Type': 'application/json' }, cors) });\n    }\n    const base = 'https://ignav.com/api';\n    let target = '';\n    let init = { method: 'GET', headers: { 'X-Api-Key': env.IGNAV_API_KEY } };\n    if (url.pathname === '/health') {\n      target = base + '/health';\n    } else if (url.pathname === '/fares') {\n      if (request.method !== 'POST') return new Response(JSON.stringify({ error: { message: 'POST only' } }), { status: 405, headers: cors });\n      const body = await request.text();\n      target = base + '/fares/one-way';\n      init = { method: 'POST', headers: { 'X-Api-Key': env.IGNAV_API_KEY, 'Content-Type': 'application/json' }, body };\n    } else if (url.pathname === '/search') {\n      if (request.method !== 'POST') return new Response(JSON.stringify({ error: { message: 'POST only' } }), { status: 405, headers: cors });\n      const body = await request.text();\n      target = base + '/fares/search';\n      init = { method: 'POST', headers: { 'X-Api-Key': env.IGNAV_API_KEY, 'Content-Type': 'application/json' }, body };\n    } else if (url.pathname === '/round-trip') {\n      if (request.method !== 'POST') return new Response(JSON.stringify({ error: { message: 'POST only' } }), { status: 405, headers: cors });\n      const body = await request.text();\n      target = base + '/fares/round-trip';\n      init = { method: 'POST', headers: { 'X-Api-Key': env.IGNAV_API_KEY, 'Content-Type': 'application/json' }, body };\n    } else if (url.pathname === '/booking-links') {\n      if (request.method !== 'POST') return new Response(JSON.stringify({ error: { message: 'POST only' } }), { status: 405, headers: cors });\n      const body = await request.text();\n      target = base + '/fares/booking-links';\n      init = { method: 'POST', headers: { 'X-Api-Key': env.IGNAV_API_KEY, 'Content-Type': 'application/json' }, body };\n    } else {\n      return new Response(JSON.stringify({ error: { message: 'not found' } }), { status: 404, headers: Object.assign({ 'Content-Type': 'application/json' }, cors) });\n    }\n    try {\n      const r = await fetch(target, init);\n      const text = await r.text();\n      return new Response(text, { status: r.status, headers: Object.assign({ 'Content-Type': 'application/json' }, cors) });\n    } catch (e) {\n      return new Response(JSON.stringify({ error: { message: String((e && e.message) || e) } }), { status: 502, headers: Object.assign({ 'Content-Type': 'application/json' }, cors) });\n    }\n  }\n};\n";
@@ -11435,8 +11445,48 @@ if(themeB) themeB.onclick = function(){
   }
   function clean(s){ return String(s||"").trim().toUpperCase().replace(/[^A-Z0-9]/g,""); }
 
+  /* ---------- Airline / B2B portals: ek hi jagah (v3.08) ---------- */
+  var PORTALS_KEY = "portals";
+  function portalDefaults(){
+    return [
+      { n:"Meezab B2B",  u:"https://b2b.meezabair.com.pk/" },
+      { n:"Fly Jinnah",  u:"https://www.flyjinnah.com/" },
+      { n:"AirBlue",     u:"https://www.airblue.com/" },
+      { n:"AirSial",     u:"https://www.airsial.com/" },
+      { n:"PIA",         u:"https://www.piac.com.pk/" },
+      { n:"Serene Air",  u:"https://www.sereneair.com/" }
+    ];
+  }
+  function portals(){
+    var list = (S.settings || {})[PORTALS_KEY];
+    return Array.isArray(list) && list.length ? list : portalDefaults();
+  }
+  function portalsSave(list){
+    S.settings[PORTALS_KEY] = list;
+    save();
+  }
+  function portalsCard(){
+    var h = '<div class="card"><h2>🔗 Airline portals</h2>'
+      + '<div class="hint" style="margin-top:0;">Sab portals ek hi jagah se khul jayen. Apne agent login ka pata badalna ho to ✎ dabayein. '
+      + 'Agar koi site mobile par na khule to browser ke menu se <b>Request desktop website</b> karein.</div>'
+      + '<div class="lk-ports">';
+    portals().forEach(function(p, i){
+      h += '<div class="lk-port">'
+        + '<button class="lk-port-go" data-url="' + esc(p.u) + '" title="' + esc(p.u) + '">' + esc(p.n) + '</button>'
+        + '<button class="lk-port-ed" data-i="' + i + '" title="Edit">✎</button>'
+        + '<button class="lk-port-del" data-i="' + i + '" title="Remove">✕</button>'
+        + '</div>';
+    });
+    h += '</div>'
+      + '<button class="btn small" id="lkPortAdd" style="margin-top:8px;">＋ Add portal</button>'
+      + '<button class="btn small" id="lkPortReset" style="margin-top:8px; margin-left:6px;">Reset list</button>'
+      + '</div>';
+    return h;
+  }
+
   function view(){
     var h = "";
+    h += portalsCard();
     h += '<div class="card"><h2>PNR / Booking Lookup</h2>';
     h += '<div class="hint" style="margin-top:0;">Choose the airline, then enter the PNR and last name. Pressing the button opens the airline page and copies the PNR + name to the clipboard — just paste it there.</div>';
     h += '<label>Airline</label><select id="lkAir"><option value="">— Choose airline —</option>';
@@ -11508,6 +11558,51 @@ if(themeB) themeB.onclick = function(){
         window.render(); go("m");
       };
     });
+    /* Portal buttons — seedha browser mein khulein (koi server request nahi). */
+    app.querySelectorAll(".lk-port-go").forEach(function(b){
+      b.onclick = function(){
+        var u = b.getAttribute("data-url") || "";
+        if(!u) return;
+        var w = window.open(u, "_blank");
+        if(!w) location.href = u;
+      };
+    });
+    app.querySelectorAll(".lk-port-ed").forEach(function(b){
+      b.onclick = function(){
+        var i = Number(b.getAttribute("data-i"));
+        var list = portals().slice(), p = list[i];
+        if(!p) return;
+        var n = prompt("Portal ka naam:", p.n);
+        if(n == null) return;
+        var u = prompt("Portal ka pata (https://…):", p.u);
+        if(u == null) return;
+        list[i] = { n: String(n).trim() || p.n, u: String(u).trim() || p.u };
+        portalsSave(list); window.render();
+      };
+    });
+    app.querySelectorAll(".lk-port-del").forEach(function(b){
+      b.onclick = function(){
+        var list = portals().slice();
+        list.splice(Number(b.getAttribute("data-i")), 1);
+        portalsSave(list); window.render();
+      };
+    });
+    var pAdd = document.getElementById("lkPortAdd");
+    if(pAdd) pAdd.onclick = function(){
+      var n = prompt("Naye portal ka naam (misal Sabre):");
+      if(n == null || !String(n).trim()) return;
+      var u = prompt("Portal ka pata (https://…):");
+      if(u == null || !String(u).trim()) return;
+      var list = portals().slice();
+      list.push({ n: String(n).trim(), u: String(u).trim() });
+      portalsSave(list); window.render();
+    };
+    var pRst = document.getElementById("lkPortReset");
+    if(pRst) pRst.onclick = function(){
+      if(!confirm("Portal list default par wapas le aayen?")) return;
+      S.settings[PORTALS_KEY] = portalDefaults();
+      save(); window.render();
+    };
   }
 
   // nav mein button jodein
