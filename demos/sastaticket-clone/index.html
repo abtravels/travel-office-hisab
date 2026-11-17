@@ -1,0 +1,633 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>sastaticket.pk clone — cheap flights, Umrah services, holiday packages, and bus services</title>
+    <meta
+      name="description"
+      content="Design clone demo of the sastaticket.pk homepage: flight and bus search widget, offers, and footer. Not a booking site."
+    />
+    <link rel="icon" href="assets/logo-favicon-blue-bg.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <!-- Icon sprite ------------------------------------------------------- -->
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      style="display: none"
+      aria-hidden="true"
+      fill="none"
+      stroke="currentColor"
+      stroke-width="1.8"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+    >
+      <symbol id="i-plane" viewBox="0 0 24 24">
+        <path d="M17.8 19.2 16 11l3.5-3.5a2.12 2.12 0 0 0-3-3L13 8 4.8 6.2a1 1 0 0 0-1 1.7L9.3 11.5 6.9 13.9l-2.3-.5a1 1 0 0 0-1 1.6l2.6 2.6 2.6 2.6a1 1 0 0 0 1.6-1l-.5-2.3 2.4-2.4 3.6 5.5a1 1 0 0 0 1.7-1z" />
+      </symbol>
+      <symbol id="i-bus" viewBox="0 0 24 24">
+        <path d="M4 17V6a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v11" />
+        <path d="M4 11h16" />
+        <path d="M7 17v2M17 17v2" />
+        <circle cx="7.5" cy="14.5" r="1" />
+        <circle cx="16.5" cy="14.5" r="1" />
+      </symbol>
+      <symbol id="i-kaaba" viewBox="0 0 24 24">
+        <path d="M12 2 3.5 6.7v10.6L12 22l8.5-4.7V6.7z" />
+        <path d="M3.5 6.7 12 11l8.5-4.3M12 11v11" />
+        <path d="M7.5 8.9v5.4" />
+      </symbol>
+      <symbol id="i-passport" viewBox="0 0 24 24">
+        <rect x="4" y="2.5" width="16" height="19" rx="2.5" />
+        <circle cx="12" cy="10" r="3" />
+        <path d="M9 17.5h6" />
+      </symbol>
+      <symbol id="i-package" viewBox="0 0 24 24">
+        <path d="M3 8.5 12 3l9 5.5v7L12 21l-9-5.5z" />
+        <path d="M3 8.5 12 14l9-5.5M12 14v7" />
+      </symbol>
+      <symbol id="i-phone" viewBox="0 0 24 24">
+        <path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1.9.4 1.8.7 2.6a2 2 0 0 1-.5 2.1L8.1 9.6a16 16 0 0 0 6 6l1.2-1.2a2 2 0 0 1 2.1-.5c.8.3 1.7.6 2.6.7a2 2 0 0 1 1.7 2z" />
+      </symbol>
+      <symbol id="i-whatsapp" viewBox="0 0 24 24">
+        <path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z" />
+        <path d="M8.6 8.4c.2-.5.4-.5.7-.5h.5c.2 0 .4 0 .6.5l.7 1.6c.1.3 0 .5-.2.7l-.5.5c-.2.2-.2.4 0 .7.3.5.9 1.2 1.6 1.6.4.2.5.2.7 0l.5-.5c.2-.2.4-.2.7-.1l1.6.7c.4.2.5.4.5.6v.5c0 .3 0 .5-.5.7-.5.2-1.2.3-1.9.1-1.6-.5-3.2-1.7-4.2-3-1-1.3-1.3-2.4-1.1-3.6z" />
+      </symbol>
+      <symbol id="i-chevron-down" viewBox="0 0 24 24">
+        <path d="m6 9 6 6 6-6" />
+      </symbol>
+      <symbol id="i-chevron-left" viewBox="0 0 24 24">
+        <path d="m15 18-6-6 6-6" />
+      </symbol>
+      <symbol id="i-chevron-right" viewBox="0 0 24 24">
+        <path d="m9 18 6-6-6-6" />
+      </symbol>
+      <symbol id="i-calendar" viewBox="0 0 24 24">
+        <rect x="3" y="5" width="18" height="16" rx="2.5" />
+        <path d="M8 3v4M16 3v4M3 10h18" />
+      </symbol>
+      <symbol id="i-swap" viewBox="0 0 24 24">
+        <path d="M7 4v13M7 17l-3-3M7 17l3-3" />
+        <path d="M17 20V7M17 7l-3 3M17 7l3 3" />
+      </symbol>
+      <symbol id="i-check" viewBox="0 0 24 24">
+        <path d="m5 12 4.5 4.5L19 7" />
+      </symbol>
+      <symbol id="i-user" viewBox="0 0 24 24">
+        <circle cx="12" cy="8" r="3.5" />
+        <path d="M5 20a7 7 0 0 1 14 0" />
+      </symbol>
+      <symbol id="i-seat" viewBox="0 0 24 24">
+        <path d="M6 4v9a2 2 0 0 0 2 2h6l3 5" />
+        <path d="M6 15h11" />
+        <circle cx="5" cy="19" r="1.6" />
+      </symbol>
+      <symbol id="i-pin" viewBox="0 0 24 24">
+        <path d="M20 10c0 6-8 12-8 12S4 16 4 10a8 8 0 0 1 16 0z" />
+        <circle cx="12" cy="10" r="2.6" />
+      </symbol>
+      <symbol id="i-tag" viewBox="0 0 24 24">
+        <path d="M20.6 12.6 12 21.2 2.8 12V2.8H12l8.6 8.6a1.2 1.2 0 0 1 0 1.2z" />
+        <circle cx="7.5" cy="7.5" r="1.4" />
+      </symbol>
+      <symbol id="i-menu" viewBox="0 0 24 24">
+        <path d="M4 7h16M4 12h16M4 17h16" />
+      </symbol>
+      <symbol id="i-close" viewBox="0 0 24 24">
+        <path d="M6 6l12 12M18 6 6 18" />
+      </symbol>
+      <symbol id="i-facebook" viewBox="0 0 24 24" fill="currentColor" stroke="none">
+        <path d="M14.5 8.5H17V5.6h-2.9c-2 0-3.6 1.6-3.6 3.6v2h-2v3h2V22h3v-7.8h2.4l.4-3h-2.8V9.4c0-.5.4-.9 1-.9z" />
+      </symbol>
+      <symbol id="i-instagram" viewBox="0 0 24 24">
+        <rect x="3.5" y="3.5" width="17" height="17" rx="5" />
+        <circle cx="12" cy="12" r="4" />
+        <circle cx="17" cy="7" r="1" />
+      </symbol>
+      <symbol id="i-x" viewBox="0 0 24 24" fill="currentColor" stroke="none">
+        <path d="M4 4l7 8.5L4.4 20H7l5.3-6 4.9 6H20l-7.3-8.8L19.6 4H17l-4.7 5.4L7.6 4z" />
+      </symbol>
+    </svg>
+
+    <a class="demo-badge" href="../../index.html" title="Ye sastaticket.pk ka design clone demo he — AB Travels app par wapas">
+      <span>Demo</span> design clone · AB Travels app
+    </a>
+
+    <!-- Top strip -------------------------------------------------------- -->
+    <div class="topbar">
+      <div class="wrap topbar-inner">
+        <strong>Fly more, save more</strong>
+        <p>Earn Sasta Cash on every flight booking. Redeem only on the app.</p>
+        <a class="topbar-link" href="https://links.sastaticket.pk/download-app?p=hp-topbar" rel="noopener" target="_blank">
+          Get the app
+          <svg width="14" height="14" aria-hidden="true"><use href="#i-chevron-right" /></svg>
+        </a>
+      </div>
+    </div>
+
+    <!-- Header ---------------------------------------------------------- -->
+    <header class="site-header">
+      <div class="wrap header-inner">
+        <a class="brand" href="index.html" aria-label="sastaticket.pk clone home">
+          <img src="assets/logo-full-name-blue.svg" alt="sastaticket.pk" />
+        </a>
+        <button class="header-toggle" id="navToggle" aria-expanded="false" aria-controls="headerNav" aria-label="Open menu">
+          <svg width="22" height="22" aria-hidden="true"><use href="#i-menu" /></svg>
+        </button>
+        <nav class="header-nav" id="headerNav" aria-label="Main">
+          <a class="pill-app" href="https://links.sastaticket.pk/download-app?p=header-app" target="_blank" rel="noopener">
+            Get the app
+          </a>
+          <a class="nav-item" href="https://www.sastaticket.pk/air/account/bookings" target="_blank" rel="noopener">Manage bookings</a>
+          <a class="nav-item" href="https://www.sastaticket.pk/air/bookings/search" target="_blank" rel="noopener">Search bookings</a>
+          <a class="nav-item is-optional" href="tel:+9221111172782">
+            <svg width="16" height="16" aria-hidden="true"><use href="#i-phone" /></svg>
+            Call 24/7 (021) 111 172 782
+          </a>
+          <a class="nav-item is-optional" href="https://wa.me/923047772782" target="_blank" rel="noopener">
+            <svg width="16" height="16" aria-hidden="true"><use href="#i-whatsapp" /></svg>
+            WhatsApp 24/7 +92 304 777 2782
+          </a>
+          <span class="nav-actions">
+            <button class="currency" type="button" title="Demo currency selector">PKR</button>
+            <a class="signin" href="https://www.sastaticket.pk/air/account/bookings" target="_blank" rel="noopener">Sign in</a>
+          </span>
+        </nav>
+      </div>
+    </header>
+
+    <main>
+      <!-- Hero --------------------------------------------------------- -->
+      <section class="hero">
+        <div class="wrap hero-inner">
+          <p class="hero-title">Travel bookings made easy</p>
+
+          <div class="product-tabs" role="tablist" aria-label="Booking type">
+            <button class="product-tab" type="button" role="tab" id="tab-flights" aria-selected="true" aria-controls="pane-flights" data-pane="flights">
+              <svg width="20" height="20" aria-hidden="true"><use href="#i-plane" /></svg>
+              Flights
+            </button>
+            <button class="product-tab" type="button" role="tab" id="tab-buses" aria-selected="false" aria-controls="pane-buses" data-pane="buses">
+              <svg width="20" height="20" aria-hidden="true"><use href="#i-bus" /></svg>
+              Buses
+            </button>
+            <button class="product-tab" type="button" role="tab" id="tab-umrah" aria-selected="false" aria-controls="pane-other" data-pane="umrah">
+              <svg width="20" height="20" aria-hidden="true"><use href="#i-kaaba" /></svg>
+              Umrah
+            </button>
+            <button class="product-tab" type="button" role="tab" id="tab-visas" aria-selected="false" aria-controls="pane-other" data-pane="visas">
+              <svg width="20" height="20" aria-hidden="true"><use href="#i-passport" /></svg>
+              Visas
+            </button>
+            <button class="product-tab" type="button" role="tab" id="tab-packages" aria-selected="false" aria-controls="pane-other" data-pane="packages">
+              <svg width="20" height="20" aria-hidden="true"><use href="#i-package" /></svg>
+              Packages
+            </button>
+          </div>
+
+          <!-- Flights pane ---------------------------------------------- -->
+          <div class="search-card" id="pane-flights" role="tabpanel" aria-labelledby="tab-flights">
+            <div class="search-row">
+              <div class="trip-switch" role="group" aria-label="Trip type">
+                <button type="button" data-trip="oneway" aria-pressed="true">One way</button>
+                <button type="button" data-trip="return" aria-pressed="false">Return</button>
+                <button type="button" data-trip="multi" aria-pressed="false">Multi-city</button>
+              </div>
+
+              <div class="pax-switch">
+                <button class="pax-field" type="button" id="paxBtn" aria-haspopup="dialog" aria-expanded="false" aria-controls="paxPop">
+                  <svg width="16" height="16" aria-hidden="true"><use href="#i-user" /></svg>
+                  <span class="pax-text" id="paxText">1 Traveller</span>
+                  <svg width="14" height="14" aria-hidden="true"><use href="#i-chevron-down" /></svg>
+                </button>
+                <button class="pax-field" type="button" id="cabinBtn" aria-haspopup="dialog" aria-expanded="false" aria-controls="paxPop">
+                  <svg width="16" height="16" aria-hidden="true"><use href="#i-seat" /></svg>
+                  <span class="pax-text" id="cabinText">Economy</span>
+                </button>
+
+                <div class="popover pax-pop" id="paxPop" role="dialog" aria-label="Travellers and cabin class" hidden>
+                  <div class="pax-row">
+                    <div>
+                      <p>Adults</p>
+                      <small>12 years and above</small>
+                    </div>
+                    <div class="stepper">
+                      <button type="button" data-step="adults" data-dir="-1" aria-label="Fewer adults" disabled>−</button>
+                      <output id="outAdults">1</output>
+                      <button type="button" data-step="adults" data-dir="1" aria-label="More adults">+</button>
+                    </div>
+                  </div>
+                  <div class="pax-row">
+                    <div>
+                      <p>Children</p>
+                      <small>2 to 11 years</small>
+                    </div>
+                    <div class="stepper">
+                      <button type="button" data-step="children" data-dir="-1" aria-label="Fewer children" disabled>−</button>
+                      <output id="outChildren">0</output>
+                      <button type="button" data-step="children" data-dir="1" aria-label="More children">+</button>
+                    </div>
+                  </div>
+                  <div class="pax-row">
+                    <div>
+                      <p>Infants</p>
+                      <small>Under 2 years, on lap</small>
+                    </div>
+                    <div class="stepper">
+                      <button type="button" data-step="infants" data-dir="-1" aria-label="Fewer infants" disabled>−</button>
+                      <output id="outInfants">0</output>
+                      <button type="button" data-step="infants" data-dir="1" aria-label="More infants">+</button>
+                    </div>
+                  </div>
+                  <ul class="cabin-list" role="radiogroup" aria-label="Cabin class">
+                    <li><button type="button" role="radio" aria-checked="true" data-cabin="Economy">Economy</button></li>
+                    <li><button type="button" role="radio" aria-checked="false" data-cabin="Premium economy">Premium economy</button></li>
+                    <li><button type="button" role="radio" aria-checked="false" data-cabin="Business">Business</button></li>
+                    <li><button type="button" role="radio" aria-checked="false" data-cabin="First">First</button></li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+
+            <div class="search-fields">
+              <div class="airport-pair">
+                <div class="airport-field" id="fromField">
+                  <svg width="18" height="18" aria-hidden="true"><use href="#i-plane" /></svg>
+                  <label for="fromInput">From</label>
+                  <input
+                    class="field-value"
+                    id="fromInput"
+                    type="text"
+                    placeholder="Flying from (city or airport)"
+                    autocomplete="off"
+                    role="combobox"
+                    aria-expanded="false"
+                    aria-controls="cityPop"
+                    aria-autocomplete="list"
+                  />
+                </div>
+                <button class="swap-btn" type="button" id="swapBtn" aria-label="Swap origin and destination">
+                  <svg width="16" height="16" aria-hidden="true"><use href="#i-swap" /></svg>
+                </button>
+                <div class="airport-field" id="toField">
+                  <svg width="18" height="18" aria-hidden="true"><use href="#i-pin" /></svg>
+                  <label for="toInput">To</label>
+                  <input
+                    class="field-value"
+                    id="toInput"
+                    type="text"
+                    placeholder="Flying to (city or airport)"
+                    autocomplete="off"
+                    role="combobox"
+                    aria-expanded="false"
+                    aria-controls="cityPop"
+                    aria-autocomplete="list"
+                  />
+                </div>
+                <div class="popover city-pop" id="cityPop" role="listbox" aria-label="Cities" hidden></div>
+              </div>
+
+              <button class="date-field" type="button" id="depBtn" aria-haspopup="dialog" aria-expanded="false" aria-controls="calPop">
+                <svg width="18" height="18" aria-hidden="true"><use href="#i-calendar" /></svg>
+                <span>
+                  <span class="date-caption">Departure</span>
+                  <span class="date-value" id="depValue" data-empty="true">Add date</span>
+                </span>
+              </button>
+
+              <button class="date-field" type="button" id="retBtn" aria-haspopup="dialog" aria-expanded="false" aria-controls="calPop" disabled>
+                <svg width="18" height="18" aria-hidden="true"><use href="#i-calendar" /></svg>
+                <span>
+                  <span class="date-caption">Return</span>
+                  <span class="date-value" id="retValue" data-empty="true">Add date</span>
+                </span>
+              </button>
+
+              <div class="popover cal-pop" id="calPop" role="dialog" aria-label="Choose a date" hidden></div>
+            </div>
+
+            <div class="search-foot">
+              <label class="checkbox">
+                <input type="checkbox" id="nonstop" />
+                <span class="box"><svg width="12" height="12" aria-hidden="true"><use href="#i-check" /></svg></span>
+                Search direct flights only
+              </label>
+              <button class="btn-primary" type="button" id="searchBtn">Search flights</button>
+            </div>
+
+            <div class="notice" id="notice" hidden></div>
+          </div>
+
+          <!-- Buses pane ------------------------------------------------ -->
+          <div class="search-card bus-panel" id="pane-buses" role="tabpanel" aria-labelledby="tab-buses" hidden>
+            <div class="search-row">
+              <div class="trip-switch" role="group" aria-label="Trip type">
+                <button type="button" aria-pressed="true" disabled>One way</button>
+                <button type="button" aria-pressed="false" disabled>Return</button>
+              </div>
+            </div>
+            <div class="bus-fields">
+              <div class="airport-pair">
+                <div class="airport-field">
+                  <svg width="18" height="18" aria-hidden="true"><use href="#i-pin" /></svg>
+                  <label for="busFrom">From</label>
+                  <input class="field-value" id="busFrom" type="text" placeholder="Departure city" autocomplete="off" />
+                </div>
+                <div class="airport-field">
+                  <svg width="18" height="18" aria-hidden="true"><use href="#i-pin" /></svg>
+                  <label for="busTo">To</label>
+                  <input class="field-value" id="busTo" type="text" placeholder="Arrival city" autocomplete="off" />
+                </div>
+              </div>
+              <button class="date-field" type="button" id="busDateBtn">
+                <svg width="18" height="18" aria-hidden="true"><use href="#i-calendar" /></svg>
+                <span>
+                  <span class="date-caption">Travel date</span>
+                  <span class="date-value" id="busDateValue" data-empty="true">Add date</span>
+                </span>
+              </button>
+            </div>
+            <p class="bus-note">Online bus tickets: Daewoo Express, Faisal Movers, Niazi Express, Kainat Travels.</p>
+            <div class="search-foot">
+              <span></span>
+              <button class="btn-primary" type="button" id="busSearchBtn">Search buses</button>
+            </div>
+            <div class="notice" id="busNotice" hidden></div>
+          </div>
+
+          <!-- Other products pane --------------------------------------- -->
+          <div class="search-card" id="pane-other" role="tabpanel" aria-labelledby="tab-umrah" hidden>
+            <h2 style="margin: 0 0 6px; font-size: 18px; font-weight: 800" id="otherTitle">Umrah packages</h2>
+            <p style="margin: 0 0 14px; color: var(--muted); font-size: 14px" id="otherBody">
+              Is demo clone mein sirf flights aur buses ka search widget bana he.
+            </p>
+            <a class="btn-primary" href="https://www.sastaticket.pk/pages/umrah-packages" target="_blank" rel="noopener" id="otherLink">
+              Asli page kholen
+            </a>
+          </div>
+        </div>
+      </section>
+
+      <!-- Support strip ------------------------------------------------ -->
+      <section class="support">
+        <div class="wrap support-inner">
+          <div class="support-left">
+            <img class="support-avatar" src="assets/customer-support-agent.webp" alt="Customer support agent" width="52" height="52" />
+            <div>
+              <strong>24/7 customer support</strong>
+              <p>Speak to Asma or another travel expert</p>
+            </div>
+          </div>
+          <div class="support-actions">
+            <a href="tel:+9221111172782">
+              <svg width="16" height="16" aria-hidden="true"><use href="#i-phone" /></svg>
+              Call (021) 111 172 782
+            </a>
+            <a href="https://wa.me/923047772782" target="_blank" rel="noopener">
+              <svg width="16" height="16" aria-hidden="true"><use href="#i-whatsapp" /></svg>
+              WhatsApp +92 304 7772782
+            </a>
+          </div>
+        </div>
+      </section>
+
+      <!-- Content stack ------------------------------------------------ -->
+      <div class="wrap stack">
+        <section class="offer" aria-labelledby="offerTitle">
+          <div class="offer-media">
+            <img src="assets/island-resort-full.webp" alt="Island resort" loading="lazy" />
+            <div class="offer-phone">
+              <img src="assets/island-resort-full.webp" alt="" aria-hidden="true" loading="lazy" />
+            </div>
+          </div>
+          <div class="offer-body">
+            <div>
+              <span class="offer-kicker">
+                <svg width="12" height="12" aria-hidden="true"><use href="#i-tag" /></svg>
+                App exclusive
+              </span>
+              <h2 id="offerTitle">Get PKR 500 off on the app</h2>
+              <p>Use code <code>WELCOME</code> on your first app booking to save PKR 500.</p>
+            </div>
+            <div class="offer-cta">
+              <a class="btn-primary" href="https://links.sastaticket.pk/download-app?p=hp-app-banner" target="_blank" rel="noopener">
+                Download the app
+              </a>
+              <a href="https://apps.apple.com/pk/app/sastaticket-pk-flights-bus/id1564441908" target="_blank" rel="noopener">
+                <img src="assets/app-store.svg" alt="Download on the App Store" height="38" />
+              </a>
+              <a href="https://play.google.com/store/apps/details?id=com.pk.sastaticket" target="_blank" rel="noopener">
+                <img src="assets/google-play.svg" alt="Get it on Google Play" height="38" />
+              </a>
+            </div>
+          </div>
+        </section>
+
+        <a class="promo" href="https://www.sastaticket.pk/airline/azerbaijan-airlines" target="_blank" rel="noopener" aria-label="Azerbaijan Airlines — up to 10% off">
+          <img class="promo-bg" src="assets/azal/sky.webp" alt="" aria-hidden="true" loading="lazy" />
+          <img class="promo-plane" src="assets/azal/plane.webp" alt="" aria-hidden="true" loading="lazy" />
+          <div class="promo-content">
+            <img class="promo-logo" src="assets/azal/logo-desktop.svg" alt="Azerbaijan Airlines" />
+            <h2>Enjoy upto 10% off on Azerbaijan Airlines</h2>
+            <div class="promo-meta">
+              <span>Sale period: 14th Nov 2026 – 24th Nov 2026</span>
+              <span>Fly anytime from 14th Nov 2026 till 01st Mar 2027</span>
+            </div>
+          </div>
+        </a>
+
+        <section aria-labelledby="destTitle">
+          <div class="section-head">
+            <div>
+              <h2 id="destTitle">Popular destinations</h2>
+              <p>Sample cards — live fares is app ke flight search se aate hain.</p>
+            </div>
+            <a class="link-more" href="https://www.sastaticket.pk/flights/cheap-flights-from-karachi-to-dubai" target="_blank" rel="noopener">
+              View all fares
+              <svg width="14" height="14" aria-hidden="true"><use href="#i-chevron-right" /></svg>
+            </a>
+          </div>
+          <div class="dest-grid">
+            <a class="dest-card" href="https://www.sastaticket.pk/flights/cheap-flights-from-karachi-to-dubai" target="_blank" rel="noopener" style="--dest-bg: linear-gradient(150deg, #0b3b6b, #1d7fc4 55%, #f0b16a)">
+              <span class="dest-code">DXB</span>
+              <h3>Dubai</h3>
+              <span>Direct from Karachi · 3h 05m</span>
+            </a>
+            <a class="dest-card" href="https://www.sastaticket.pk/flights/cheap-flights-from-karachi-to-jeddah" target="_blank" rel="noopener" style="--dest-bg: linear-gradient(150deg, #04352c, #12836a 55%, #d8c59a)">
+              <span class="dest-code">JED</span>
+              <h3>Jeddah</h3>
+              <span>Umrah season fares · 4h 20m</span>
+            </a>
+            <a class="dest-card" href="https://www.sastaticket.pk/flights/cheap-flights-from-lahore-to-istanbul" target="_blank" rel="noopener" style="--dest-bg: linear-gradient(150deg, #33205c, #7b4bc4 55%, #e9a06b)">
+              <span class="dest-code">IST</span>
+              <h3>Istanbul</h3>
+              <span>One stop · from Lahore</span>
+            </a>
+            <a class="dest-card" href="https://www.sastaticket.pk/flights/cheap-flights-from-karachi-to-kuala-lumpur" target="_blank" rel="noopener" style="--dest-bg: linear-gradient(150deg, #08364a, #0f8fa3 55%, #9fd8c0)">
+              <span class="dest-code">KUL</span>
+              <h3>Kuala Lumpur</h3>
+              <span>Direct · 6h 10m</span>
+            </a>
+          </div>
+        </section>
+
+        <section class="newsletter" aria-labelledby="nlTitle">
+          <div>
+            <h2 id="nlTitle">Be the first one to get the deal.</h2>
+            <p>Subscribe now to know about our new deals, offers and travel prices.</p>
+          </div>
+          <form class="newsletter-form" id="nlForm" novalidate>
+            <label class="sr-only" for="nlEmail">Email address</label>
+            <input type="email" id="nlEmail" name="email" placeholder="Enter email" required />
+            <button class="btn-primary" type="submit" style="min-width: 120px">Subscribe</button>
+            <p class="newsletter-msg" id="nlMsg" role="status" hidden></p>
+          </form>
+        </section>
+      </div>
+    </main>
+
+    <!-- Footer ----------------------------------------------------------- -->
+    <footer class="site-footer">
+      <div class="footer-inner">
+        <div class="footer-cols">
+          <div class="footer-block">
+            <h5>Top airlines</h5>
+            <div class="footer-lists">
+              <div>
+                <span class="footer-col-title">Domestic</span>
+                <div class="footer-links">
+                  <a href="https://www.sastaticket.pk/airline/air-blue" target="_blank" rel="noopener">Air Blue</a>
+                  <a href="https://www.sastaticket.pk/airline/air-sial" target="_blank" rel="noopener">Air Sial</a>
+                  <a href="https://www.sastaticket.pk/airline/pakistan-international-airlines" target="_blank" rel="noopener">Pakistan International Airlines</a>
+                  <a href="https://www.sastaticket.pk/airline/k2-airways" target="_blank" rel="noopener">K2 Airways</a>
+                  <a href="https://www.sastaticket.pk/airline/serene-air" target="_blank" rel="noopener">Serene Airways</a>
+                  <a href="https://www.sastaticket.pk/airline/shaheen-air" target="_blank" rel="noopener">Shaheen Airways</a>
+                  <a href="https://www.sastaticket.pk/airline/q-airlines" target="_blank" rel="noopener">Q Airlines</a>
+                  <a href="https://www.sastaticket.pk/airline/fly-jinnah" target="_blank" rel="noopener">Fly Jinnah</a>
+                </div>
+              </div>
+              <div>
+                <span class="footer-col-title">International</span>
+                <div class="footer-links">
+                  <a href="https://www.sastaticket.pk/airline/air-arabia" target="_blank" rel="noopener">Air Arabia</a>
+                  <a href="https://www.sastaticket.pk/airline/air-china" target="_blank" rel="noopener">Air China</a>
+                  <a href="https://www.sastaticket.pk/airline/gulf-air" target="_blank" rel="noopener">Gulf Air</a>
+                  <a href="https://www.sastaticket.pk/airline/american-airlines" target="_blank" rel="noopener">American Airlines</a>
+                  <a href="https://www.sastaticket.pk/airline/british-airways" target="_blank" rel="noopener">British Airways</a>
+                  <a href="https://www.sastaticket.pk/airline/cathay-pacific" target="_blank" rel="noopener">Cathay Pacific</a>
+                  <a href="https://www.sastaticket.pk/airline/emirates" target="_blank" rel="noopener">Emirates</a>
+                  <a href="https://www.sastaticket.pk/airline/etihad-airways" target="_blank" rel="noopener">Etihad Airways</a>
+                  <a href="https://www.sastaticket.pk/airline/fly-dubai" target="_blank" rel="noopener">Fly Dubai</a>
+                  <a href="https://www.sastaticket.pk/airline/kenya-airways" target="_blank" rel="noopener">Kenya Airways</a>
+                  <a href="https://www.sastaticket.pk/airline/oman-air" target="_blank" rel="noopener">Oman Air</a>
+                  <a href="https://www.sastaticket.pk/airline/qatar-airways" target="_blank" rel="noopener">Qatar Airways</a>
+                  <a href="https://www.sastaticket.pk/airline/saudi-arabian-airline" target="_blank" rel="noopener">Saudia Arabian Airline</a>
+                  <a href="https://www.sastaticket.pk/airline/srilankan-airlines" target="_blank" rel="noopener">SriLankan Airlines</a>
+                  <a href="https://www.sastaticket.pk/airline/swiss-international-airlines" target="_blank" rel="noopener">Swiss International Airlines</a>
+                  <a href="https://www.sastaticket.pk/airline/thai-airways" target="_blank" rel="noopener">Thai Airways</a>
+                  <a href="https://www.sastaticket.pk/airline/turkish-airlines" target="_blank" rel="noopener">Turkish Airlines</a>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="footer-block">
+            <h5>Popular flight routes</h5>
+            <div class="footer-lists">
+              <div>
+                <span class="footer-col-title">Domestic</span>
+                <div class="footer-links">
+                  <a href="https://www.sastaticket.pk/flights/cheap-flights-from-karachi-to-islamabad" target="_blank" rel="noopener">Karachi to Islamabad</a>
+                  <a href="https://www.sastaticket.pk/flights/cheap-flights-from-karachi-to-lahore" target="_blank" rel="noopener">Karachi to Lahore</a>
+                  <a href="https://www.sastaticket.pk/flights/cheap-flights-from-islamabad-to-karachi" target="_blank" rel="noopener">Islamabad to Karachi</a>
+                  <a href="https://www.sastaticket.pk/flights/cheap-flights-from-lahore-to-islamabad" target="_blank" rel="noopener">Lahore to Islamabad</a>
+                  <a href="https://www.sastaticket.pk/flights/cheap-flights-from-lahore-to-karachi" target="_blank" rel="noopener">Lahore to Karachi</a>
+                  <a href="https://www.sastaticket.pk/flights/cheap-flights-from-karachi-to-peshawar" target="_blank" rel="noopener">Karachi to Peshawar</a>
+                  <a href="https://www.sastaticket.pk/flights/cheap-flights-from-karachi-to-faisalabad" target="_blank" rel="noopener">Karachi to Faisalabad</a>
+                </div>
+              </div>
+              <div>
+                <span class="footer-col-title">International</span>
+                <div class="footer-links">
+                  <a href="https://www.sastaticket.pk/flights/cheap-flights-from-karachi-to-dubai" target="_blank" rel="noopener">Karachi to Dubai</a>
+                  <a href="https://www.sastaticket.pk/flights/cheap-flights-from-lahore-to-dubai" target="_blank" rel="noopener">Lahore to Dubai</a>
+                  <a href="https://www.sastaticket.pk/flights/cheap-flights-from-islamabad-to-dubai" target="_blank" rel="noopener">Islamabad to Dubai</a>
+                  <a href="https://www.sastaticket.pk/flights/cheap-flights-from-karachi-to-jeddah" target="_blank" rel="noopener">Karachi to Jeddah</a>
+                  <a href="https://www.sastaticket.pk/flights/cheap-flights-from-karachi-to-madinah" target="_blank" rel="noopener">Karachi to Madinah</a>
+                  <a href="https://www.sastaticket.pk/flights/cheap-flights-from-karachi-to-bangkok" target="_blank" rel="noopener">Karachi to Bangkok</a>
+                  <a href="https://www.sastaticket.pk/flights/cheap-flights-from-lahore-to-beijing" target="_blank" rel="noopener">Lahore to Beijing</a>
+                  <a href="https://www.sastaticket.pk/flights/cheap-flights-from-karachi-to-kuala-lumpur" target="_blank" rel="noopener">Karachi to Kuala Lumpur</a>
+                  <a href="https://www.sastaticket.pk/flights/cheap-flights-from-karachi-to-abu-dhabi" target="_blank" rel="noopener">Karachi to Abu Dhabi</a>
+                  <a href="https://www.sastaticket.pk/flights/cheap-flights-from-lahore-to-new-york" target="_blank" rel="noopener">Lahore to New York</a>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="footer-block">
+            <h5>Top bus operators</h5>
+            <div class="footer-links">
+              <a href="https://www.sastaticket.pk/bus-tickets" target="_blank" rel="noopener">Online bus tickets</a>
+              <a href="https://www.sastaticket.pk/bus-tickets/daewoo-express" target="_blank" rel="noopener">Daewoo Express</a>
+              <a href="https://www.sastaticket.pk/bus-tickets/kainat-travels" target="_blank" rel="noopener">Kainat Travels</a>
+              <a href="https://www.sastaticket.pk/bus-tickets/niazi-express" target="_blank" rel="noopener">Niazi Express</a>
+              <a href="https://www.sastaticket.pk/bus-tickets/faisal-movers" target="_blank" rel="noopener">Faisal Movers</a>
+              <a href="https://www.sastaticket.pk/bus-tickets/bilal-travels" target="_blank" rel="noopener">Bilal Travels</a>
+              <a href="https://www.sastaticket.pk/bus-tickets/skyways" target="_blank" rel="noopener">Skyways</a>
+            </div>
+          </div>
+        </div>
+
+        <div class="footer-pay">
+          <img src="assets/partner-norton.webp" alt="Norton" loading="lazy" />
+          <img src="assets/partner-jazzcash.webp" alt="JazzCash" loading="lazy" />
+          <img src="assets/partner-easypaisa.webp" alt="Easypaisa" loading="lazy" />
+          <img src="assets/partner-hbl.webp" alt="HBL" loading="lazy" />
+          <img src="assets/partner-mastercard.webp" alt="Mastercard" loading="lazy" />
+          <img src="assets/partner-paypak.webp" alt="PayPak" loading="lazy" />
+          <img src="assets/partner-visa.webp" alt="Visa" loading="lazy" />
+        </div>
+
+        <div class="footer-bottom">
+          <nav aria-label="Footer">
+            <a href="index.html">Home</a>
+            <a href="https://www.sastaticket.pk/pages/about-us" target="_blank" rel="noopener">About us</a>
+            <a href="https://www.sastaticket.pk/pages/contact-us/" target="_blank" rel="noopener">Contact us</a>
+            <a href="https://www.sastaticket.pk/air/account/bookings" target="_blank" rel="noopener">Manage bookings</a>
+            <a href="https://www.sastaticket.pk/air/bookings/search" target="_blank" rel="noopener">Search bookings</a>
+            <a href="https://www.sastaticket.pk/pages/faqs" target="_blank" rel="noopener">FAQ</a>
+            <a href="https://www.sastaticket.pk/pages/privacy-policy" target="_blank" rel="noopener">Privacy policy</a>
+            <a href="https://sastaticket.pk/pages/career" target="_blank" rel="noopener">Careers</a>
+            <a href="https://www.sastaticket.pk/pages/terms-and-conditions" target="_blank" rel="noopener">Terms &amp; conditions</a>
+            <a href="https://www.sastaticket.pk/pages/free-cancellation-faq" target="_blank" rel="noopener">Sasta Refund</a>
+          </nav>
+          <div class="footer-meta">
+            <p>Copyright 2026 Sastaticket Private Limited. All rights reserved.</p>
+            <div class="footer-social">
+              <a href="https://www.facebook.com/sastaticket.pk/" target="_blank" rel="noopener" aria-label="Facebook">
+                <svg width="16" height="16" aria-hidden="true"><use href="#i-facebook" /></svg>
+              </a>
+              <a href="https://www.instagram.com/sastaticket.pk/" target="_blank" rel="noopener" aria-label="Instagram">
+                <svg width="16" height="16" aria-hidden="true"><use href="#i-instagram" /></svg>
+              </a>
+              <a href="https://twitter.com/sastaticketpk" target="_blank" rel="noopener" aria-label="X">
+                <svg width="16" height="16" aria-hidden="true"><use href="#i-x" /></svg>
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <p class="footer-note">
+        <strong>Demo clone:</strong> ye page sirf design/engineering demo he, asli booking site nahi. Brand,
+        logo aur tasveerein <a href="https://www.sastaticket.pk/" target="_blank" rel="noopener">sastaticket.pk</a>
+        ki milkiyat hein aur yahan sirf reference ke liye use hui hein. Koi booking, payment ya
+        account is page par nahi hota — live PKR fares ke liye
+        <a href="../../index.html">AB Travels app</a> use karein.
+      </p>
+    </footer>
+
+    <script src="app.js"></script>
+  </body>
+</html>
