@@ -701,7 +701,7 @@
   <div class="brand">
     <img src="logo.png" alt="AB Travels" decoding="async" onerror="this.style.display='none'">
     <div style="min-width:0;">
-      <h1>AB Travels <span class="ver" id="verBadge">v3.04</span></h1>
+      <h1>AB Travels <span class="ver" id="verBadge">v3.05</span></h1>
       <div class="tag">Ahmed Brothers Hajj &amp; Umra Services (Pvt) Ltd</div>
     </div>
     <button id="brandFares" class="brand-fares" type="button" title="Price Lookup — flight fares" aria-label="Price Lookup — flight fares">✈</button>
@@ -770,7 +770,7 @@
 <script>
 /* ================= DATA ================= */
 var KEY = "travelOfficeHisab";
-var APP_VER = "3.04";
+var APP_VER = "3.05";
 var MONTH_NAMES = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
 /* Cloudflare Worker — Ignav flight prices proxy (free plan, no credit card) */
 var IGNAV_WORKER_CODE = "// AB Travels - Ignav flight prices proxy (Cloudflare Worker)\n// Ignav API key SERVER par rehti hai - app/browser mein kabhi nahi aati.\n//\n// SETUP (ek dafa, ~5 min, free):\n// 1) ignav.com/signup -> free account -> dashboard se API key\n// 2) cloudflare.com -> free account -> Workers & Pages -> Create Worker -> yeh code paste -> Deploy\n// 3) Worker -> Settings -> Variables and Secrets -> secret add karein:\n//      IGNAV_API_KEY = (aap ki Ignav key)\n// 4) Worker URL (https://xxx.workers.dev) app -> Settings -> Flight prices -> paste -> Save & test\n\nexport default {\n  async fetch(request, env) {\n    const cors = {\n      'Access-Control-Allow-Origin': env.ALLOWED_ORIGIN || '*',\n      'Access-Control-Allow-Methods': 'GET,POST,OPTIONS',\n      'Access-Control-Allow-Headers': 'Content-Type',\n      'Access-Control-Max-Age': '86400'\n    };\n    const url = new URL(request.url);\n    if (request.method === 'OPTIONS') return new Response(null, { status: 204, headers: cors });\n    if (!env.IGNAV_API_KEY) {\n      return new Response(JSON.stringify({ error: { code: 'no_key', message: 'IGNAV_API_KEY secret is not set in the Worker.' } }), { status: 500, headers: Object.assign({ 'Content-Type': 'application/json' }, cors) });\n    }\n    const base = 'https://ignav.com/api';\n    let target = '';\n    let init = { method: 'GET', headers: { 'X-Api-Key': env.IGNAV_API_KEY } };\n    if (url.pathname === '/health') {\n      target = base + '/health';\n    } else if (url.pathname === '/fares') {\n      if (request.method !== 'POST') return new Response(JSON.stringify({ error: { message: 'POST only' } }), { status: 405, headers: cors });\n      const body = await request.text();\n      target = base + '/fares/one-way';\n      init = { method: 'POST', headers: { 'X-Api-Key': env.IGNAV_API_KEY, 'Content-Type': 'application/json' }, body };\n    } else if (url.pathname === '/search') {\n      if (request.method !== 'POST') return new Response(JSON.stringify({ error: { message: 'POST only' } }), { status: 405, headers: cors });\n      const body = await request.text();\n      target = base + '/fares/search';\n      init = { method: 'POST', headers: { 'X-Api-Key': env.IGNAV_API_KEY, 'Content-Type': 'application/json' }, body };\n    } else if (url.pathname === '/round-trip') {\n      if (request.method !== 'POST') return new Response(JSON.stringify({ error: { message: 'POST only' } }), { status: 405, headers: cors });\n      const body = await request.text();\n      target = base + '/fares/round-trip';\n      init = { method: 'POST', headers: { 'X-Api-Key': env.IGNAV_API_KEY, 'Content-Type': 'application/json' }, body };\n    } else if (url.pathname === '/booking-links') {\n      if (request.method !== 'POST') return new Response(JSON.stringify({ error: { message: 'POST only' } }), { status: 405, headers: cors });\n      const body = await request.text();\n      target = base + '/fares/booking-links';\n      init = { method: 'POST', headers: { 'X-Api-Key': env.IGNAV_API_KEY, 'Content-Type': 'application/json' }, body };\n    } else {\n      return new Response(JSON.stringify({ error: { message: 'not found' } }), { status: 404, headers: Object.assign({ 'Content-Type': 'application/json' }, cors) });\n    }\n    try {\n      const r = await fetch(target, init);\n      const text = await r.text();\n      return new Response(text, { status: r.status, headers: Object.assign({ 'Content-Type': 'application/json' }, cors) });\n    } catch (e) {\n      return new Response(JSON.stringify({ error: { message: String((e && e.message) || e) } }), { status: 502, headers: Object.assign({ 'Content-Type': 'application/json' }, cors) });\n    }\n  }\n};\n";
@@ -6113,12 +6113,16 @@ function viewFares(){
         + '<div><label>Infants seat</label><select id="faInfantsSeat" class="fa-sm">'+[0,1,2,3,4,5,6,7,8,9,10].map(function(n){ return '<option value="'+n+'">'+n+'</option>'; }).join('')+'</select></div>'
         + '</div></div></details>';
   html += '<label class="fa-nonstop"><input type="checkbox" id="faNonStop" style="width:auto;"> Non-stop only</label>';
-  /* Apna commission — fare + commission = selling price (v3.03) */
-  html += '<div class="row" style="margin-top:8px; align-items:flex-end;">'
-        + '<div style="flex:0 0 170px;"><label>Commission / person (Rs)</label>'
-        + '<input id="mezComm" class="fa-comm" type="number" min="0" step="500" inputmode="numeric" value="' + (mezComm() ? esc(String(mezComm())) : "") + '" placeholder="0"></div>'
-        + '<div class="hint" style="flex:1; margin:0 0 8px;">Commission price mein hi shamil ho jata he — alag line nazar nahi aati, is liye screenshot bhejne par markup zahir nahi hota. Asli fare chahiye to price par long-press karein.</div>'
-        + '</div>';
+  /* Tax (pehle "commission") — price mein hi shamil, aur arrow se minimise (v3.05) */
+  var taxNow = mezComm();
+  html += '<details class="fa-more" id="faTax"><summary><span id="faTaxText">Tax / person (Rs)</span>'
+        + '<span class="fa-more-edit" id="faTaxState">' + (taxNow ? "✓ set" : "add") + '</span></summary>'
+        + '<div class="fa-more-body">'
+        + '<label for="mezComm">Tax per person (Rs)</label>'
+        + '<input id="mezComm" class="fa-comm" type="number" min="0" step="500" inputmode="numeric" value="' + (taxNow ? esc(String(taxNow)) : "") + '" placeholder="0">'
+        + '<div class="hint" style="margin-top:6px;">Tax is already added to every price below - it is never shown as a separate line, so a screenshot does not reveal it. '
+        + 'To see the base fare, long-press a price.</div>'
+        + '</div></details>';
   html += '<button class="btn primary" id="faMeezab" style="width:100%; margin-top:10px; background:#2563eb; color:#fff;">Meezab Air — live PKR fares</button>';
   if(configured) html += '<button class="btn" id="faSearch" style="width:100%; margin-top:8px; background:#4b5563; color:#fff;">🔍 Ignav search</button>';
   html += '<div class="hint" style="margin-top:6px;">Meezab: PKR mein <b>saari</b> flights, total poore party ka. Fares portal ke Economy-class ke hote hain.</div>';
@@ -6595,10 +6599,16 @@ function mezCabinClass(v){
   if(s === "premiumeconomy" || s === "premium") return "PremiumEconomy";
   return "Economy";
 }
-/* ---------- Agent commission: fare + apna commission = selling price (v3.03) ---------- */
+/* ---------- Tax: fare + tax = price jo dikhta he (v3.03, naam v3.05) ---------- */
 function mezComm(){
   var n = Number(S.settings.mezCommission);
   return isFinite(n) && n > 0 ? n : 0;
+}
+/* Collapsible panel ki summary — amount chhupa rehta he, sirf "set" dikhta he
+   (screenshot mein tax ki raqam nazar na aaye). */
+function mezTaxSummary(){
+  var el = document.getElementById("faTaxState");
+  if(el) el.textContent = mezComm() ? "✓ set" : "add";
 }
 function mezPaxParty(pax){
   if(!pax) return 1;
@@ -11265,12 +11275,13 @@ function bind(){
     var tmp = a.value; a.value = b.value; b.value = tmp;
     try{ a.dispatchEvent(new Event("input")); b.dispatchEvent(new Event("input")); }catch(e){}
   };
-  /* Commission — type karte hi results dobara render, save thora ruk kar */
+  /* Tax — type karte hi results dobara render, save thora ruk kar */
   var mezCommEl = document.getElementById("mezComm");
   if(mezCommEl){
     var _mezCommT = null;
     mezCommEl.oninput = function(){
       S.settings.mezCommission = Math.max(0, Number(this.value) || 0);
+      mezTaxSummary();
       try{
         if(MEZ.fares && MEZ.fares.length) mezRender();
         mezRenderCountry();
@@ -11280,6 +11291,7 @@ function bind(){
     };
     mezCommEl.onchange = function(){
       S.settings.mezCommission = Math.max(0, Number(this.value) || 0);
+      mezTaxSummary();
       save();
     };
   }
