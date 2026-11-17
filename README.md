@@ -1,5 +1,14 @@
 # Travel Office Hisab - AB Travels
 
+## Price Lookup: apna commission + selling price (v3.03)
+- Price Lookup ke form mein naya box **“Commission / person (Rs)”** — jo commission aap per passenger lena chahte hain wo likh dein.
+- Har fare card par ab do number: **fare** (Meezab ka) aur us ke neeche **green selling price** = fare + (commission × passengers), sath chhota note `sell · +20,000 comm`.
+- Wohi selling price **airline strip** aur **country list** (har airport ke sab se saste fare) mein bhi — wahan base fare tooltip (long-press) mein milta he.
+- Results ke header mein ek line: `commission 5,000/person (4 pax = 20,000)`.
+- Ignav search ke cards par bhi wahi treatment, aur **Copy fare** ka text ab **selling price** ke sath copy hota he (client ko seedha bhejne ke liye).
+- Commission `settings.mezCommission` mein save hota he, is liye har device/backup ke sath chala jata he. `0` (ya khali) = sirf fare, jaisa pehle tha.
+- Sirf app ka change — Worker redeploy ki zaroorat nahi.
+
 ## Price Lookup: laptop par poori width (v3.02)
 - Price Lookup (Fares) tab ab Sales register ki tarah laptop/desktop par poori width leta he (1000px se bari screen par container 1680px tak) - form aur fare cards poori screen par phailte hain, koi bekar khali jagah nahi.
 - Sirf Fares tab badla he; baqi tabs (Dashboard, Month, Settings waghera) ki width waisi hi he. Mobile par kuch nahi badla - wahan pehle se full width he.

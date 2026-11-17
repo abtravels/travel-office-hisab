@@ -269,6 +269,10 @@
   .mez-price{text-align:right; white-space:nowrap;}
   .mez-price b{font-size:16px; font-weight:800; letter-spacing:-.01em;}
   .mez-price small{display:block; font-size:10px; color:var(--muted); font-weight:600;}
+  /* Selling price = fare + apna commission (v3.03) */
+  .mez-price .sell{margin-top:5px; padding-top:5px; border-top:1px dashed var(--line);}
+  .mez-price .sell b{font-size:15px; color:var(--green);}
+  .mez-price .sell small{color:var(--green); opacity:.8;}
   .mez-when{display:flex; align-items:center; gap:8px; margin-top:9px;}
   .mez-end{min-width:62px; max-width:104px;}
   .mez-end b{font-size:15px; font-weight:800;}
@@ -635,6 +639,7 @@
   .fa-help[open] > summary::before{content:"▾ ";}
   .fa-help > summary:hover{color:var(--ink);}
   select.fa-sm{height:34px; min-height:34px; font-size:13.5px; padding:5px 8px;}
+  input.fa-comm{height:34px !important; min-height:34px !important; font-size:14px; padding:5px 8px;}
   .fa-compact > div{min-width:88px;}
   .fa-compact label{font-size:11.5px; margin-bottom:3px;}
   /* Trip / class / passengers — ek summary line, tap par khulti he (v2.98).
@@ -696,7 +701,7 @@
   <div class="brand">
     <img src="logo.png" alt="AB Travels" decoding="async" onerror="this.style.display='none'">
     <div style="min-width:0;">
-      <h1>AB Travels <span class="ver" id="verBadge">v3.01</span></h1>
+      <h1>AB Travels <span class="ver" id="verBadge">v3.03</span></h1>
       <div class="tag">Ahmed Brothers Hajj &amp; Umra Services (Pvt) Ltd</div>
     </div>
     <button id="brandFares" class="brand-fares" type="button" title="Price Lookup — flight fares" aria-label="Price Lookup — flight fares">✈</button>
@@ -765,7 +770,7 @@
 <script>
 /* ================= DATA ================= */
 var KEY = "travelOfficeHisab";
-var APP_VER = "3.02";
+var APP_VER = "3.03";
 var MONTH_NAMES = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
 /* Cloudflare Worker — Ignav flight prices proxy (free plan, no credit card) */
 var IGNAV_WORKER_CODE = "// AB Travels - Ignav flight prices proxy (Cloudflare Worker)\n// Ignav API key SERVER par rehti hai - app/browser mein kabhi nahi aati.\n//\n// SETUP (ek dafa, ~5 min, free):\n// 1) ignav.com/signup -> free account -> dashboard se API key\n// 2) cloudflare.com -> free account -> Workers & Pages -> Create Worker -> yeh code paste -> Deploy\n// 3) Worker -> Settings -> Variables and Secrets -> secret add karein:\n//      IGNAV_API_KEY = (aap ki Ignav key)\n// 4) Worker URL (https://xxx.workers.dev) app -> Settings -> Flight prices -> paste -> Save & test\n\nexport default {\n  async fetch(request, env) {\n    const cors = {\n      'Access-Control-Allow-Origin': env.ALLOWED_ORIGIN || '*',\n      'Access-Control-Allow-Methods': 'GET,POST,OPTIONS',\n      'Access-Control-Allow-Headers': 'Content-Type',\n      'Access-Control-Max-Age': '86400'\n    };\n    const url = new URL(request.url);\n    if (request.method === 'OPTIONS') return new Response(null, { status: 204, headers: cors });\n    if (!env.IGNAV_API_KEY) {\n      return new Response(JSON.stringify({ error: { code: 'no_key', message: 'IGNAV_API_KEY secret is not set in the Worker.' } }), { status: 500, headers: Object.assign({ 'Content-Type': 'application/json' }, cors) });\n    }\n    const base = 'https://ignav.com/api';\n    let target = '';\n    let init = { method: 'GET', headers: { 'X-Api-Key': env.IGNAV_API_KEY } };\n    if (url.pathname === '/health') {\n      target = base + '/health';\n    } else if (url.pathname === '/fares') {\n      if (request.method !== 'POST') return new Response(JSON.stringify({ error: { message: 'POST only' } }), { status: 405, headers: cors });\n      const body = await request.text();\n      target = base + '/fares/one-way';\n      init = { method: 'POST', headers: { 'X-Api-Key': env.IGNAV_API_KEY, 'Content-Type': 'application/json' }, body };\n    } else if (url.pathname === '/search') {\n      if (request.method !== 'POST') return new Response(JSON.stringify({ error: { message: 'POST only' } }), { status: 405, headers: cors });\n      const body = await request.text();\n      target = base + '/fares/search';\n      init = { method: 'POST', headers: { 'X-Api-Key': env.IGNAV_API_KEY, 'Content-Type': 'application/json' }, body };\n    } else if (url.pathname === '/round-trip') {\n      if (request.method !== 'POST') return new Response(JSON.stringify({ error: { message: 'POST only' } }), { status: 405, headers: cors });\n      const body = await request.text();\n      target = base + '/fares/round-trip';\n      init = { method: 'POST', headers: { 'X-Api-Key': env.IGNAV_API_KEY, 'Content-Type': 'application/json' }, body };\n    } else if (url.pathname === '/booking-links') {\n      if (request.method !== 'POST') return new Response(JSON.stringify({ error: { message: 'POST only' } }), { status: 405, headers: cors });\n      const body = await request.text();\n      target = base + '/fares/booking-links';\n      init = { method: 'POST', headers: { 'X-Api-Key': env.IGNAV_API_KEY, 'Content-Type': 'application/json' }, body };\n    } else {\n      return new Response(JSON.stringify({ error: { message: 'not found' } }), { status: 404, headers: Object.assign({ 'Content-Type': 'application/json' }, cors) });\n    }\n    try {\n      const r = await fetch(target, init);\n      const text = await r.text();\n      return new Response(text, { status: r.status, headers: Object.assign({ 'Content-Type': 'application/json' }, cors) });\n    } catch (e) {\n      return new Response(JSON.stringify({ error: { message: String((e && e.message) || e) } }), { status: 502, headers: Object.assign({ 'Content-Type': 'application/json' }, cors) });\n    }\n  }\n};\n";
@@ -6108,6 +6113,12 @@ function viewFares(){
         + '<div><label>Infants seat</label><select id="faInfantsSeat" class="fa-sm">'+[0,1,2,3,4,5,6,7,8,9,10].map(function(n){ return '<option value="'+n+'">'+n+'</option>'; }).join('')+'</select></div>'
         + '</div></div></details>';
   html += '<label class="fa-nonstop"><input type="checkbox" id="faNonStop" style="width:auto;"> Non-stop only</label>';
+  /* Apna commission — fare + commission = selling price (v3.03) */
+  html += '<div class="row" style="margin-top:8px; align-items:flex-end;">'
+        + '<div style="flex:0 0 170px;"><label>Commission / person (Rs)</label>'
+        + '<input id="mezComm" class="fa-comm" type="number" min="0" step="500" inputmode="numeric" value="' + (mezComm() ? esc(String(mezComm())) : "") + '" placeholder="0"></div>'
+        + '<div class="hint" style="flex:1; margin:0 0 8px;">Aap ka commission fare mein jud kar <b>selling price</b> ban jata he — har fare card par green mein, aur airline strip / country list mein bhi.</div>'
+        + '</div>';
   html += '<button class="btn primary" id="faMeezab" style="width:100%; margin-top:10px; background:#2563eb; color:#fff;">Meezab Air — live PKR fares</button>';
   if(configured) html += '<button class="btn" id="faSearch" style="width:100%; margin-top:8px; background:#4b5563; color:#fff;">🔍 Ignav search</button>';
   html += '<div class="hint" style="margin-top:6px;">Meezab: PKR mein <b>saari</b> flights, total poore party ka. Fares portal ke Economy-class ke hote hain.</div>';
@@ -6135,6 +6146,10 @@ function faOfferCard(o, curr){
   var first = firstLeg.segments[0] || {};
   var code = String(first.marketing_carrier_code || "").toUpperCase();
   var price = faMoney(o.price && o.price.amount, (o.price && o.price.currency) || curr);
+  /* Commission (agar set ho) — copy text mein bhi selling price jaye */
+  var ignCommPax = { adults: Math.max(1, Number((IGN_STATE.form || {}).adults) || 1) };
+  var ignSell = mezComm() > 0 ? mezSellAmount(o.price && o.price.amount, ignCommPax) : 0;
+  var priceOut = ignSell ? faMoney(ignSell, (o.price && o.price.currency) || curr) : price;
   var unverified = !!(o.price && o.price.status && o.price.status !== "verified");
   var cabin = String(o.cabin_class || "").replace(/_/g, " ");
   var airlineName = faAirlineName(code, firstLeg.carrier);
@@ -6142,7 +6157,7 @@ function faOfferCard(o, curr){
     var segs = x.d.segments, a = segs[0], z = segs[segs.length - 1];
     return a.departure_airport + "→" + z.arrival_airport + " " + faDateTime(a.departure_time_local);
   });
-  var copyTxt = copyParts.join(" | ") + " — " + price + (cabin ? (" (" + cabin + ")") : "");
+  var copyTxt = copyParts.join(" | ") + " — " + priceOut + (cabin ? (" (" + cabin + ")") : "");
   var legsHtml = rawLegs.map(function(x){
     var segs = x.d.segments, a = segs[0], z = segs[segs.length - 1];
     var stops = Math.max(0, segs.length - 1);
@@ -6188,8 +6203,9 @@ function faOfferCard(o, curr){
     +   '<div style="flex:1; min-width:0;">'
     +     '<div style="display:flex; justify-content:space-between; gap:8px; align-items:baseline; flex-wrap:wrap;">'
     +       '<div><b>'+esc(code)+(first.flight_number ? ' '+esc(first.flight_number) : '')+'</b> <span style="color:var(--muted); font-size:12px;">'+esc(airlineName)+(rawLegs.length > 2 ? ' · '+rawLegs.length+' legs' : '')+'</span></div>'
-    +       '<div style="font-size:19px; font-weight:800; color:var(--blue); white-space:nowrap;">'+esc(price)+'</div>'
+    +       '<div style="font-size:19px; font-weight:800; color:var(--blue); white-space:nowrap;">'+esc(priceOut)+'</div>'
     +     '</div>'
+    +     (ignSell ? '<div style="font-size:11px; color:var(--green); font-weight:700;">fare ' + esc(price) + ' + commission = ' + esc(priceOut) + '</div>' : '')
     +     legsHtml
     +     '<div style="font-size:11.5px; color:var(--muted); margin-top:3px;">'
     +       (cabin ? esc(cabin) : '')
@@ -6579,6 +6595,18 @@ function mezCabinClass(v){
   if(s === "premiumeconomy" || s === "premium") return "PremiumEconomy";
   return "Economy";
 }
+/* ---------- Agent commission: fare + apna commission = selling price (v3.03) ---------- */
+function mezComm(){
+  var n = Number(S.settings.mezCommission);
+  return isFinite(n) && n > 0 ? n : 0;
+}
+function mezPaxParty(pax){
+  if(!pax) return 1;
+  var n = (Number(pax.adults) || 0) + (Number(pax.children) || 0) + (Number(pax.infants) || 0);
+  return n > 0 ? n : 1;
+}
+function mezCommTotal(pax){ return mezComm() * mezPaxParty(pax); }
+function mezSellAmount(amount, pax){ return (Number(amount) || 0) + mezCommTotal(pax); }
 function mezCardHtml(f, idx){
   var segs = f.segments || [];
   var multi = segs.length > 1;
@@ -6587,6 +6615,7 @@ function mezCardHtml(f, idx){
   var first = segs[0] || {}, last = segs[segs.length - 1] || {};
   var pax = f.pax || (MEZ.info && MEZ.info.pax) || null;
   var party = pax ? (Number(pax.adults) || 1) + (Number(pax.children) || 0) + (Number(pax.infants) || 0) : 1;
+  var commTot = mezCommTotal(pax);
   var hasBreak = party > 1 && (f.per_adult || f.per_child || f.per_infant);
   /* Card ke andar har leg apni row leti he — round trip mein outbound aur
      return alag, multi-city mein Leg 1/2/3. Warna dono mil kar ek jaisi
@@ -6603,7 +6632,10 @@ function mezCardHtml(f, idx){
     + '<div class="mez-sub">' + esc(allSegs.map(function(s){ return s.flight; }).filter(Boolean).join(" · "))
     + (f.overnight ? ' · overnight' : '') + '</div></div>'
     + '<div class="mez-price"><b>' + esc(faMoney(f.amount, f.currency)) + '</b><small>'
-    + (hasBreak ? esc("total · " + mezPaxText(pax)) : "per adult") + '</small></div></div>';
+    + (hasBreak ? esc("total · " + mezPaxText(pax)) : "per adult") + '</small>'
+    + (commTot > 0 ? '<div class="sell"><b>' + esc(faMoney((Number(f.amount) || 0) + commTot, f.currency)) + '</b>'
+        + '<small>sell · +' + esc(faMoney(commTot, f.currency)) + ' comm</small></div>' : '')
+    + '</div></div>';
   groups.forEach(function(g, gi){
     var gs = g.segments || [];
     h += '<div class="mez-trip">';
@@ -6906,7 +6938,9 @@ function mezRender(){
     + (info.stale ? ' · <b style="color:var(--red);" title="' + esc(info.staleReason || "") + '">purana data — live search fail hui</b>' : '')
     + (MEZ.budget && MEZ.budget.left != null ? ' · <span title="Meezab ka rozana search budget">budget ' + esc(String(MEZ.budget.left)) + '/' + esc(String(MEZ.budget.cap || 0)) + ' bache</span>' : '')
     + (info.auto ? ' · <b style="color:var(--green);">auto-refreshed</b>' : '')
-    + (MEZ.autoErr ? ' · <span style="color:var(--red);font-weight:700;">refresh fail: ' + esc(MEZ.autoErr) + '</span>' : '') + '</div>';
+    + (MEZ.autoErr ? ' · <span style="color:var(--red);font-weight:700;">refresh fail: ' + esc(MEZ.autoErr) + '</span>' : '')
+    + (mezComm() > 0 ? ' · <b style="color:var(--green);">commission ' + esc(faMoney(mezComm(), "PKR")) + '/person</b> (' + mezPaxParty(info.pax) + ' pax = ' + esc(faMoney(mezCommTotal(info.pax), "PKR")) + ')' : '')
+    + '</div>';
   h += '<div class="mez-tools"><div><label for="mezSort">Sort</label><select id="mezSort">'
     + '<option value="price">Price (low → high)</option><option value="duration">Duration (shortest)</option>'
     + '<option value="departure">Departure (earliest)</option></select></div>'
@@ -6931,10 +6965,12 @@ function mezRender(){
     h += '<button class="mez-air-btn all' + (MEZ.airline ? '' : ' on') + '" data-mez-air=""><span class="nm">All airlines</span>'
       + '<span class="ct">' + mezBase().length + '</span></button>';
     stats.forEach(function(a){
+      var sell = mezComm() > 0 ? mezSellAmount(a.cheapest, info.pax) : a.cheapest;
       h += '<button class="mez-air-btn' + (MEZ.airline === a.code ? ' on' : '') + '" data-mez-air="' + esc(a.code) + '" title="'
-        + esc(a.name) + ' — ' + esc(faMoney(a.cheapest, "PKR")) + '">'
+        + esc(a.name) + ' — fare ' + esc(faMoney(a.cheapest, "PKR"))
+        + (mezComm() > 0 ? ' + commission = ' + esc(faMoney(sell, "PKR")) : '') + '">'
         + mezAirIcon(a.code)
-        + '<span><span class="nm">' + esc(a.name) + '</span><br><span class="pr">' + esc(faMoney(a.cheapest, "PKR"))
+        + '<span><span class="nm">' + esc(a.name) + '</span><br><span class="pr">' + esc(faMoney(sell, "PKR"))
         + '</span> <span class="ct">(' + a.count + ')</span></span></button>';
     });
     h += '</div>';
@@ -7417,7 +7453,9 @@ function mezRenderCountry(){
       + '<span><span class="cc">' + esc(r.destination) + '</span><br><span class="cs">' + esc(mezCity(r.city) || r.destination)
       + ' · ' + esc(r.airline || "") + '</span><br><span class="mez-kid">' + esc(mezStopsText(r)) + ' · '
       + esc(faDurMins(r.duration_min) || "—") + '</span></span>'
-      + '<span class="cp">' + esc(faMoney(r.cheapest, "PKR")) + '<small>' + (r.count || r.fares.length) + ' fares</small></span>'
+      + '<span class="cp" title="fare ' + esc(faMoney(r.cheapest, "PKR")) + (mezComm() > 0 ? ' + commission' : '') + '">'
+      + esc(faMoney(mezComm() > 0 ? mezSellAmount(r.cheapest, c.pax) : r.cheapest, "PKR"))
+      + '<small>' + (r.count || r.fares.length) + ' fares</small></span>'
       + '</button>';
   });
   if(c.busy) h += '<div class="hint" style="margin-top:8px;">Har airport ek alag search he — 20–60 second lag sakte hain. '
@@ -11229,6 +11267,24 @@ function bind(){
     var tmp = a.value; a.value = b.value; b.value = tmp;
     try{ a.dispatchEvent(new Event("input")); b.dispatchEvent(new Event("input")); }catch(e){}
   };
+  /* Commission — type karte hi results dobara render, save thora ruk kar */
+  var mezCommEl = document.getElementById("mezComm");
+  if(mezCommEl){
+    var _mezCommT = null;
+    mezCommEl.oninput = function(){
+      S.settings.mezCommission = Math.max(0, Number(this.value) || 0);
+      try{
+        if(MEZ.fares && MEZ.fares.length) mezRender();
+        mezRenderCountry();
+      }catch(e){}
+      if(_mezCommT) clearTimeout(_mezCommT);
+      _mezCommT = setTimeout(function(){ save(); }, 700);
+    };
+    mezCommEl.onchange = function(){
+      S.settings.mezCommission = Math.max(0, Number(this.value) || 0);
+      save();
+    };
+  }
   var faMeezabBtn = document.getElementById("faMeezab");
   if(faMeezabBtn) faMeezabBtn.onclick = meezabLookup;
   /* Price Lookup ke From/To par bhi airport suggestions — pehle sirf invoice
