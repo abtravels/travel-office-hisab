@@ -166,11 +166,34 @@ async function isAllowed(env, chat) {
 async function notifyAll(env, html, extra) {
   const list = await allowedChats(env);
   const sent = [], failed = [], errors = [];
-  for (const c of list) {
+  /* Sab chats ek saath — ek slow chat poore request ko latka na de. */
+  await Promise.all(list.map(async function (c) {
     try { await send(env, c, html, extra); sent.push(c); }
     catch (e) { failed.push(c); errors.push(String((e && e.message) || e).slice(0, 160)); }
+  }));
+  let discord = null;
+  if (env.DISCORD_WEBHOOK) {
+    try { await discordSend(env, html); discord = { ok: true }; }
+    catch (e) { discord = { ok: false, error: String((e && e.message) || e).slice(0, 160) }; }
   }
-  return { sent: sent, failed: failed, errors: errors };
+  return { sent: sent, failed: failed, errors: errors, discord: discord };
+}
+
+/* Discord webhook — Telegram jawab na de to bhi alert pohanch jaye.
+   Setup: Cloudflare -> Worker -> Variables -> DISCORD_WEBHOOK = webhook URL. */
+async function discordSend(env, html) {
+  if (!env.DISCORD_WEBHOOK) throw new Error("DISCORD_WEBHOOK not set");
+  const text = String(html || "")
+    .replace(/<br\s*\/?>/gi, "\n").replace(/<\/p>/gi, "\n")
+    .replace(/<[^>]+>/g, "")
+    .replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">")
+    .slice(0, 1900);
+  const r = await fetch(env.DISCORD_WEBHOOK, {
+    method: "POST", headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ content: text || "(empty)" }), signal: AbortSignal.timeout(12000)
+  });
+  if (!r.ok) throw new Error("Discord HTTP " + r.status);
+  return true;
 }
 
 
@@ -292,7 +315,7 @@ async function tg(env, method, payload) {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload || {}),
-        signal: AbortSignal.timeout(attempt === 0 ? 20000 : 40000)
+        signal: AbortSignal.timeout(attempt === 0 ? 8000 : 12000)
       });
       let j = null;
       try { j = await r.json(); } catch (e) { /* ignore */ }
@@ -2217,8 +2240,8 @@ async function trackApi(request, env, hdrs) {
     try { r = await notifyAll(env, "<b>AB Travels test</b> - tracker notifications theek chal rahi hain (" + pktNowText() + ")"); }
     catch (e) { r = { sent: [], failed: [], errors: [String((e && e.message) || e)] }; }
     const chats = (await allowedChats(env)).length;
-    return jres({ ok: r.sent.length > 0, sent: r.sent.length, failed: r.failed.length,
-      errors: r.errors.slice(0, 2), chats: chats }, 200, hdrs);
+    return jres({ ok: r.sent.length > 0 || !!(r.discord && r.discord.ok), sent: r.sent.length, failed: r.failed.length,
+      errors: r.errors.slice(0, 2), chats: chats, discord: r.discord || null }, 200, hdrs);
   }
 
   return jres({ error: "unknown action" }, 400, hdrs);
@@ -3057,7 +3080,7 @@ async function statusPage(env) {
       info = "<li>Webhook: <span style=\"color:var(--gold)\">check slow</span> <small>(Telegram jawab nahi de raha - bot par message bhej kar test karein)</small></li>";
     }
   }
-  return page("AB Travels worker", "<h1>✈️ AB Travels worker <small>v3.20</small></h1><ul>" + rows.join("") + info +
+  return page("AB Travels worker", "<h1>✈️ AB Travels worker <small>v3.21</small></h1><ul>" + rows.join("") + info +
     "<li>Today's searches: <b>" + esc(used) + "</b> / " + budgetCap(env) + "</li>" +
     "<li>Owner chat: <code>" + esc(owner) + "</code></li>" +
     "<li>Team alerts: " + (team.length ? team.map(function (c) { return "<code>" + esc(c) + "</code>"; }).join(", ") : "<i>sirf owner</i>") + "</li></ul>" +
