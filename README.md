@@ -1,47 +1,52 @@
 # Travel Office Hisab - AB Travels
 
-## Airline / B2B portals — ek hi jagah (v3.08)
-- **PNR Lookup** tab ke sab se upar naya card **🔗 Airline portals**: **Meezab B2B, Fly Jinnah, AirBlue, AirSial, PIA, Serene Air** — ek tap se seedha portal khul jata he (browser mein; koi server request nahi, is liye IP ban ka koi khatra nahi).
-- **✎** se kisi bhi portal ka pata apne **agent login** ka daal dein, **✕** se hata dein, **＋ Add portal** se naya (maslan Sabre / Amadeus / koi aur B2B) add karein, **Reset list** se default wapas. List `settings.portals` mein save hoti he, is liye backup/sync ke sath doosre device par bhi aa jati he.
-- **Site mobile par na khule to:** browser ke menu se **Request desktop website** (Safari: `aA` → Request Desktop Website; Chrome: `⋮` → Desktop site). Isi se airline ki desktop site khulti he — yahi asli "jugar" he.
-- **Jo nahi kiya:** worker se site ko desktop browser bana kar proxy karna — login/cookies/2FA wahan tootti hein, airline ka bot-protection block kar deta he, aur ye un ke terms ke khilaf bhi he. Is liye app sirf seedha link kholta he.
-- Sirf app ka change — Worker redeploy ki zaroorat nahi.
+## Portal names phone par poore (v3.09)
+- v3.08 ka portal card phones par bhi 2-column grid mein tha, is liye 320px screen par har naam ko ~56px milte thay aur `Meezab B2B` â†’ `Meezâ€¦` kat jata tha.
+- Ab **600px se neeche single column** he, is liye har portal ka poora naam nazar aata he. Tablet/laptop par 2-column layout waisa hi he.
+- Sirf CSS ka change â€” Worker redeploy ki zaroorat nahi.
+
+## Airline / B2B portals â€” ek hi jagah (v3.08)
+- **PNR Lookup** tab ke sab se upar naya card **ðŸ”— Airline portals**: **Meezab B2B, Fly Jinnah, AirBlue, AirSial, PIA, Serene Air** â€” ek tap se seedha portal khul jata he (browser mein; koi server request nahi, is liye IP ban ka koi khatra nahi).
+- **âœŽ** se kisi bhi portal ka pata apne **agent login** ka daal dein, **âœ•** se hata dein, **ï¼‹ Add portal** se naya (maslan Sabre / Amadeus / koi aur B2B) add karein, **Reset list** se default wapas. List `settings.portals` mein save hoti he, is liye backup/sync ke sath doosre device par bhi aa jati he.
+- **Site mobile par na khule to:** browser ke menu se **Request desktop website** (Safari: `aA` â†’ Request Desktop Website; Chrome: `â‹®` â†’ Desktop site). Isi se airline ki desktop site khulti he â€” yahi asli "jugar" he.
+- **Jo nahi kiya:** worker se site ko desktop browser bana kar proxy karna â€” login/cookies/2FA wahan tootti hein, airline ka bot-protection block kar deta he, aur ye un ke terms ke khilaf bhi he. Is liye app sirf seedha link kholta he.
+- Sirf app ka change â€” Worker redeploy ki zaroorat nahi.
 
 ## From / To boxes ek line par (v3.07)
-- **Masla:** Price Lookup ka **To** box **From** se thora neeche lagta tha. Wajah: row `align-items:flex-end` par thi, aur har box ke neeche `airport-info` (airport ka naam) hota he — jis column mein wo line lambi/do-line ho jati, us ka input upar khisak jata tha, doosra neeche.
-- **Fix:** row ab `align-items:flex-start` par he, is liye label aur input dono hamesha ek line par rehte hain; airport ki line neeche apni jagah rehti he (aur ek hi line mein ellipsis `…` ho jati he, height nahi badalti).
-- **Arrow (→)** ab fixed 26px column he (pehle poori width ka hissa le raha tha) aur row ke beech mein vertically centered he. Multi-city leg 2 wali row par bhi wahi fix.
-- Sirf app ka change — Worker redeploy ki zaroorat nahi.
+- **Masla:** Price Lookup ka **To** box **From** se thora neeche lagta tha. Wajah: row `align-items:flex-end` par thi, aur har box ke neeche `airport-info` (airport ka naam) hota he â€” jis column mein wo line lambi/do-line ho jati, us ka input upar khisak jata tha, doosra neeche.
+- **Fix:** row ab `align-items:flex-start` par he, is liye label aur input dono hamesha ek line par rehte hain; airport ki line neeche apni jagah rehti he (aur ek hi line mein ellipsis `â€¦` ho jati he, height nahi badalti).
+- **Arrow (â†’)** ab fixed 26px column he (pehle poori width ka hissa le raha tha) aur row ke beech mein vertically centered he. Multi-city leg 2 wali row par bhi wahi fix.
+- Sirf app ka change â€” Worker redeploy ki zaroorat nahi.
 
 ## Base fare ka tooltip bhi hata diya (v3.06)
-- Pehle price par **long-press** karne se `base fare PKR …` wala tooltip aata tha — ab wo **hata diya** he (Meezab aur Ignav dono cards se). Is liye kisi bhi tarah asli fare nazar nahi aata, sirf aap ka final price.
+- Pehle price par **long-press** karne se `base fare PKR â€¦` wala tooltip aata tha â€” ab wo **hata diya** he (Meezab aur Ignav dono cards se). Is liye kisi bhi tarah asli fare nazar nahi aata, sirf aap ka final price.
 - Tax panel ki English hint se bhi "long-press" wali line nikal di.
 - **Asli fare khud dekhna ho** to Tax `0` kar ke search karein (phir wahi price base fare hota he), ya Meezab portal par dekh lein.
-- Sirf app ka change — Worker redeploy ki zaroorat nahi.
+- Sirf app ka change â€” Worker redeploy ki zaroorat nahi.
 
-## Tax (pehle "commission") — arrow se minimise hone wala panel (v3.05)
-- Naam badal diya: Price Lookup ke form mein ab **“Tax / person (Rs)”** he — lafz "commission" kahin nazar nahi aata.
-- Ye ab ek **collapsible panel** he (▸ / ▾ arrow): **default band** rehta he, aur band hone par **raqam bhi nazar nahi aati** — sirf `✓ set` ya `add` dikhta he. Is liye screenshot mein na naam aata he na tax ki raqam.
-- Panel ke andar wali line ab **English** mein: *“Tax is already added to every price below - it is never shown as a separate line, so a screenshot does not reveal it. To see the base fare, long-press a price.”*
-- Har price (fare cards, airline strip, country list, per-passenger breakdown, Copy fare) mein tax pehle se shamil he — v3.03 jaisa hi. Price par long-press karne se `base fare` milta he.
-- Sirf app ka change — Worker redeploy ki zaroorat nahi.
+## Tax (pehle "commission") â€” arrow se minimise hone wala panel (v3.05)
+- Naam badal diya: Price Lookup ke form mein ab **â€œTax / person (Rs)â€** he â€” lafz "commission" kahin nazar nahi aata.
+- Ye ab ek **collapsible panel** he (â–¸ / â–¾ arrow): **default band** rehta he, aur band hone par **raqam bhi nazar nahi aati** â€” sirf `âœ“ set` ya `add` dikhta he. Is liye screenshot mein na naam aata he na tax ki raqam.
+- Panel ke andar wali line ab **English** mein: *â€œTax is already added to every price below - it is never shown as a separate line, so a screenshot does not reveal it. To see the base fare, long-press a price.â€*
+- Har price (fare cards, airline strip, country list, per-passenger breakdown, Copy fare) mein tax pehle se shamil he â€” v3.03 jaisa hi. Price par long-press karne se `base fare` milta he.
+- Sirf app ka change â€” Worker redeploy ki zaroorat nahi.
 
-## Commission price mein hi shamil — screenshot par markup nazar nahi aata (v3.04)
-- Pehle fare aur selling price **do alag number** dikhte thay (`fare` + green `sell · +20,000 comm`) — screenshot bhejne par client ko markup nazar aa jata tha.
+## Commission price mein hi shamil â€” screenshot par markup nazar nahi aata (v3.04)
+- Pehle fare aur selling price **do alag number** dikhte thay (`fare` + green `sell Â· +20,000 comm`) â€” screenshot bhejne par client ko markup nazar aa jata tha.
 - Ab **sirf ek hi price** dikhta he, jis mein commission pehle se juda hua he. Kahin bhi "commission", "sell" ya "markup" ka lafz nahi aata.
-- Ye price **fare cards**, **airline strip**, **country list**, **per-passenger breakdown** (per person + party total) aur **Copy fare** ke text — sab jagah wahi final price he.
-- Asli fare pehle price par long-press karne se milta tha — **v3.06 se wo tooltip hata diya he** (khud dekhna ho to Tax 0 kar ke search karein).
+- Ye price **fare cards**, **airline strip**, **country list**, **per-passenger breakdown** (per person + party total) aur **Copy fare** ke text â€” sab jagah wahi final price he.
+- Asli fare pehle price par long-press karne se milta tha â€” **v3.06 se wo tooltip hata diya he** (khud dekhna ho to Tax 0 kar ke search karein).
 - Tax box (`Tax / person (Rs)`); `0` = sirf fare. (v3.05 mein ye collapsible panel ho gaya he aur amount bhi chhupi rehti he.)
-- Sirf app ka change — Worker redeploy ki zaroorat nahi.
+- Sirf app ka change â€” Worker redeploy ki zaroorat nahi.
 
 ## Price Lookup: apna commission + selling price (v3.03)
-- Price Lookup ke form mein naya box **“Commission / person (Rs)”** — jo commission aap per passenger lena chahte hain wo likh dein.
-- Har fare card par ab do number: **fare** (Meezab ka) aur us ke neeche **green selling price** = fare + (commission × passengers), sath chhota note `sell · +20,000 comm`.
-- Wohi selling price **airline strip** aur **country list** (har airport ke sab se saste fare) mein bhi — wahan base fare tooltip (long-press) mein milta he.
+- Price Lookup ke form mein naya box **â€œCommission / person (Rs)â€** â€” jo commission aap per passenger lena chahte hain wo likh dein.
+- Har fare card par ab do number: **fare** (Meezab ka) aur us ke neeche **green selling price** = fare + (commission Ã— passengers), sath chhota note `sell Â· +20,000 comm`.
+- Wohi selling price **airline strip** aur **country list** (har airport ke sab se saste fare) mein bhi â€” wahan base fare tooltip (long-press) mein milta he.
 - Results ke header mein ek line: `commission 5,000/person (4 pax = 20,000)`.
 - Ignav search ke cards par bhi wahi treatment, aur **Copy fare** ka text ab **selling price** ke sath copy hota he (client ko seedha bhejne ke liye).
 - Commission `settings.mezCommission` mein save hota he, is liye har device/backup ke sath chala jata he. `0` (ya khali) = sirf fare, jaisa pehle tha.
-- Sirf app ka change — Worker redeploy ki zaroorat nahi.
+- Sirf app ka change â€” Worker redeploy ki zaroorat nahi.
 
 ## Price Lookup: laptop par poori width (v3.02)
 - Price Lookup (Fares) tab ab Sales register ki tarah laptop/desktop par poori width leta he (1000px se bari screen par container 1680px tak) - form aur fare cards poori screen par phailte hain, koi bekar khali jagah nahi.
@@ -56,37 +61,37 @@
 
 
 ## Price Lookup: koi fare nahi chhootta + loading bar (v3.00)
-- **Early exit hata diya:** v2.99 mein poll count rukne par ruk jata tha — us se kuch suppliers ke fares chhoot sakte thay. Ab worker portal ke **"search complete"** ka poora intezar karta he (45 polls tak), is liye **saare results** aate hain. `partial` ka label sirf tab aata he jab portal khud waqt par mukammal na ho (us mein bhi koi page skip nahi hota).
-- **Pages: saare** — default 10 (2,500 options), `MEZ_MAX_PAGES` se 20 tak. Pehle 6 par cap tha, jo fares kaat deta tha.
-- **3 pages ka batch:** 10 pages ek saath parse karne se memory/CPU limit (503) tootti thi aur bari round trip load hi nahi hoti thi. Ab har batch normalize ho kar raw JSON chhod di jati he — sab pages aate hain, koi fare drop nahi hota, aur 503 ka khatra kam.
-- **Fancy compact loading bar:** search ke doran lambi "Login ho raha he… 20-60 second" line ki jagah ab **chalti hui patli bar + guzra hua waqt (0s, 1s, 2s…)** aur ek chhoti note.
-- **Waqt am/pm mein** (departure/arrival/segments/fetched) aur **auto-refresh default ON (5 minute)** — dono v2.99 se barqarar.
-- Purana note: round trip **portal par hi 40–70 second** leta he, is liye abhi bhi utna waqt lag sakta he — magar ab poora data aata he aur progress bar chalti dikhti he.
+- **Early exit hata diya:** v2.99 mein poll count rukne par ruk jata tha â€” us se kuch suppliers ke fares chhoot sakte thay. Ab worker portal ke **"search complete"** ka poora intezar karta he (45 polls tak), is liye **saare results** aate hain. `partial` ka label sirf tab aata he jab portal khud waqt par mukammal na ho (us mein bhi koi page skip nahi hota).
+- **Pages: saare** â€” default 10 (2,500 options), `MEZ_MAX_PAGES` se 20 tak. Pehle 6 par cap tha, jo fares kaat deta tha.
+- **3 pages ka batch:** 10 pages ek saath parse karne se memory/CPU limit (503) tootti thi aur bari round trip load hi nahi hoti thi. Ab har batch normalize ho kar raw JSON chhod di jati he â€” sab pages aate hain, koi fare drop nahi hota, aur 503 ka khatra kam.
+- **Fancy compact loading bar:** search ke doran lambi "Login ho raha heâ€¦ 20-60 second" line ki jagah ab **chalti hui patli bar + guzra hua waqt (0s, 1s, 2sâ€¦)** aur ek chhoti note.
+- **Waqt am/pm mein** (departure/arrival/segments/fetched) aur **auto-refresh default ON (5 minute)** â€” dono v2.99 se barqarar.
+- Purana note: round trip **portal par hi 40â€“70 second** leta he, is liye abhi bhi utna waqt lag sakta he â€” magar ab poora data aata he aur progress bar chalti dikhti he.
 
 ## Price Lookup speed + am/pm + auto-refresh on (v2.99)
-- **Round trip / multi-city tez:** portal ke completion poll ab `isSearchCompleted` ka hamesha intezar nahi karta — option count 5 polls tak na badle to jo fares aa chuki hain wohi wapas aati hain (jawab `partial` label ke sath, fares live hote hain). Isse round trip **~20–30 second** tez.
-- **Pages 10 → 6 (1500 fares, saste pehle):** 2429 options wali round trip par 10 pages ki jagah 6 — time aur CPU dono kam. `MEZ_MAX_PAGES` se 12 tak barhaya ja sakta he.
-- **JSON budget 40 MB → 24 MB** — badi round trip par memory/CPU limit (503) ka khatra kam.
-- **Live timer:** search ke doran card par **guzra hua waqt (0s, 1s, 2s…)** dikhta he, is liye 40–70 second wali round trip bhi "atki hui" nahi lagti. Note mein saaf likha he: one-way 20–40s, round trip 40–70s.
-- **Waqt ab am/pm mein:** Meezab ke cards par departure/arrival aur "fetched" time pehle 24-ghante (`23:05`) mein tha — ab `11:05 pm` / `10:05 am` (phone ke 12/24-ghante ki setting se azad).
-- **Auto-refresh dobara default ON (5 minute):** pehle (v2.97) default off kar diya gaya tha; ab budget 4000/din he, is liye 5 minute wala auto-refresh wapas default he — Off/3/5/10 select se band ya badla ja sakta he, aur manual ↻ hamesha chalta he.
-- Worker + app dono badle — Worker Cloudflare Workers Builds se khud deploy ho jata he.
+- **Round trip / multi-city tez:** portal ke completion poll ab `isSearchCompleted` ka hamesha intezar nahi karta â€” option count 5 polls tak na badle to jo fares aa chuki hain wohi wapas aati hain (jawab `partial` label ke sath, fares live hote hain). Isse round trip **~20â€“30 second** tez.
+- **Pages 10 â†’ 6 (1500 fares, saste pehle):** 2429 options wali round trip par 10 pages ki jagah 6 â€” time aur CPU dono kam. `MEZ_MAX_PAGES` se 12 tak barhaya ja sakta he.
+- **JSON budget 40 MB â†’ 24 MB** â€” badi round trip par memory/CPU limit (503) ka khatra kam.
+- **Live timer:** search ke doran card par **guzra hua waqt (0s, 1s, 2sâ€¦)** dikhta he, is liye 40â€“70 second wali round trip bhi "atki hui" nahi lagti. Note mein saaf likha he: one-way 20â€“40s, round trip 40â€“70s.
+- **Waqt ab am/pm mein:** Meezab ke cards par departure/arrival aur "fetched" time pehle 24-ghante (`23:05`) mein tha â€” ab `11:05 pm` / `10:05 am` (phone ke 12/24-ghante ki setting se azad).
+- **Auto-refresh dobara default ON (5 minute):** pehle (v2.97) default off kar diya gaya tha; ab budget 4000/din he, is liye 5 minute wala auto-refresh wapas default he â€” Off/3/5/10 select se band ya badla ja sakta he, aur manual â†» hamesha chalta he.
+- Worker + app dono badle â€” Worker Cloudflare Workers Builds se khud deploy ho jata he.
 
 ## Price Lookup: chhota form, pichhli search yaad, stale prices saaf (v2.98)
-- **Form chhota:** Trip / Class / Adults / Children / Infants — ye 6 boxes ab ek **summary line** ke peeche hain (`One-way · Economy · 1 adult`). Tap karne par khulte hain; form ab sirf From/To, dates, Non-stop aur Search tak reh jata he.
+- **Form chhota:** Trip / Class / Adults / Children / Infants â€” ye 6 boxes ab ek **summary line** ke peeche hain (`One-way Â· Economy Â· 1 adult`). Tap karne par khulte hain; form ab sirf From/To, dates, Non-stop aur Search tak reh jata he.
 - **Aakhri search poora yaad:** pehle sirf From/To aur date yaad rehte thay, is liye tab switch ya reload par trip, class aur passengers default ho jate thay. Ab poora form `sessionStorage` mein rehta he (route/date ke saath trip, class, adults/children/infants aur Non-stop bhi).
-- **Airport suggestions Price Lookup mein:** From/To (aur multi-city leg 2) par ab wahi airport/country dropdown chalta he jo invoice mein tha — IATA code haath se likhne ki zaroorat nahi.
-- **Infants validation:** infants (lap + seat) adults se zyada nahi ho sakte — galat party par saaf message, portal par lambi fail search se pehle.
-- **Purana data saaf:** portal fail hone par worker pichla mukammal jawab `stale: true` ke saath deta he; app ab header mein **"purana data — live search fail hui"** laal note dikhata he (pehle purane prices live lagte thay).
+- **Airport suggestions Price Lookup mein:** From/To (aur multi-city leg 2) par ab wahi airport/country dropdown chalta he jo invoice mein tha â€” IATA code haath se likhne ki zaroorat nahi.
+- **Infants validation:** infants (lap + seat) adults se zyada nahi ho sakte â€” galat party par saaf message, portal par lambi fail search se pehle.
+- **Purana data saaf:** portal fail hone par worker pichla mukammal jawab `stale: true` ke saath deta he; app ab header mein **"purana data â€” live search fail hui"** laal note dikhata he (pehle purane prices live lagte thay).
 - **Country search bhi yaad:** country se search karne par bhi aakhri search save hota he (pehle sirf single-airport).
-- **Budget line:** help mein ab 4000 search/din (worker ka naya default; practically unlimited) — auto-refresh cap 240/din.
-- Sirf app ka change (worker v2.96 ke saath chalta he) — Worker redeploy ki zaroorat nahi.
+- **Budget line:** help mein ab 4000 search/din (worker ka naya default; practically unlimited) â€” auto-refresh cap 240/din.
+- Sirf app ka change (worker v2.96 ke saath chalta he) â€” Worker redeploy ki zaroorat nahi.
 
 ## Price Lookup: search ke baad results foran samne, aur chhote fixes (v2.97)
-- **Nested cards khatam:** Meezab ke results aur country panel form card ke **andar** bante thay (card ke andar card — double padding/shadow). Ab dono form ke neeche apne cards mein aate hain, poori width par.
+- **Nested cards khatam:** Meezab ke results aur country panel form card ke **andar** bante thay (card ke andar card â€” double padding/shadow). Ab dono form ke neeche apne cards mein aate hain, poori width par.
 - **Search ke baad khud results tak scroll:** button dabane ke baad results screen se neeche hote thay, is liye lagta tha kuch hua hi nahi. Ab search mukammal hote hi page results par pahunch jata he (refresh/paging par nahi).
 - **Validation messages apni jagah:** "From ka IATA code dalein", "Return date chunein" waghera pehle results area mein jate thay (jo ab neeche alag card he). Ab button ke neeche hi laal line mein aate hain, purane results mehfooz rehte hain.
-- **Auto-refresh ab default OFF:** pehle har search ke baad 5 minute par khud refresh hota tha — Meezab ka rozana budget chup chaap khatam hone ki yahi wajah thi. Ab user khud chunta he (Off / 3 / 5 / 10 min); manual ↻ hamesha chalta he.
+- **Auto-refresh ab default OFF:** pehle har search ke baad 5 minute par khud refresh hota tha â€” Meezab ka rozana budget chup chaap khatam hone ki yahi wajah thi. Ab user khud chunta he (Off / 3 / 5 / 10 min); manual â†» hamesha chalta he.
 - **Ignav button sirf setup hone par:** Ignav proxy/key set na ho to wo button chhupa rehta he (pehle dabane par error aata tha).
 - **Aakhri search yaad:** app dobara kholne par From/To aur departure date pichhli search ke aa jate hain (date guzar gayi ho to aaj).
 - **Enter se search:** From/To mein Enter dabane par seedha Meezab search; airport list khuli ho to Enter pehle wahi row chunta he.
@@ -107,242 +112,242 @@
 - Koi naya button nahi chhupa: bottom bar ka center plane, menu aur baqi tabs sab jaisa tha waisa he.
 
 ## Ticket files: PC par upload, mobile par foran (v2.92)
-- **Masla:** PC se ticket file upload hoti thi lekin mobile ki list mein nahi aati thi — pull/push dono karne ke baad bhi.
-- **Asli wajah:** sync poora state last-writer-wins tha. Jab mobile ka apna data naya hota (`__ts` bara), pull **poora remote data chhor deta** tha ("Local data is newer…"), aur file list bhi usi state ka hissa thi. Doosri taraf: mobile ka purana push PC ki nayi file ko GitHub par dhak deta tha. Is liye file kabhi mobile tak nahi pohanchti thi.
-- **Ab:** ticket files ka **union** hota hai — local + GitHub dono lists mila kar ek list banti he, chahe is device ka data naya ho ya purana. Pull ke baad union wapas GitHub par bhi chala jata hai, is liye dono taraf same list rehti he.
-- **Delete:** naya `fileTombstones` (id + waqt) — delete ki hui file sync se wapas zinda nahi hoti, kisi bhi device se delete ho.
+- **Masla:** PC se ticket file upload hoti thi lekin mobile ki list mein nahi aati thi â€” pull/push dono karne ke baad bhi.
+- **Asli wajah:** sync poora state last-writer-wins tha. Jab mobile ka apna data naya hota (`__ts` bara), pull **poora remote data chhor deta** tha ("Local data is newerâ€¦"), aur file list bhi usi state ka hissa thi. Doosri taraf: mobile ka purana push PC ki nayi file ko GitHub par dhak deta tha. Is liye file kabhi mobile tak nahi pohanchti thi.
+- **Ab:** ticket files ka **union** hota hai â€” local + GitHub dono lists mila kar ek list banti he, chahe is device ka data naya ho ya purana. Pull ke baad union wapas GitHub par bhi chala jata hai, is liye dono taraf same list rehti he.
+- **Delete:** naya `fileTombstones` (id + waqt) â€” delete ki hui file sync se wapas zinda nahi hoti, kisi bhi device se delete ho.
 - Files tab par **"Last GitHub check"** line: kis waqt check hua aur kya nateeja aaya (nayi files mili / local list dikhayi ja rahi he).
-- **Missing file recovery (v2.93):** agar kisi file ki metadata kho jaye (purane version ka pull), to Files tab GitHub ke `tickets/` folder ko list kar ke wo entry khud wapas bana deta he — naam, PNR (file name se), size, date aur sha ke saath. Delete ki hui files tombstones ki wajah se wapas nahi aatin.
+- **Missing file recovery (v2.93):** agar kisi file ki metadata kho jaye (purane version ka pull), to Files tab GitHub ke `tickets/` folder ko list kar ke wo entry khud wapas bana deta he â€” naam, PNR (file name se), size, date aur sha ke saath. Delete ki hui files tombstones ki wajah se wapas nahi aatin.
 - Tests: `node tests/file_sync_pull.mjs` (asli `syncPull` fake GitHub ke saath: local newer + remote file, union push, dono taraf ke tombstones, bekaar push nahi), `node tests/file_sync_checks.mjs` (union/tombstone helpers, 300 cap) aur `node tests/file_recover_checks.mjs` (folder se missing entry recovery).
 
 ## Meezab baggage: har direction ka alag + total (v2.91)
-- **Pehle:** card par sirf ek number — `Baggage 50 kg` (aur pounds/pieces bhi ghalat "kg" ban jate the).
+- **Pehle:** card par sirf ek number â€” `Baggage 50 kg` (aur pounds/pieces bhi ghalat "kg" ban jate the).
 - **Ab portal jaisa:** `BaggageInfoADT` ke har segment ka token alag parse hota he (kg / lb / pieces), aur card par har direction ka allowance + total aata he:
-  - `Baggage 25 kg + 25 kg = 50 kg` (outbound 25 kg · return 25 kg)
+  - `Baggage 25 kg + 25 kg = 50 kg` (outbound 25 kg Â· return 25 kg)
   - `Baggage 50 lb + 50 lb = 100 lb`
   - `Baggage 1 piece + 1 piece = 2 pieces`
   - Ek taraf bag na ho to: `Baggage 20 kg + no bag` ya `Baggage no bag + 30 kg`
-  - Chip par hover (desktop) se poora split: `outbound 25 kg · return 25 kg`.
+  - Chip par hover (desktop) se poora split: `outbound 25 kg Â· return 25 kg`.
 - **Fare/weight options:** Meezab har `FlightOption` ko alag fare row bhejta he, is liye ek hi flight ke **Economy Basic 25 kg vs Economy Convenience 30 kg**, `value` / `flexi` / `xtra` jaise options apne apne price aur baggage ke sath alag cards mein aate hain.
 - **Baggage filter fix:** `Checked bag` / `Cabin only` ab lb aur pieces ko bhi samajhta he (`50Pounds`, `1Pieces` pehle "kg" gin raha tha). Unknown baggage dono filters se bahar rehta he.
 - Per-passenger breakdown table mein bhi har group ka apna baggage wahi per-direction label se dikhta he.
-- Tests: `node tests/meezab_ui_checks.mjs` — naye cases round trip 25+25=50, pounds 50+50=100, pieces 1+1=2, aur ek-taraf-no-bag ke liye.
+- Tests: `node tests/meezab_ui_checks.mjs` â€” naye cases round trip 25+25=50, pounds 50+50=100, pieces 1+1=2, aur ek-taraf-no-bag ke liye.
 
 ## Auto-deploy from GitHub (Workers Builds)
-- Worker `ab-travels-ignav` ab GitHub se juda he: Cloudflare → Workers & Pages → ab-travels-ignav → Settings → **Builds**.
+- Worker `ab-travels-ignav` ab GitHub se juda he: Cloudflare â†’ Workers & Pages â†’ ab-travels-ignav â†’ Settings â†’ **Builds**.
   - Git account/repo: `abtravels/travel-office-hisab`, branch **main**
   - Build command: **khali** (koi build step nahi)
   - Deploy command: **`npx wrangler deploy -c wrangler.pricebot.toml`**
   - Root directory: `/`
-- Matlab: `main` par har push ke baad Cloudflare khud Worker deploy kar deta he (log: Deployments → build). Haath se code paste/redeploy ki zaroorat nahi.
-- Bindings, secrets aur cron `wrangler.pricebot.toml` se aate hain; KV (`KV` → `abtravels-bot`), Durable Object (`WATCH_INDEX_DO`) aur secrets dashboard par waise hi rehte hain.
+- Matlab: `main` par har push ke baad Cloudflare khud Worker deploy kar deta he (log: Deployments â†’ build). Haath se code paste/redeploy ki zaroorat nahi.
+- Bindings, secrets aur cron `wrangler.pricebot.toml` se aate hain; KV (`KV` â†’ `abtravels-bot`), Durable Object (`WATCH_INDEX_DO`) aur secrets dashboard par waise hi rehte hain.
 - Deploy ke baad `https://ab-travels-ignav.umair5075.workers.dev/` par version string check kar lein.
 
 ## Meezab: round trip, multi-city aur cabin (v2.88)
 - **Masla:** Meezab sirf one-way par chalta tha; round trip aur multi-city ke liye app saaf mana kar deta tha ("Meezab currently supports one-way, Economy").
-- **Asli wajah:** portal ke apne search form se request capture ki gayi (Blazor WebAssembly hai, is liye browser ka `fetch`/XHR hook lagaya). Portal `FlightDirection` mein **`Round`** bhejta he (RoundTrip nahi) aur multi-city ke liye `MultiCityArray: [{DepartureDate, FromIATA, ToIATA}, …]` bhejta he. Ab worker bilkul wohi body banata he.
-- **Live verify (16 Nov 2026):** KHI–DXB round trip 10→20 Dec = 2,429 options, 2 legs, **88,720 PKR**; KHI–DXB–LHR multi-city = 1,317 options, **96,754 PKR**.
-- **Cabin:** portal Economy / PremiumEconomy / Business / First accept karta he, magar fares hamesha Economy class ke aate hain (KHI–DXB aur KHI–LHR par Business/First ki prices bilkul wohi thin). Is liye app choice deta he magar saaf note likhta he ke portal ke fares Economy-class hote hain — jhooti filtering nahi.
-- **Worker:** `mezQuery` ab `trip_type` / `return_date` / `legs` / `cabin_class` leta he (4 legs tak), date-order aur From/To validation ke sath. Naye helpers `mezPortalQuery`, `mezTraceId` (16-byte base64), `mezPkNow` (+05:00). Har fare mein `trip_type`, `cabin`, aur `legs[]` (har leg ke apne segments/duration/stops) — top-level fields pehli leg ke, `duration_min` saari legs ka jod. Duplicate fare key ab saari legs dekhti he, is liye same price + different return flight alag rehta he. Reply mein `trip: {type, cabin, legs}`. Cache key `meezab:fare:v2:`.
-- **App:** card par har leg alag — **Outbound / Return** (round trip) ya **Leg 1 / Leg 2 …** (multi-city); header mein poora route (`KHI → DXB → LHR`), trip ka naam, dono/teeno dates aur cabin. Adhoori search resume karte waqt trip type, return date, leg 2 aur class bhi wapas set hote hain. Country search pehle ki tarah sirf one-way he.
+- **Asli wajah:** portal ke apne search form se request capture ki gayi (Blazor WebAssembly hai, is liye browser ka `fetch`/XHR hook lagaya). Portal `FlightDirection` mein **`Round`** bhejta he (RoundTrip nahi) aur multi-city ke liye `MultiCityArray: [{DepartureDate, FromIATA, ToIATA}, â€¦]` bhejta he. Ab worker bilkul wohi body banata he.
+- **Live verify (16 Nov 2026):** KHIâ€“DXB round trip 10â†’20 Dec = 2,429 options, 2 legs, **88,720 PKR**; KHIâ€“DXBâ€“LHR multi-city = 1,317 options, **96,754 PKR**.
+- **Cabin:** portal Economy / PremiumEconomy / Business / First accept karta he, magar fares hamesha Economy class ke aate hain (KHIâ€“DXB aur KHIâ€“LHR par Business/First ki prices bilkul wohi thin). Is liye app choice deta he magar saaf note likhta he ke portal ke fares Economy-class hote hain â€” jhooti filtering nahi.
+- **Worker:** `mezQuery` ab `trip_type` / `return_date` / `legs` / `cabin_class` leta he (4 legs tak), date-order aur From/To validation ke sath. Naye helpers `mezPortalQuery`, `mezTraceId` (16-byte base64), `mezPkNow` (+05:00). Har fare mein `trip_type`, `cabin`, aur `legs[]` (har leg ke apne segments/duration/stops) â€” top-level fields pehli leg ke, `duration_min` saari legs ka jod. Duplicate fare key ab saari legs dekhti he, is liye same price + different return flight alag rehta he. Reply mein `trip: {type, cabin, legs}`. Cache key `meezab:fare:v2:`.
+- **App:** card par har leg alag â€” **Outbound / Return** (round trip) ya **Leg 1 / Leg 2 â€¦** (multi-city); header mein poora route (`KHI â†’ DXB â†’ LHR`), trip ka naam, dono/teeno dates aur cabin. Adhoori search resume karte waqt trip type, return date, leg 2 aur class bhi wapas set hote hain. Country search pehle ki tarah sirf one-way he.
 - **Worker redeploy zaroori:** `npx wrangler deploy -c wrangler.pricebot.toml` (Workers Builds push par khud bhi kar deta he).
 
 ## Meezab: poora party (adult + child + infant) ek hi search mein (v2.86)
-- Pehle Meezab sirf **1 adult** par chalta tha (worker mein hard block). Ab portal jaisa **poora party**: **10 adult tak, 10 children tak, 10 infants tak** (lap + seat mila kar) — har group ka apna fare bhi aata he.
+- Pehle Meezab sirf **1 adult** par chalta tha (worker mein hard block). Ab portal jaisa **poora party**: **10 adult tak, 10 children tak, 10 infants tak** (lap + seat mila kar) â€” har group ka apna fare bhi aata he.
 - **Kya badla:**
   - Worker `mezQuery()` ka 1-adult block gaya; body se `adults` / `children` / `infants_on_lap` / `infants_in_seat` le kar har passenger ka apna object banaya jata he (`AdultClsArray` / `ChildClsArray` / `InfantClsArray`, unique reference IDs ke sath).
   - Hadd se zyada bhejne par saaf error (maslan "Meezab mein adult 1 se 10 tak ho sakte hain").
   - Har fare mein ab **per-person fares** aate hain: `per_adult`, `per_child`, `per_infant`, `party_sum`, aur per-group baggage (`baggage_child`, `baggage_infant`). Reply mein top-level `pax` block bhi.
-  - `amount` **poore party ka total** he (portal jaisa) — 1 adult par pehle jaisa hi.
+  - `amount` **poore party ka total** he (portal jaisa) â€” 1 adult par pehle jaisa hi.
 - **App:**
-  - Price Lookup ke passenger boxes ab **10 tak** (Adults 1–10, Children 0–10, Infants lap/seat 0–10).
-  - Fare card par total + "total · 2 adults + 1 child" label; **"Per-passenger breakdown"** dabane par table khulti he: per person fare × count, group total, baggage. `Per-person fares markup ke baad ke agent fares hain` ka note bhi.
-  - Header mein party dikhta he (pehle hardcoded "1 adult" tha). Single adult par card waisa hi simple rehta he — breakdown nahi.
+  - Price Lookup ke passenger boxes ab **10 tak** (Adults 1â€“10, Children 0â€“10, Infants lap/seat 0â€“10).
+  - Fare card par total + "total Â· 2 adults + 1 child" label; **"Per-passenger breakdown"** dabane par table khulti he: per person fare Ã— count, group total, baggage. `Per-person fares markup ke baad ke agent fares hain` ka note bhi.
+  - Header mein party dikhta he (pehle hardcoded "1 adult" tha). Single adult par card waisa hi simple rehta he â€” breakdown nahi.
   - Adhoori search resume karte waqt passenger counts bhi wapas set hote hain; country search bhi party ke hisaab se chalti he.
 - **Live verify (16 Nov 2026):** 2 adult + 1 child + 1 infant = **186,747 PKR** total, per-person fares ka jod bilkul wohi; 10 adult / 10 child / 10 infant 33 second mein mukammal.
 - **Worker redeploy zaroori:** `npx wrangler deploy -c wrangler.pricebot.toml` (Workers Builds push par khud bhi kar deta he).
 
 ## Airport dropdown ke 3 bache hue bugs (v2.86)
-- **Ek saath do lists:** ek field se doosri par jaate waqt purani list `body` par pari reh jati thi (naya mount hone se uska reference kho jata tha aur wo kabhi band nahi hoti thi). Ab har list par `data-ab-drop` he — naya mount hone se pehle purani hata di jati he, aur doosri field khulte waqt pehli band ho jati he.
-- **Tab switch par list float karti rehti thi:** `switchTab()` aur `render()` shuru mein `abDropCloseAll()` — app dobara banne se pehle list saaf.
+- **Ek saath do lists:** ek field se doosri par jaate waqt purani list `body` par pari reh jati thi (naya mount hone se uska reference kho jata tha aur wo kabhi band nahi hoti thi). Ab har list par `data-ab-drop` he â€” naya mount hone se pehle purani hata di jati he, aur doosri field khulte waqt pehli band ho jati he.
+- **Tab switch par list float karti rehti thi:** `switchTab()` aur `render()` shuru mein `abDropCloseAll()` â€” app dobara banne se pehle list saaf.
 - **Tez tap par nayi list band ho jati thi:** `blur` ka 200ms timer sirf wohi list band karta he jo us waqt khuli thi (`if(drop === mine)`), is liye nayi khuli list bachi rehti he.
 
-## Meezab budget barha diya: 60 → 150 (v2.85)
+## Meezab budget barha diya: 60 â†’ 150 (v2.85)
 - Rozana Meezab budget ab **150 searches/din** he (pehle 60). Counter wahi **00:00 UTC = 05:00 PKT** par reset hota he.
-- **Auto-refresh** cap bhi **15 → 40 per din** (per browser), kyunke budget barh gaya he. Manual ↻ par koi cap nahi.
+- **Auto-refresh** cap bhi **15 â†’ 40 per din** (per browser), kyunke budget barh gaya he. Manual â†» par koi cap nahi.
 - App help line aur `budget x/150 bache` isi hisaab se update.
-- `MEZ_DAILY_CAP` variable se ise aur barha/ghata sakte hain (Settings → Variables), code chhede baghair.
-- **Worker redeploy zaroori:** `npx wrangler deploy -c wrangler.pricebot.toml` — warna deployed worker purana 60 ka cap hi rakhega. Settings card ka copy-code bhi v2.85 se sync he.
+- `MEZ_DAILY_CAP` variable se ise aur barha/ghata sakte hain (Settings â†’ Variables), code chhede baghair.
+- **Worker redeploy zaroori:** `npx wrangler deploy -c wrangler.pricebot.toml` â€” warna deployed worker purana 60 ka cap hi rakhega. Settings card ka copy-code bhi v2.85 se sync he.
 
 ## Dropdown + Meezab budget: adhoora kaam mukammal (v2.84)
-- **Airport suggestion dropdown (v2.84):** ye kaam adhoora chhoda gaya tha — sirf "Airports load ho rahi hain…" wali list bahar tap par band hoti thi, **asli list** (jo matches dikhati he) khuli reh jati thi aur agle box ke neeche chhup jati thi.
+- **Airport suggestion dropdown (v2.84):** ye kaam adhoora chhoda gaya tha â€” sirf "Airports load ho rahi hainâ€¦" wali list bahar tap par band hoti thi, **asli list** (jo matches dikhati he) khuli reh jati thi aur agle box ke neeche chhup jati thi.
 - Ab ek hi dropdown manager (`abDropMount`) sab airport fields aur client-name suggestions ke liye: list **`document.body` par `fixed`** banti he, is liye card ke overflow se clip nahi hoti; jagah kam ho to input ke **oper** khulti he, warna neeche; screen ke kinare se chipakti nahi.
 - **Bahar tap / scroll / resize:** bahar tap karne par foran band, page scroll ya phone ghumane par input ke sath khud adjust. (Pehle scroll karne par list input se alag ho jati thi.)
 - **Keyboard bug fix:** dropdown mein country row pehle aati he, is liye Arrow Down/Up se highlight aur Enter se pick **ek row shift** ho rahe thay (country row ki wajah se). Ab `rowOffset` ke sath sahi row highlight/select hoti he.
-- **Meezab ka "search limit reached" (v2.84)** — asal mein Worker ka apna **rozana budget** tha (60 searches/din, v2.85 se **150**), jo pehle pre-check par hi kat jata tha:
+- **Meezab ka "search limit reached" (v2.84)** â€” asal mein Worker ka apna **rozana budget** tha (60 searches/din, v2.85 se **150**), jo pehle pre-check par hi kat jata tha:
   - Cap ab `MEZ_DAILY_CAP` variable se badla ja sakta he (default **150**); counter **00:00 UTC = 05:00 PKT** par reset hota he.
   - **Unit ab search shuru hone par** katta he (portal ne Search ID diya), login/HTTP fail par budget zaya nahi hota.
   - Worker replies mein `budget: {cap, used, left, reset_at}` aata he; app results ke header mein **"budget 41/60 bache"** dikhata he.
   - Limit khatam hone par 429 ka **saaf message + reset waqt** aur country rows mein chhota note; **auto-refresh** khud band reh jata he (429 nahi karta).
-  - **Cache 5 → 10 minute** — wohi route dobara search karne par budget kharch nahi hota. Country search har airport par ek search leti he, is liye help line mein likha he.
+  - **Cache 5 â†’ 10 minute** â€” wohi route dobara search karne par budget kharch nahi hota. Country search har airport par ek search leti he, is liye help line mein likha he.
 - **Worker redeploy zaroori:** `npx wrangler deploy -c wrangler.pricebot.toml` (naya budget code + 429 details live karne ke liye). Settings card ka copy-code bhi isi version se sync he.
 
 ## Price Lookup compact (v2.83)
-- **Lambi hidayat chhup gayi:** tab ke oper wala bara paragraph ab ek chhoti **“Setup / help”** line hai jo tap karne par khulti hai (agar Worker URL set nahi he to wo khud “⚠ Setup baqi he” dikhati hai). Price note, country-search tareeqa aur Ignav ki request-limit wali baat usi ke andar.
-- **Market (currency) box hata diya** — search hamesha **PKR** mein hoti hai.
-- **Max results box hata diya** — Ignav se jo aayen sab dikhte hain (pehle 15 par kat jate thay). Meezab pehle se hi saari flights laata hai.
-- **Chhote boxes:** Trip / Class / Adults / Children / Infants ab compact (34px) aur phone par bhi **3 columns ke grid** mein — From, To aur dates hi bare hain. Pehle ye 6 boxes phone par poori screen le lete thay.
-- Trip select dates ki row se nikal kar compact row mein — desktop par date boxes ka overflow bhi theek ho gaya (ab sirf 2 date boxes barabar column mein).
-- **⇄ Swap** button — ek tap mein From/To badal jate hain (reverse route search ke liye).
+- **Lambi hidayat chhup gayi:** tab ke oper wala bara paragraph ab ek chhoti **â€œSetup / helpâ€** line hai jo tap karne par khulti hai (agar Worker URL set nahi he to wo khud â€œâš  Setup baqi heâ€ dikhati hai). Price note, country-search tareeqa aur Ignav ki request-limit wali baat usi ke andar.
+- **Market (currency) box hata diya** â€” search hamesha **PKR** mein hoti hai.
+- **Max results box hata diya** â€” Ignav se jo aayen sab dikhte hain (pehle 15 par kat jate thay). Meezab pehle se hi saari flights laata hai.
+- **Chhote boxes:** Trip / Class / Adults / Children / Infants ab compact (34px) aur phone par bhi **3 columns ke grid** mein â€” From, To aur dates hi bare hain. Pehle ye 6 boxes phone par poori screen le lete thay.
+- Trip select dates ki row se nikal kar compact row mein â€” desktop par date boxes ka overflow bhi theek ho gaya (ab sirf 2 date boxes barabar column mein).
+- **â‡„ Swap** button â€” ek tap mein From/To badal jate hain (reverse route search ke liye).
 - `faMax` / `faMarket` ka purana saved form data chup chaap ignore hota hai, is liye purani settings kharab nahi hotin.
-- Chhoti safai: band (disabled) field ab halka dikhta hai — maslan one-way par "Return date" saaf pata chalta hai ke wo kaam nahi kar raha. Touch par tap ke baad button/summary par blue focus ring chipki nahi rehti.
-- Sirf app ka change — Worker redeploy ki zaroorat nahi.
+- Chhoti safai: band (disabled) field ab halka dikhta hai â€” maslan one-way par "Return date" saaf pata chalta hai ke wo kaam nahi kar raha. Touch par tap ke baad button/summary par blue focus ring chipki nahi rehti.
+- Sirf app ka change â€” Worker redeploy ki zaroorat nahi.
 
 ## Tab badalne par search band nahi hoti (v2.82)
-- **Masla:** Meezab (ya Ignav) ki search chal rahi ho aur aap doosra tab khol lein, to wapas aane par results ka dabba **khaali** milta tha — search adhoori lagti thi. Wajah: `render()` har tab change par poora page `innerHTML` se dobara banata he, is liye "search chal rahi he" ka card aur error message — jo sirf DOM mein the — mit jate the.
+- **Masla:** Meezab (ya Ignav) ki search chal rahi ho aur aap doosra tab khol lein, to wapas aane par results ka dabba **khaali** milta tha â€” search adhoori lagti thi. Wajah: `render()` har tab change par poora page `innerHTML` se dobara banata he, is liye "search chal rahi he" ka card aur error message â€” jo sirf DOM mein the â€” mit jate the.
 - **Fix:** search ka haal ab DOM ke bajaye app ki state mein rehta he (`MEZ.stage`, `MEZ.stageNote`, `MEZ.error`, `MEZ.busy`). Tab switch par wahi card khud dobara banta he, is liye:
-  - search chal rahi ho → **"Search chal rahi he — results aate hi yahin dikhenge"** card wapas dikhta he
-  - error aaya ho → wahi error wapas dikhta he
-  - country search chal rahi ho → `N/M ho chuke` ke sath list wahi rehti he, rows live update hoti hain
-  - button ka haal bhi ek jagah se set hota he (`mezSetBtnBusy`), is liye wapas aane par "search chal rahi he…" sahi dikhta he
+  - search chal rahi ho â†’ **"Search chal rahi he â€” results aate hi yahin dikhenge"** card wapas dikhta he
+  - error aaya ho â†’ wahi error wapas dikhta he
+  - country search chal rahi ho â†’ `N/M ho chuke` ke sath list wahi rehti he, rows live update hoti hain
+  - button ka haal bhi ek jagah se set hota he (`mezSetBtnBusy`), is liye wapas aane par "search chal rahi heâ€¦" sahi dikhta he
 - **Adhoori search ka resume:** search ke inputs (from/to/date/non-stop) `sessionStorage` (`ab_mez_pending`) mein rakhe jate hain. Agar search beech mein ruk jaye (tab switch, phone sleep, page reload, ya network timeout), to wapsi par card aata he:
-  **"Adhoori search mili — KHI → DXB · 10 Dec 2026"** ke sath **▶ Dobara search karein** button. Ek tap par wahi search chalti he. Search mukammal hone par ye record khud clear ho jata he.
-- **Watchdog:** 3.5 minute se zyada koi search latki rahe to button khud chalu ho jata he aur error dikhta he (pehle button hamesha ke liye "search chal rahi he…" par atak sakta tha). Phone jagane par bhi ye check chalta he.
-- **Popular routes card hata diya:** Price Lookup se "Popular routes" (KHI→DXB waghera) aur "ya in websites par dekhein" (sasta ticket / Google / Kayak) card nikal diye — form aur Meezab results ab seedha upar aate hain.
+  **"Adhoori search mili â€” KHI â†’ DXB Â· 10 Dec 2026"** ke sath **â–¶ Dobara search karein** button. Ek tap par wahi search chalti he. Search mukammal hone par ye record khud clear ho jata he.
+- **Watchdog:** 3.5 minute se zyada koi search latki rahe to button khud chalu ho jata he aur error dikhta he (pehle button hamesha ke liye "search chal rahi heâ€¦" par atak sakta tha). Phone jagane par bhi ye check chalta he.
+- **Popular routes card hata diya:** Price Lookup se "Popular routes" (KHIâ†’DXB waghera) aur "ya in websites par dekhein" (sasta ticket / Google / Kayak) card nikal diye â€” form aur Meezab results ab seedha upar aate hain.
 
 ## Country search: sirf UAE nahi, saare mulk (v2.81)
-- **Dropdown mein country row:** ab **To** ya **From** mein country ka naam likhne par dropdown mein sab se pehle **🌍 <Country> — poore mulk ke fares (N airports)** row aati he, us ke neeche us mulk ke airports. Us row par click karne se poora mulk search ho jata he.
-- **Masla kya tha:** airport data (`mwgg/Airports`) mein 236 mulkon mein se **166 mulkon ka naam sirf ISO2 code** ki shakl mein hota he — `AL` (Albania), `CO` (Colombia), `BR` (Brazil), `GS`, `PG` waghera. App ke paas sirf 78 mulkon ke naam the, is liye `Albania`, `Colombia`, `Brazil` likhne par kuch nahi milta tha. `UAE` is liye chalta tha ke us ka naam `AE` ke bajaye seedha "UAE" likha hua he.
-- **Fix:** mulkon ka naam ab **240 mulkon** ke liye mojood he, aur purana phone cache (jis mein sirf codes hain) load hote waqt khud naam mein badal diya jata he — user ko kuch clear nahi karna parta.
-- **Ab chalta he:** `UAE`, `Saudi Arabia`, `Qatar`, `Pakistan`, `UK`, `USA`, `Albania`, `Colombia`, `Brazil`, `Mexico`, `Greece`, `Thailand`, `Japan`, `Iceland`, `Kosovo`, `Kenya`, `Nigeria`, `Australia`, `Greenland`… — 236 mulk ke 7,918 airports.
+- **Dropdown mein country row:** ab **To** ya **From** mein country ka naam likhne par dropdown mein sab se pehle **ðŸŒ <Country> â€” poore mulk ke fares (N airports)** row aati he, us ke neeche us mulk ke airports. Us row par click karne se poora mulk search ho jata he.
+- **Masla kya tha:** airport data (`mwgg/Airports`) mein 236 mulkon mein se **166 mulkon ka naam sirf ISO2 code** ki shakl mein hota he â€” `AL` (Albania), `CO` (Colombia), `BR` (Brazil), `GS`, `PG` waghera. App ke paas sirf 78 mulkon ke naam the, is liye `Albania`, `Colombia`, `Brazil` likhne par kuch nahi milta tha. `UAE` is liye chalta tha ke us ka naam `AE` ke bajaye seedha "UAE" likha hua he.
+- **Fix:** mulkon ka naam ab **240 mulkon** ke liye mojood he, aur purana phone cache (jis mein sirf codes hain) load hote waqt khud naam mein badal diya jata he â€” user ko kuch clear nahi karna parta.
+- **Ab chalta he:** `UAE`, `Saudi Arabia`, `Qatar`, `Pakistan`, `UK`, `USA`, `Albania`, `Colombia`, `Brazil`, `Mexico`, `Greece`, `Thailand`, `Japan`, `Iceland`, `Kosovo`, `Kenya`, `Nigeria`, `Australia`, `Greenland`â€¦ â€” 236 mulk ke 7,918 airports.
 - **USA / KSA ka faisla:** ye asal mein airport codes bhi hain (`USA` = Concord, `KSA` = Kassala). Ab pehle country alias dekha jata he, is liye `USA` ya `KSA` likhne par mulk hi khulta he; asli airport chahiye to code ki jagah airport ka naam likhein ya dropdown se chunein.
-- Country search pehle ki tarah **8 bade airports** leti he, 3 parallel, price-wise — sirf ab har mulk par.
+- Country search pehle ki tarah **8 bade airports** leti he, 3 parallel, price-wise â€” sirf ab har mulk par.
 
 ## Plane ka nishan: seedha Price Lookup (v2.80)
-- **Header:** company name (**AB Travels**) ke sath hi ek sunehri ✈ button — ek tap par **Price Lookup** khul jata he. Pehle fares tak pohanchne ke liye ☰ → Price Lookup karna parta tha.
-- **Mobile quick bar:** 7 buttons ke beech mein wohi ✈ nishan (gold circle) ubhra hua he — Sales · Invoice · Files · **✈** · Expense · Pending · Menu. Jab Price Lookup khula ho to circle roshan (amber glow) ho jata he.
+- **Header:** company name (**AB Travels**) ke sath hi ek sunehri âœˆ button â€” ek tap par **Price Lookup** khul jata he. Pehle fares tak pohanchne ke liye â˜° â†’ Price Lookup karna parta tha.
+- **Mobile quick bar:** 7 buttons ke beech mein wohi âœˆ nishan (gold circle) ubhra hua he â€” Sales Â· Invoice Â· Files Â· **âœˆ** Â· Expense Â· Pending Â· Menu. Jab Price Lookup khula ho to circle roshan (amber glow) ho jata he.
 - Agar Price Lookup pehle se khula he to nishan sirf page ko oper scroll karta he (dobara load nahi karta), is liye typed route/date aur results zaya nahi hote.
 - Chhoti screens (400px se kam) par nishan thora chhota ho jata he, taake koi label kate na.
-- Sirf UI change — fare logic, worker ya data par koi asar nahi. Worker redeploy ki zaroorat nahi.
+- Sirf UI change â€” fare logic, worker ya data par koi asar nahi. Worker redeploy ki zaroorat nahi.
 
 ## Auto-refresh aur country search (v2.79)
-- **Auto-refresh:** Meezab results ke tools mein `Auto refresh` select — `Off` / `Har 3 min` / `Har 5 min` / `Har 10 min`. Timer sirf Price Lookup tab khula aur visible ho tab chalta he; doosre tab par jaane ya browser background mein jaane par ruk jata he, wapsi par foran check hota he. Refresh cache skip karta he (`fresh: true`) taake naye prices aayen. Header mein `auto-refreshed` aur `cached` ka label dikhta he; ↻ button se kabhi bhi manual refresh.
-- **Budget guard:** har refresh Meezab ke 60/day quota se ek search leta he, is liye auto-refresh din mein **15** tak mehdood he (per browser counter, header mein "aaj bache hue" dikhta he). Manual ↻ par koi cap nahi.
-- **Country search:** **To** mein IATA code ki jagah country/city ka naam likhein — `UAE`, `Saudi Arabia`, `Dubai`, `UK`, `USA`. App apni airport list (`mwgg/Airports`) se us country ke **8 bade airports** chunta he aur har airport ki search alag chalata he, phir sab ko **price-wise** ek list mein dikhata he: airline logo, airport code + city, stops, duration, sab se sasta fare aur fare count.
-- **Row click:** kisi bhi airport par click karne se us airport ki **poori fare list** (cards, filters, airline strip, pages) khul jati he; upar country ka chip aur row highlight rehta he, aur ↻/auto-refresh usi airport ko track karta he.
-- **Search progress:** sab airports **ek saath 3** chalte hain, is liye 8 UAE airports ~50 second mein poore ho jate hain. `3/8 ho chuke` live dikhta he, fail hone par us airport ki row par wajah likhi aati he — baqi results phir bhi aate hain.
+- **Auto-refresh:** Meezab results ke tools mein `Auto refresh` select â€” `Off` / `Har 3 min` / `Har 5 min` / `Har 10 min`. Timer sirf Price Lookup tab khula aur visible ho tab chalta he; doosre tab par jaane ya browser background mein jaane par ruk jata he, wapsi par foran check hota he. Refresh cache skip karta he (`fresh: true`) taake naye prices aayen. Header mein `auto-refreshed` aur `cached` ka label dikhta he; â†» button se kabhi bhi manual refresh.
+- **Budget guard:** har refresh Meezab ke 60/day quota se ek search leta he, is liye auto-refresh din mein **15** tak mehdood he (per browser counter, header mein "aaj bache hue" dikhta he). Manual â†» par koi cap nahi.
+- **Country search:** **To** mein IATA code ki jagah country/city ka naam likhein â€” `UAE`, `Saudi Arabia`, `Dubai`, `UK`, `USA`. App apni airport list (`mwgg/Airports`) se us country ke **8 bade airports** chunta he aur har airport ki search alag chalata he, phir sab ko **price-wise** ek list mein dikhata he: airline logo, airport code + city, stops, duration, sab se sasta fare aur fare count.
+- **Row click:** kisi bhi airport par click karne se us airport ki **poori fare list** (cards, filters, airline strip, pages) khul jati he; upar country ka chip aur row highlight rehta he, aur â†»/auto-refresh usi airport ko track karta he.
+- **Search progress:** sab airports **ek saath 3** chalte hain, is liye 8 UAE airports ~50 second mein poore ho jate hain. `3/8 ho chuke` live dikhta he, fail hone par us airport ki row par wajah likhi aati he â€” baqi results phir bhi aate hain.
 
 ## Meezab fares: platform, baggage filter, airline strip, tab state (v2.77)
-- **Platform label:** har fare par chip dikhta he ke woh kis system se aaya — `Travelport`, `Hitit`, `NDC Emirates`, `NDC Flydubai`, `NZFlight`, `OneAPI`, `AirSial`, `Airblue direct`. Worker `EXT_<platform>_*` keys se pehchanta he, warna `Sys_SupplierID` se.
-- **Baggage filter:** Sort/Stops panel mein naya `Baggage` select — `Any` / `Checked bag` / `Cabin only`. `0KG-0KG` ka matlab cabin only, khaali field ko kisi filter mein nahi ginte.
-- **Airline strip:** results ke upar Meezab portal jaisa horizontal panel — har airline ka logo, naam, **sab se sasta fare** aur fare count. Kisi airline par click karne se list usi airline ki ho jati he, dobara click / "All airlines" se filter hat jata he. Strip stops/baggage filter ke mutabiq update hoti he.
+- **Platform label:** har fare par chip dikhta he ke woh kis system se aaya â€” `Travelport`, `Hitit`, `NDC Emirates`, `NDC Flydubai`, `NZFlight`, `OneAPI`, `AirSial`, `Airblue direct`. Worker `EXT_<platform>_*` keys se pehchanta he, warna `Sys_SupplierID` se.
+- **Baggage filter:** Sort/Stops panel mein naya `Baggage` select â€” `Any` / `Checked bag` / `Cabin only`. `0KG-0KG` ka matlab cabin only, khaali field ko kisi filter mein nahi ginte.
+- **Airline strip:** results ke upar Meezab portal jaisa horizontal panel â€” har airline ka logo, naam, **sab se sasta fare** aur fare count. Kisi airline par click karne se list usi airline ki ho jati he, dobara click / "All airlines" se filter hat jata he. Strip stops/baggage filter ke mutabiq update hoti he.
 - **Tab switch:** kisi doosre tab par jaane par Price Lookup ka typed text, chuni hui date/pax, Ignav results aur Meezab results **bache rehte hain**; wapsi par wahi scroll position milti he. Meezab search chal rahi ho to wapsi par progress card dikhta he.
 
 ## Meezab fares: saari flights, pages, logos (v2.76)
-- **Saari flights:** pehle sirf pehla page (100 options) aata tha. Ab worker search ke **saare pages** uthata hai (250 per page, max 1,500 options) — KHI→DXB par 876 options se **863 unique fares**.
-- **Page navigation:** har page 10 fares (25/50 bhi), neeche `‹ Prev  1 … 4 5 [6] 7 … 87  Next ›` aur "Page 6 of 87 · showing 51–60 of 863".
-- **Sort & filter:** Price (low→high) / Duration / Departure, aur Stops: Any / Non-stop / 1 / 2+.
-- **Airline logos:** pehle app ke andar ka `airlines/<code>.png`, warna Wi‑Fi se Kiwi CDN, warna airline code ka badge — network na ho to bhi card toota nahi dikhta.
-- **Friendly detail:** depart/arrive time + airport code + city, total duration, `Non-stop` ya `1 stop · AUH`, har leg alag (flight number, aircraft ka naam maslan "Boeing 737 MAX 8", class), layover duration, baggage, refundable/changeable, seats left, overnight aur **Bus connection** chip.
-- **Data sanity:** portal kabhi kabhi ghalat PKR amount bhejta he (KHI→DXB par FZ fare `8,077,840`) — sab se saste fare ke 50 guna se zyada wale rows hata diye jaate hain.
+- **Saari flights:** pehle sirf pehla page (100 options) aata tha. Ab worker search ke **saare pages** uthata hai (250 per page, max 1,500 options) â€” KHIâ†’DXB par 876 options se **863 unique fares**.
+- **Page navigation:** har page 10 fares (25/50 bhi), neeche `â€¹ Prev  1 â€¦ 4 5 [6] 7 â€¦ 87  Next â€º` aur "Page 6 of 87 Â· showing 51â€“60 of 863".
+- **Sort & filter:** Price (lowâ†’high) / Duration / Departure, aur Stops: Any / Non-stop / 1 / 2+.
+- **Airline logos:** pehle app ke andar ka `airlines/<code>.png`, warna Wiâ€‘Fi se Kiwi CDN, warna airline code ka badge â€” network na ho to bhi card toota nahi dikhta.
+- **Friendly detail:** depart/arrive time + airport code + city, total duration, `Non-stop` ya `1 stop Â· AUH`, har leg alag (flight number, aircraft ka naam maslan "Boeing 737 MAX 8", class), layover duration, baggage, refundable/changeable, seats left, overnight aur **Bus connection** chip.
+- **Data sanity:** portal kabhi kabhi ghalat PKR amount bhejta he (KHIâ†’DXB par FZ fare `8,077,840`) â€” sab se saste fare ke 50 guna se zyada wale rows hata diye jaate hain.
 
 ## Meezab Air se live fares (v2.75)
-- **Naya:** Price Lookup mein Ignav ke saath ek alag button — **“Meezab Air — live PKR fares”**. Wohi route/date use hota hai jo form mein hai.
+- **Naya:** Price Lookup mein Ignav ke saath ek alag button â€” **â€œMeezab Air â€” live PKR faresâ€**. Wohi route/date use hota hai jo form mein hai.
 - Filhaal **one-way, 1 adult, Economy** (Meezab ki search query isi shape mein hai). PKR prices agent rate se aate hain.
 - Worker `/meezab/search` khud login karta he (credentials Cloudflare secrets `MEZ_USER` / `MEZ_PASS` mein), 5 minute cache, rozana 60 search ka budget.
-- Qareeb ke airport/bus connection jo Meezab lauta de (maslan KHI→AUH + **bus** AUH→Dubai) waise hi dikhte hain aur **Bus connection** label ke saath — fare sasta lagta he lekin asal airport alag hota he.
+- Qareeb ke airport/bus connection jo Meezab lauta de (maslan KHIâ†’AUH + **bus** AUHâ†’Dubai) waise hi dikhte hain aur **Bus connection** label ke saath â€” fare sasta lagta he lekin asal airport alag hota he.
 - Duplicate supplier rows (wahi fare, wahi flights) ek dafa dikhte hain.
 
 ## Mobile: naam par tap karne se options foran nazar aayein (v2.74)
-- **Masla:** register mein naam par tap karne se neeche wala options menu (Paid/Unpaid, Invoice, Edit, Detail, Date, Delete) khulta hai, lekin phone par page **zoom** ho jaye (double-tap ya pinch) to wo menu "layout screen" ke neeche chala jata tha — sirf title nazar aata aur buttons ke liye neeche scroll karna parta.
-- **Fix 1 — double-tap zoom band:** jadwal/buttons/links par `touch-action: manipulation`. Row par jaldi jaldi tap karne se ab page zoom nahi hota (pinch zoom waisa hi chalta hai).
-- **Fix 2 — menu dikhne wali screen se chipakta hai:** agar page phir bhi zoom ho, to menu `visualViewport` se naap kar asal visible screen ke neeche pin hota hai aur zoom ke hisaab se chhota ho jata hai; zoom/scroll karne par saath saath khisakta hai.
-- **Fix 3 — menu chhota:** phone par buttons ab 3 columns ke grid mein hain (pehle lambi qatar mein 3-4 lines), menu ki ooncha-i 70% screen se zyada nahi hoti.
-- Sirf display/touch badla — sales data ya hisaab par koi asar nahi. Worker redeploy ki zaroorat nahi.
+- **Masla:** register mein naam par tap karne se neeche wala options menu (Paid/Unpaid, Invoice, Edit, Detail, Date, Delete) khulta hai, lekin phone par page **zoom** ho jaye (double-tap ya pinch) to wo menu "layout screen" ke neeche chala jata tha â€” sirf title nazar aata aur buttons ke liye neeche scroll karna parta.
+- **Fix 1 â€” double-tap zoom band:** jadwal/buttons/links par `touch-action: manipulation`. Row par jaldi jaldi tap karne se ab page zoom nahi hota (pinch zoom waisa hi chalta hai).
+- **Fix 2 â€” menu dikhne wali screen se chipakta hai:** agar page phir bhi zoom ho, to menu `visualViewport` se naap kar asal visible screen ke neeche pin hota hai aur zoom ke hisaab se chhota ho jata hai; zoom/scroll karne par saath saath khisakta hai.
+- **Fix 3 â€” menu chhota:** phone par buttons ab 3 columns ke grid mein hain (pehle lambi qatar mein 3-4 lines), menu ki ooncha-i 70% screen se zyada nahi hoti.
+- Sirf display/touch badla â€” sales data ya hisaab par koi asar nahi. Worker redeploy ki zaroorat nahi.
 
 ## Paid ticket ko dobara Unpaid karna (v2.73)
-- **Masla:** Sale ek dafa **✔ Paid** ho jaye to wapas unpaid karne ka koi button hi nahi tha (sirf unpaid par ✔ Paid aata tha).
-- **Fix:** Sales register mein paid sale ke `⋯` menu mein ab **↩ Unpaid** button hai. Confirm ke baad sale dobara **Pending Payments** mein aa jati hai (poori raqam ya jitni baqi ho).
-- Agar us sale par darj payments poori raqam ke barabar hon (maslan staff ne payment lagayi thi), to unpaid karne ke liye wo payment entries bhi hata di jati hain — confirm dialog mein ye saaf likha aata hai. Warna sale unpaid ho kar bhi 0 baqi dikhti aur Pending mein na aati.
-- **✔ Paid** dabane par ab toast aata hai jo batata hai ke ghalti ho to ⋯ → ↩ Unpaid.
+- **Masla:** Sale ek dafa **âœ” Paid** ho jaye to wapas unpaid karne ka koi button hi nahi tha (sirf unpaid par âœ” Paid aata tha).
+- **Fix:** Sales register mein paid sale ke `â‹¯` menu mein ab **â†© Unpaid** button hai. Confirm ke baad sale dobara **Pending Payments** mein aa jati hai (poori raqam ya jitni baqi ho).
+- Agar us sale par darj payments poori raqam ke barabar hon (maslan staff ne payment lagayi thi), to unpaid karne ke liye wo payment entries bhi hata di jati hain â€” confirm dialog mein ye saaf likha aata hai. Warna sale unpaid ho kar bhi 0 baqi dikhti aur Pending mein na aati.
+- **âœ” Paid** dabane par ab toast aata hai jo batata hai ke ghalti ho to â‹¯ â†’ â†© Unpaid.
 - Header ka static badge bhi ab sahi version dikhata hai (pehle pehle frame mein purana number aata tha).
 
 ## Default tab: hamesha Sales (v2.72)
-- **Har dafa app khulne par Sales tab** khulta hai. Pehle pichhla khula tab yaad rehta tha — kisi ne Expense/Settings par chhor diya ho to dobara wahi khulta tha.
+- **Har dafa app khulne par Sales tab** khulta hai. Pehle pichhla khula tab yaad rehta tha â€” kisi ne Expense/Settings par chhor diya ho to dobara wahi khulta tha.
 - Tab badalna andar waisa hi hai; sirf nayi opening par shuruaat **Sales** se hoti hai (mobile quick bar ka highlight bhi Sales par aata hai).
 
 ## Phone quick bar: Expense button (v2.71)
-- Neeche ki quick bar (sirf phones/tablets) ab: **Sales · Invoice · Files · Expense · Pending · ☰ Menu** — Expense Pending se pehle, ek tap door.
+- Neeche ki quick bar (sirf phones/tablets) ab: **Sales Â· Invoice Â· Files Â· Expense Â· Pending Â· â˜° Menu** â€” Expense Pending se pehle, ek tap door.
 - 400px se chhoti screens par icon/label thora chhota kar diya, taake 6 buttons mein kuch kata na jaye.
-- Naya tab nahi bana — wahi purana **Expenses** screen khulta hai (`data-tab="exp"`), is liye form, hisaab aur sync par koi asar nahi.
+- Naya tab nahi bana â€” wahi purana **Expenses** screen khulta hai (`data-tab="exp"`), is liye form, hisaab aur sync par koi asar nahi.
 
 ## Modern look (v2.69 / v2.70)
-- **Cards:** kone 14px → **16px**, padding 16px, aur layered shadow (oper halki line + neeche narm gehri parchhai). Mouse wale device par card par hover karne se shadow thora ubharta hai.
+- **Cards:** kone 14px â†’ **16px**, padding 16px, aur layered shadow (oper halki line + neeche narm gehri parchhai). Mouse wale device par card par hover karne se shadow thora ubharta hai.
 - **Buttons:** kone 12px, primary/green par halki rangeeli parchhai (glow), dabane par halka "press" effect.
-- **Fields:** kone 12px; focus par purana sakht outline hataya — ab **narm ring** (border + 3px halka halo) aata hai, dark aur OLED mein bhi.
-- **Stat tiles (Summary/Monthly):** label 11px bold, number 21px tabular figures ke sath — figures ab line par line seedhe rehte hain.
-- **Bottom quick bar:** ab **frosted glass** (translucent + blur) — peeche ka content halka dikhta hai, iOS jaisa look. OLED mein pure black frosted.
+- **Fields:** kone 12px; focus par purana sakht outline hataya â€” ab **narm ring** (border + 3px halka halo) aata hai, dark aur OLED mein bhi.
+- **Stat tiles (Summary/Monthly):** label 11px bold, number 21px tabular figures ke sath â€” figures ab line par line seedhe rehte hain.
+- **Bottom quick bar:** ab **frosted glass** (translucent + blur) â€” peeche ka content halka dikhta hai, iOS jaisa look. OLED mein pure black frosted.
 - **Sidebar:** halka vertical gradient aur active item par gold-tinted gradient (pehle flat grey tha).
 - **Scrollbars:** patli, rounded, theme ke rang mein (pehle default moti grey).
-- **Chhote touches:** "👁 Show totals" chip ab solid pill (dashed nahi), success banner par hari left accent line, toast rounded + blur, row action sheet ke oper wale kone rounded.
-- Sirf **shakl** badli hai — koi button, tab, form ya hisaab ka kaam nahi badla. `prefers-reduced-motion` walon ke liye animation band.
-- Poori tarah **CSS-only** change — Worker redeploy ki zaroorat nahi.
-- **v2.70 fix:** card ki nayi padding un cards par bhi lag rahi thi jinki apni padding thi — Sales register ka toolbar card ke andar ghus gaya tha (square corners + adhoori line). Ab `sheet-bar` / `sheet-card` / ayat card ki padding waisi hi hai. Drawer ka scrollbar bhi patla aur drawer ke rang mein kar diya (dark/OLED mein patli lakeer jaisi dikh raha tha).
+- **Chhote touches:** "ðŸ‘ Show totals" chip ab solid pill (dashed nahi), success banner par hari left accent line, toast rounded + blur, row action sheet ke oper wale kone rounded.
+- Sirf **shakl** badli hai â€” koi button, tab, form ya hisaab ka kaam nahi badla. `prefers-reduced-motion` walon ke liye animation band.
+- Poori tarah **CSS-only** change â€” Worker redeploy ki zaroorat nahi.
+- **v2.70 fix:** card ki nayi padding un cards par bhi lag rahi thi jinki apni padding thi â€” Sales register ka toolbar card ke andar ghus gaya tha (square corners + adhoori line). Ab `sheet-bar` / `sheet-card` / ayat card ki padding waisi hi hai. Drawer ka scrollbar bhi patla aur drawer ke rang mein kar diya (dark/OLED mein patli lakeer jaisi dikh raha tha).
 
 ## Notification fixes: ab fail hone par sabab nazar aata hai (v2.68)
-- **File add karne par notification na aane ki wajah chhupi hui thi** — app relay ki ghalti chup chaap nigal leti thi (`catch → false`). Ab:
-  - fail hone par neeche **toast** aata hai: `⚠ Telegram notification nahi gayi — <sabab>` (maslan `origin`, `no_chats`, `relay 500`).
-  - **Settings → 🤖 Team notifications** mein aakhri koshish ka nateeja tareekh ke saath likha hota hai (✓ gayi / ✗ nahi gayi + sabab).
+- **File add karne par notification na aane ki wajah chhupi hui thi** â€” app relay ki ghalti chup chaap nigal leti thi (`catch â†’ false`). Ab:
+  - fail hone par neeche **toast** aata hai: `âš  Telegram notification nahi gayi â€” <sabab>` (maslan `origin`, `no_chats`, `relay 500`).
+  - **Settings â†’ ðŸ¤– Team notifications** mein aakhri koshish ka nateeja tareekh ke saath likha hota hai (âœ“ gayi / âœ— nahi gayi + sabab).
   - Test button bhi ab asal sabab dikhata hai.
 - **Purani/galat Chat IDs** ke sabab notification band na hon: agar Worker `no_chats` kahe to app **khud team list** (bot ke allowed chats) par dobara bhej deti hai.
-- **Network / Worker 5xx** par ek dafa khud retry (Cloudflare → Telegram kabhi 15–40s leta hai).
-- **Paste ki hui file** (clipboard se PDF/image) ab bhi team ko notify karti hai — pehle yeh jaan bujh kar "silent" thi. Sirf note ke dabbe ke andar Ctrl+V karne par notification nahi jati.
+- **Network / Worker 5xx** par ek dafa khud retry (Cloudflare â†’ Telegram kabhi 15â€“40s leta hai).
+- **Paste ki hui file** (clipboard se PDF/image) ab bhi team ko notify karti hai â€” pehle yeh jaan bujh kar "silent" thi. Sirf note ke dabbe ke andar Ctrl+V karne par notification nahi jati.
 - Upload ke baad agar notifications Settings se **off** hain to message mein saaf likha aata hai.
-- ⚠ Ek dafa check kar lein: **Settings → Team notifications** mein "Send notifications for new tickets and files" tick hona chahiye.
+- âš  Ek dafa check kar lein: **Settings â†’ Team notifications** mein "Send notifications for new tickets and files" tick hona chahiye.
 
 ## Sales register: mouse wheel ab page bhi scroll karta hai (v2.66)
-- **Masla:** register par mouse rakh kar wheel ghumane se sirf andar ki list scroll hoti thi aur page upar/neeche nahi hota tha — register se mouse hatana parta tha. Wajah: `.sheet-scroll` par `overscroll-behavior:contain` tha, jo list ke aakhir par bhi scroll ko page tak nahi jane deta.
-- **Fix:** ab chaining normal hai (`overscroll-behavior:auto`) — list khatam hone par page khud aage scroll ho jata hai.
-- **Chhoti list (maslan November ki kam sales):** agar rows itni kam hain ke andar scroll ki zaroorat hi nahi, to andar ka scroll box **hata diya jata hai** (`fit` class, JS se naapa jata hai) — poora page ek hi scroll mein chalta hai. List lambi ho to frozen header/columns wala box waise hi kaam karta hai.
+- **Masla:** register par mouse rakh kar wheel ghumane se sirf andar ki list scroll hoti thi aur page upar/neeche nahi hota tha â€” register se mouse hatana parta tha. Wajah: `.sheet-scroll` par `overscroll-behavior:contain` tha, jo list ke aakhir par bhi scroll ko page tak nahi jane deta.
+- **Fix:** ab chaining normal hai (`overscroll-behavior:auto`) â€” list khatam hone par page khud aage scroll ho jata hai.
+- **Chhoti list (maslan November ki kam sales):** agar rows itni kam hain ke andar scroll ki zaroorat hi nahi, to andar ka scroll box **hata diya jata hai** (`fit` class, JS se naapa jata hai) â€” poora page ek hi scroll mein chalta hai. List lambi ho to frozen header/columns wala box waise hi kaam karta hai.
 
 ## Drawer polish (v2.65)
-- Drawer khulte hi active tab beech mein aa jata hai — lekin **MENU heading aur ✕ (close) button ab sticky** hain, is liye neeche wale tab (Settings, Monthly Accounts) par bhi band karne ka button hamesha nazar aata hai.
+- Drawer khulte hi active tab beech mein aa jata hai â€” lekin **MENU heading aur âœ• (close) button ab sticky** hain, is liye neeche wale tab (Settings, Monthly Accounts) par bhi band karne ka button hamesha nazar aata hai.
 - Quick bar ke active tab ka gold accent bar thora neeche shift kiya taake bar ke top border par crop na ho.
 
 ## App ka naya link + origin fix (v2.64)
-- **GitHub account ka naam badal gaya hai**, is liye app ka purana link `ali122.github.io/travel-office-hisab/` ab **404** deta hai. Naya live link: **https://abtravels.github.io/travel-office-hisab/** — bookmarks/home-screen icon dobara banayein.
-- **Notification relay** (`pricebot-worker.js` ka `/notify`) sirf `ali122.github.io` origin qabool karta tha — naye host se aane wali Telegram notifications 403 ho rahi thin. Ab **dono hosts** (`ali122` aur `abtravels`) allowed hain, aur Telegram ke "📱 Open app" button ka URL naya hai.
-- Worker redeploy zaroori hai (`npx wrangler deploy -c wrangler.pricebot.toml`). Redeploy se pehle bhi kaam chalana ho to Cloudflare → Worker → Settings → Variables mein `ALLOWED_ORIGIN = https://abtravels.github.io` set kar dein.
+- **GitHub account ka naam badal gaya hai**, is liye app ka purana link `ali122.github.io/travel-office-hisab/` ab **404** deta hai. Naya live link: **https://abtravels.github.io/travel-office-hisab/** â€” bookmarks/home-screen icon dobara banayein.
+- **Notification relay** (`pricebot-worker.js` ka `/notify`) sirf `ali122.github.io` origin qabool karta tha â€” naye host se aane wali Telegram notifications 403 ho rahi thin. Ab **dono hosts** (`ali122` aur `abtravels`) allowed hain, aur Telegram ke "ðŸ“± Open app" button ka URL naya hai.
+- Worker redeploy zaroori hai (`npx wrangler deploy -c wrangler.pricebot.toml`). Redeploy se pehle bhi kaam chalana ho to Cloudflare â†’ Worker â†’ Settings â†’ Variables mein `ALLOWED_ORIGIN = https://abtravels.github.io` set kar dein.
 - Hardcoded purane links (`og:image`, company site ke canonical/og/schema URLs, staff portal ka logo, `scrape.js` UA) sab naye host par.
 - **Bottom bar ka highlight fix:** Sales/Summary/Settings jaise pages par ab ghalat tab highlight nahi hota (quick bar sirf apne 4 tabs par active dikhati hai).
 - Drawer khulte waqt seedha active tab par scroll ho jata hai.
 - Invoice ka pehla heading ab **TYPE & AIRLINE** hai (pehle "INVOICE TYPE" heading ke neeche wahi "Invoice type" label dobara aata tha).
 
-## Phone UI — neeche ki quick bar, chhota header, saaf forms (v2.63)
-- **Neeche ki quick bar (sirf phones par):** Sales · Invoice · Files · Pending · ☰ Menu. Pehle har tab badalne ke liye ☰ kholna parta tha (2 taps); ab char sab se zyada use hone wale tabs ek tap mein, aur jo tab khula hai wo highlight rehta hai. Menu button wahi purana drawer kholta hai.
-- **Header chhota:** phone par verse ki Urdu line ab ek line (tap kar ke poori khulti hai) aur Arabic font thora chhota — screen par ~30px zyada jagah. 410px se chhoti screen par theme/update buttons ab doosri line par nahi girte.
-- **Tab badalne par page upar se shuru hota hai** — pehle agla tab beech mein khulta tha (jaise Invoice seedha "Trip type" par).
-- **Header ki asli height naapi jati hai** (`--header-h`) — is liye "＋ New sale" jaisa jump target ab header ke neeche chhupta nahi.
-- **Sales form ke boxes par labels** (Client name, Contact number, Detail, Cost price, Sale price) — pehle sirf placeholder tha, type karne ke baad box pehchanna mushkil tha.
-- **Settings mein search box** — 13-screen lambi Settings mein sirf milte julte cards dikhte hain (khali karein to sab wapas).
-- **Invoice form mein section headings** — Invoice type · Passengers · Flight details · Baggage & options.
+## Phone UI â€” neeche ki quick bar, chhota header, saaf forms (v2.63)
+- **Neeche ki quick bar (sirf phones par):** Sales Â· Invoice Â· Files Â· Pending Â· â˜° Menu. Pehle har tab badalne ke liye â˜° kholna parta tha (2 taps); ab char sab se zyada use hone wale tabs ek tap mein, aur jo tab khula hai wo highlight rehta hai. Menu button wahi purana drawer kholta hai.
+- **Header chhota:** phone par verse ki Urdu line ab ek line (tap kar ke poori khulti hai) aur Arabic font thora chhota â€” screen par ~30px zyada jagah. 410px se chhoti screen par theme/update buttons ab doosri line par nahi girte.
+- **Tab badalne par page upar se shuru hota hai** â€” pehle agla tab beech mein khulta tha (jaise Invoice seedha "Trip type" par).
+- **Header ki asli height naapi jati hai** (`--header-h`) â€” is liye "ï¼‹ New sale" jaisa jump target ab header ke neeche chhupta nahi.
+- **Sales form ke boxes par labels** (Client name, Contact number, Detail, Cost price, Sale price) â€” pehle sirf placeholder tha, type karne ke baad box pehchanna mushkil tha.
+- **Settings mein search box** â€” 13-screen lambi Settings mein sirf milte julte cards dikhte hain (khali karein to sab wapas).
+- **Invoice form mein section headings** â€” Invoice type Â· Passengers Â· Flight details Â· Baggage & options.
 - **Summary:** backup reminder ab summary ke **neeche** (pehle sab se upar bara button tha).
 - **Buttons ka apna look:** bina rang wale `.btn` ab grey UA dabbe nahi (CSV button ka blue-on-grey text khatam); checkbox/radio ka ek hi style; naya focus-friendly accent.
-- **Pichhla tab yaad rehta hai** — app dobara kholne par wahi tab khulta hai.
+- **Pichhla tab yaad rehta hai** â€” app dobara kholne par wahi tab khulta hai.
 - Mobile ki quick bar aur `main` ka bottom padding safe-area (iPhone home bar) ka khayal rakhte hain.
 
-## GitHub account renamed: Ali122 → abtravels (2026-11-13)
-- New links: app **https://abtravels.github.io/travel-office-hisab/** · company website **https://abtravels.github.io/**
+## GitHub account renamed: Ali122 â†’ abtravels (2026-11-13)
+- New links: app **https://abtravels.github.io/travel-office-hisab/** Â· company website **https://abtravels.github.io/**
 - Old `ali122.github.io` links stopped working (GitHub does not redirect Pages sites); repo links on github.com still redirect.
 - Updated everywhere in code: price bot relay origin + Telegram "Open app" button, `scrape.js` user agent, staff portal logo URL, app's default GitHub backup repo (`abtravels/travel-office-hisab-backup`), staff portal default `GITHUB_REPO`, and the website's canonical/OG/JSON-LD URLs.
 
 ## Company website (2026-11-13)
-- Public AB Travels website: **https://abtravels.github.io/** — files live in the separate repo `abtravels/abtravels.github.io` (`index.html`, `style.css`, `main.js`, `assets/logo.png`). Static, free GitHub Pages, no build step or dependencies.
+- Public AB Travels website: **https://abtravels.github.io/** â€” files live in the separate repo `abtravels/abtravels.github.io` (`index.html`, `style.css`, `main.js`, `assets/logo.png`). Static, free GitHub Pages, no build step or dependencies.
 - The old path `/travel-office-hisab/company/` now holds a small redirect page to the root site (query strings are preserved, so shared links keep working).
-- **English + اردو** toggle in the header: switches text, `<html lang/dir>` (full RTL), page title, meta description and the prefilled WhatsApp message, then remembers the choice in `localStorage` (`abt-lang`).
+- **English + Ø§Ø±Ø¯Ùˆ** toggle in the header: switches text, `<html lang/dir>` (full RTL), page title, meta description and the prefilled WhatsApp message, then remembers the choice in `localStorage` (`abt-lang`).
 - Contact shown: WhatsApp **0314-3176560**, mobile **0314-3176560**, alternate **0310-3311199**, email **ahmedbrothers053@gmail.com**. No street address is published yet.
 - The quote form has **no backend**: on submit it validates name/phone and opens `wa.me` with the details prefilled. Nothing is stored on the website.
-- Tested 320–1920px, English/Urdu, mobile menu, form validation, all links, no console errors, no horizontal overflow.
+- Tested 320â€“1920px, English/Urdu, mobile menu, form validation, all links, no console errors, no horizontal overflow.
 
 ## Sales register uses the full laptop width (v2.62)
 - On a laptop/desktop the **Sales** tab now stretches to the window instead of sitting in an 820px column, so both side margins are used and the table no longer needs left/right scrolling at 1280px and wider.
@@ -350,73 +355,73 @@
 - Other tabs keep their normal width; phones/tablets below 1000px keep the sideways-scroll grid unchanged.
 
 ## Sales register column order (v2.61)
-- Columns now run **Cost → Sale → Profit → Status**, then Type, Detail, Pax, Phone and the actions button. The Σ footer row follows the same order.
+- Columns now run **Cost â†’ Sale â†’ Profit â†’ Status**, then Type, Detail, Pax, Phone and the actions button. The Î£ footer row follows the same order.
 - CSV export already uses Cost, Sale, Profit, so both views match.
 
-## Sales register — top totals panel removed (v2.60)
-- The **Cost / Sale / Profit / Persons** strip above the sales grid is gone. Those figures are already in **Monthly summary** and in the grid's Σ footer row, so the register is now shorter on mobile.
-- Nothing else changed: month filter, search, grid columns, row actions and the Σ footer totals still work the same.
+## Sales register â€” top totals panel removed (v2.60)
+- The **Cost / Sale / Profit / Persons** strip above the sales grid is gone. Those figures are already in **Monthly summary** and in the grid's Î£ footer row, so the register is now shorter on mobile.
+- Nothing else changed: month filter, search, grid columns, row actions and the Î£ footer totals still work the same.
 
 ## Sales register refinements (v2.59)
-- **Month khud current month par khulta hai** — pehle har dafa "All months" aata tha. Agar is mahine koi sale na ho to sab se naya mahina jis mein sales hain khulta hai; sales hi na hon to "All months".
-- **Actions ab ek chhota `⋯` button** — us par tap (ya row par tap) se neeche menu khulta hai: ✔ Paid · 🧾 Invoice · ✏ Edit · **📝 Detail** · 📅 Date · ✕ Delete. Row ke andar baqi buttons chhupe rehte hain, is liye **actions ke liye left/right scroll khatam** — ye column hamesha daayen freeze hai (mobile par bhi).
-- **Naya sale sab se oper** — pehle ek hi date ki sales naam ke hisab se lag jati thin; ab date ke andar **jo sale baad mein add hui wo pehle** dikhti hai (latest first).
-- **Date column mein sirf din** (jab koi mahina chuna ho) — `7`, `9` waghera; "All months" par poori tareekh `07/11/26`. Mahina/year upar filter aur sheet title mein pehle se likha hota hai.
-- **Detail ab form se bhi bhar jata hai** — Add New Sale form mein naya **Detail** box (route / PNR / note, e.g. `KHI-DXB EK601`). Purani sale ka detail badalne ke liye row ke `⋯` → **📝 Detail** (khali chhodein to purana rahega, mitane ke liye `-`).
+- **Month khud current month par khulta hai** â€” pehle har dafa "All months" aata tha. Agar is mahine koi sale na ho to sab se naya mahina jis mein sales hain khulta hai; sales hi na hon to "All months".
+- **Actions ab ek chhota `â‹¯` button** â€” us par tap (ya row par tap) se neeche menu khulta hai: âœ” Paid Â· ðŸ§¾ Invoice Â· âœ Edit Â· **ðŸ“ Detail** Â· ðŸ“… Date Â· âœ• Delete. Row ke andar baqi buttons chhupe rehte hain, is liye **actions ke liye left/right scroll khatam** â€” ye column hamesha daayen freeze hai (mobile par bhi).
+- **Naya sale sab se oper** â€” pehle ek hi date ki sales naam ke hisab se lag jati thin; ab date ke andar **jo sale baad mein add hui wo pehle** dikhti hai (latest first).
+- **Date column mein sirf din** (jab koi mahina chuna ho) â€” `7`, `9` waghera; "All months" par poori tareekh `07/11/26`. Mahina/year upar filter aur sheet title mein pehle se likha hota hai.
+- **Detail ab form se bhi bhar jata hai** â€” Add New Sale form mein naya **Detail** box (route / PNR / note, e.g. `KHI-DXB EK601`). Purani sale ka detail badalne ke liye row ke `â‹¯` â†’ **ðŸ“ Detail** (khali chhodein to purana rahega, mitane ke liye `-`).
 
-## Sales register — Google Sheets jaisa grid (v2.58)
-- **Sales tab** ka list ab **spreadsheet jaisa** hai: row numbers (#), column headers, poori grid lines, aur har sale ek chhoti single-line row mein — lambi cards khatam, is liye neeche scroll kam karna parta hai.
-- **Header row aur Date column frozen** hain — 600 sales hon to bhi naam/tareekh samne rehte hain, sirf andar ka hissa scroll hota hai.
-- **Khaas columns pehle**: Date · Client · **Sale** · **Profit** · **Status** (Paid/Unpaid + baqi raqam) — phir Cost, Type, Detail, Pax, Phone.
-- **Bari screen par Actions column daayen frozen** — scroll karte waqt bhi ✔ Paid / 🧾 Invoice / ✏ Edit / 📅 Date / ✕ Delete samne rehte hain.
-- **Kisi bhi row par tap** karein to neeche chhota menu khulta hai: ✔ Paid · 🧾 Invoice · ✏ Edit · 📅 Date · ✕ Delete (mobile par bhi asaan).
+## Sales register â€” Google Sheets jaisa grid (v2.58)
+- **Sales tab** ka list ab **spreadsheet jaisa** hai: row numbers (#), column headers, poori grid lines, aur har sale ek chhoti single-line row mein â€” lambi cards khatam, is liye neeche scroll kam karna parta hai.
+- **Header row aur Date column frozen** hain â€” 600 sales hon to bhi naam/tareekh samne rehte hain, sirf andar ka hissa scroll hota hai.
+- **Khaas columns pehle**: Date Â· Client Â· **Sale** Â· **Profit** Â· **Status** (Paid/Unpaid + baqi raqam) â€” phir Cost, Type, Detail, Pax, Phone.
+- **Bari screen par Actions column daayen frozen** â€” scroll karte waqt bhi âœ” Paid / ðŸ§¾ Invoice / âœ Edit / ðŸ“… Date / âœ• Delete samne rehte hain.
+- **Kisi bhi row par tap** karein to neeche chhota menu khulta hai: âœ” Paid Â· ðŸ§¾ Invoice Â· âœ Edit Â· ðŸ“… Date Â· âœ• Delete (mobile par bhi asaan).
 - Upar wahi ek patli patti: **Month filter + Search**. Search karte hi **totals bhi update** hote hain (jitni rows nazar aa rahi hain unka Sale/Profit).
-- Neeche **Σ totals row** (Cost / Sale / Profit / Persons) — bilkul sheets ke TOTAL jaisa.
-- **⬇ CSV** button — jo rows nazar aa rahi hain wo CSV file ban jati hain, Google Sheets ya Excel mein seedha khul jati hain.
-- **"＋ New sale"** button form kholta hai; sale save hote hi form band ho kar naya row sheet mein samne aa jata hai.
-- "Move sales to another month" aur "Clean up sales" (duplicates / clear all) ab alag chhote collapsed cards mein — main view saaf rehta hai.
+- Neeche **Î£ totals row** (Cost / Sale / Profit / Persons) â€” bilkul sheets ke TOTAL jaisa.
+- **â¬‡ CSV** button â€” jo rows nazar aa rahi hain wo CSV file ban jati hain, Google Sheets ya Excel mein seedha khul jati hain.
+- **"ï¼‹ New sale"** button form kholta hai; sale save hote hi form band ho kar naya row sheet mein samne aa jata hai.
+- "Move sales to another month" aur "Clean up sales" (duplicates / clear all) ab alag chhote collapsed cards mein â€” main view saaf rehta hai.
 - Chhota fix: Pending Payments ke reminder messages par ab **toast** (neeche confirmation) aata hai; pehle `notify` galti se local variable tha.
 
 ## Contact number + payment reminders (v2.57)
 - **Add New Sale** form mein ab **Contact number** ka box hai. Number sale par save hota hai aur client record mein bhi (purana number khali ho to).
 - Sale likhte hi client ka naam likhte hi number bhi auto-fill ho jata hai (client suggestions).
-- Sale ka ✏ (edit) par bhi contact number poocha jata hai — purani sales ka number wahin add kar sakte hain.
+- Sale ka âœ (edit) par bhi contact number poocha jata hai â€” purani sales ka number wahin add kar sakte hain.
 - **Pending Payments** mein har unpaid sale aur client entry par number dikhta hai, aur teen buttons milte hain:
-  - **📞 Call** — phone par seedha call (tel: link).
-  - **💬 WhatsApp** — payment reminder message bhar kar WhatsApp khulta hai (naam + raqam + tareekh).
-  - **🔔 Remind team** — Telegram par team ko yaad dila deta hai (naam, raqam, number).
-- Pending Payments ke top par **"Remind team: all pending"** button — poori pending list (naam + raqam + number) ek message mein team ko bhej deta hai.
+  - **ðŸ“ž Call** â€” phone par seedha call (tel: link).
+  - **ðŸ’¬ WhatsApp** â€” payment reminder message bhar kar WhatsApp khulta hai (naam + raqam + tareekh).
+  - **ðŸ”” Remind team** â€” Telegram par team ko yaad dila deta hai (naam, raqam, number).
+- Pending Payments ke top par **"Remind team: all pending"** button â€” poori pending list (naam + raqam + number) ek message mein team ko bhej deta hai.
 - Sales list mein bhi unpaid sale ke saath contact number dikhta hai.
 
 ## Telegram reliability (v2.55 / v2.56)
-- **"Webhook: timeout"** ka asal reason: status page har baar Telegram API pe wait karta tha, aur Cloudflare → Telegram ki raasta 15–40s leti hai (kabhi block bhi hoti hai). Ab webhook info **KV mein cache** hoti hai (cron har 10 min refresh karta hai) — status page ab foran jawab deta hai aur sach dikhata hai.
-- `tg()` mein **ek retry** add hua hai (timeout / network error / flood-control par dobara try), aur timeout 20s → 40s barha hai — Telegram temporarily slow ho to notification drop nahi hoti.
-- App ka relay request timeout 30s → 70s (worker ke retry ka intezaar karta hai).
-- Worker live: **v2.56** — status page par `Webhook: connected`, relay dono team chats par OK.
+- **"Webhook: timeout"** ka asal reason: status page har baar Telegram API pe wait karta tha, aur Cloudflare â†’ Telegram ki raasta 15â€“40s leti hai (kabhi block bhi hoti hai). Ab webhook info **KV mein cache** hoti hai (cron har 10 min refresh karta hai) â€” status page ab foran jawab deta hai aur sach dikhata hai.
+- `tg()` mein **ek retry** add hua hai (timeout / network error / flood-control par dobara try), aur timeout 20s â†’ 40s barha hai â€” Telegram temporarily slow ho to notification drop nahi hoti.
+- App ka relay request timeout 30s â†’ 70s (worker ke retry ka intezaar karta hai).
+- Worker live: **v2.56** â€” status page par `Webhook: connected`, relay dono team chats par OK.
 
 ## Reminder fixes + UI polish (v2.54)
 - **"kal raat 10 bje"** ab **kal** raat 10 baje par lagta hai (pehle aaj raat par lag jata tha).
-- **"raat 12 bje"** ab raat 12:00 (midnight) hai — pehle dopahar 12:00 ban jata tha.
+- **"raat 12 bje"** ab raat 12:00 (midnight) hai â€” pehle dopahar 12:00 ban jata tha.
 - Notification messages mein dobara "PKT PKT" nahi aata (pehle har reminder message mein "PKT PKT" likha tha).
 - Reminders ab Durable Object mein store hote hain: do `/remind` ek saath bhejne par dono bachte hain, aur cron ke chalne ke beech naya reminder add karne par purana delete nahi hota.
-- Event qareeb ho (lead times nikal chuke hon) to reminder **event ke waqt** par bhi lag jata hai — pehle "waqt guzar chuka hai" error aa jata tha.
+- Event qareeb ho (lead times nikal chuke hon) to reminder **event ke waqt** par bhi lag jata hai â€” pehle "waqt guzar chuka hai" error aa jata tha.
 - Invoice par "PASSENGERS (3)" likha ho to 3 rows dikhti hain (khali naam/NIC bhi).
 - UI: mobile par header ki ayat 2 lines par clamp hoti hai (tap se poori khulti hai), sale form ke "Status / Method / Commission" ke labels ab visible hain, keyboard focus ring add hua hai.
-- Checks: `python -m unittest discover -s tests -v` — price bot aur staff worker ke behaviour checks (Node ya headless Chrome se, offline).
+- Checks: `python -m unittest discover -s tests -v` â€” price bot aur staff worker ke behaviour checks (Node ya headless Chrome se, offline).
 
-## Reminder fixes (v2.52 / v2.53 — dost ka kaam)
+## Reminder fixes (v2.52 / v2.53 â€” dost ka kaam)
 
 ## No added-by names anywhere (v2.51)
 - Ticket Files and the staff portal no longer show **who uploaded** a file. The "Aap ka naam (uploads par)" box is gone from the app.
 - New uploads do not store an uploader name at all; Telegram notifications already carry no added-by name.
-- Old files and backups that still contain `uploadedBy` keep working — the field is simply never displayed.
+- Old files and backups that still contain `uploadedBy` keep working â€” the field is simply never displayed.
 - Staff portal: deploy `staff-worker` again (`npx wrangler deploy` in `staff-worker/`) to get the same change there.
 
-## Sale — number of persons (v2.50)
-- The **Add New Sale** form now has a **Number of persons** field (default **1**, 1–99). It is stored on the sale as `persons`.
-- It is **informational only**: cost, sale, profit and all monthly totals stay exactly as entered — increasing persons never multiplies them.
-- Sales list shows a 👥 badge when persons is above 1, and the Ticket Summary line shows the total person count for the filtered month.
-- The sale edit (✏) prompt now also asks for the person count, and creating an invoice from a sale pre-fills the invoice passenger count from it.
+## Sale â€” number of persons (v2.50)
+- The **Add New Sale** form now has a **Number of persons** field (default **1**, 1â€“99). It is stored on the sale as `persons`.
+- It is **informational only**: cost, sale, profit and all monthly totals stay exactly as entered â€” increasing persons never multiplies them.
+- Sales list shows a ðŸ‘¥ badge when persons is above 1, and the Ticket Summary line shows the total person count for the filtered month.
+- The sale edit (âœ) prompt now also asks for the person count, and creating an invoice from a sale pre-fills the invoice passenger count from it.
 - Older sales without the field are treated as 1 person; imports and backups keep working unchanged.
 
 ## Passenger IDs stay aligned (v2.49)
@@ -427,12 +432,12 @@
 - Run `python -m unittest discover -s tests -v` for the offline release checks. These checks do not exercise live bookings, payments, or Ignav.
 
 ## Price alert preview (v2.46)
-- Bot price notifications now start with the **route + current price** on the first line (e.g. `KHI → DXB · 15 Dec 2026 · PKR 85,400`), so the phone notification preview shows everything without opening the message.
+- Bot price notifications now start with the **route + current price** on the first line (e.g. `KHI â†’ DXB Â· 15 Dec 2026 Â· PKR 85,400`), so the phone notification preview shows everything without opening the message.
 - Applies to both `alertText` (target/drop alert) and `updateText` (periodic price update); the change details (previous price, target, fare legs) follow on later lines.
 - `pricebot-worker.js` v2.46 redeploy karein (`npx wrangler deploy -c wrangler.pricebot.toml`); bindings/secrets wahi rahenge.
 
-## Price Lookup — children & infants (v2.45)
-- Price Lookup now supports **adults, children (2–11), infants on lap (<2) and infants in seat**, using Ignav's official request fields (`adults`, `children`, `infants_on_lap`, `infants_in_seat`). Fields are sent only when above zero, so a plain 1-adult search sends exactly the same request as before.
+## Price Lookup â€” children & infants (v2.45)
+- Price Lookup now supports **adults, children (2â€“11), infants on lap (<2) and infants in seat**, using Ignav's official request fields (`adults`, `children`, `infants_on_lap`, `infants_in_seat`). Fields are sent only when above zero, so a plain 1-adult search sends exactly the same request as before.
 - Validation: one lap infant per adult, and at most 9 seated passengers (adults + children + infants in seat).
 - Ignav returns one **party total** per fare (`PriceModel` has amount/currency/status only, no per-person split), so results are labelled "party total".
 - **One search = one Ignav request**, regardless of passenger count. The proxy `MAX_DAILY_PROXY` and bot `MAX_DAILY_REQUESTS` budgets count requests, not passengers; failed requests are not billed.
@@ -455,8 +460,8 @@ open `index.html` in any browser. The whole UI is in English.
 ## What it does
 
 - Monthly accounts: income, expenses, ticket profit, net profit
-- Tickets / Umrah bookings — paid / unpaid, per-month filter
-- Partners: Umair & Sarmad — share earned, withdrawals, balance
+- Tickets / Umrah bookings â€” paid / unpaid, per-month filter
+- Partners: Umair & Sarmad â€” share earned, withdrawals, balance
 - Father (Owner) withdrawals; Waseem commission & salary (Staff)
 - Loan tracker, charity at a configurable rate (per-month override possible)
 - Client pending payments (bakaya) with per-month filter
@@ -466,11 +471,11 @@ open `index.html` in any browser. The whole UI is in English.
 
 ## Google Sheet sync
 
-1. Put the Apps Script code (shown inside the app: Settings → Google Sheet setup) into
-   the Sheet's **Extensions → Apps Script**, then deploy as a **Web app** (execute as: me,
+1. Put the Apps Script code (shown inside the app: Settings â†’ Google Sheet setup) into
+   the Sheet's **Extensions â†’ Apps Script**, then deploy as a **Web app** (execute as: me,
    access: anyone).
-2. In the app: Settings → paste the deployment URL + the Sheet **File ID** → Test.
-3. Each month has its own Sheet file — change the File ID, then **Import**.
+2. In the app: Settings â†’ paste the deployment URL + the Sheet **File ID** â†’ Test.
+3. Each month has its own Sheet file â€” change the File ID, then **Import**.
 
 The app keeps data in `localStorage` and pushes a JSON copy to the Sheet.
 
@@ -480,8 +485,8 @@ Current version is shown in Settings and in the header badge. Bump `APP_VER` on 
 
 ## Files
 
-- `index.html` — the whole application (HTML + CSS + JS + embedded Apps Script code)
-- `logo.png` — AB Travels logo (header + favicon)
+- `index.html` â€” the whole application (HTML + CSS + JS + embedded Apps Script code)
+- `logo.png` â€” AB Travels logo (header + favicon)
 
 ## PDF to Word (structured, iLovePDF style)
 
@@ -542,10 +547,10 @@ Current version: **2.31** (Email share opens Gmail compose with recipient prompt
 ## Sasta route price snapshots (free)
 - `.github/workflows/sasta-prices.yml` runs Playwright Chromium every 30 minutes on a public repo (free Actions minutes) and reads Sasta's public SEO route pages.
 - Top 16 routes only; output is `data/sasta/<origin>-<destination>.json` with a route-level `amount`, `observed_at`, `source_url`. It is cached/indicative, not date-specific availability.
-- Price Lookup fetches `data/sasta/khi-dxb.json` (etc.) and shows a **Sasta Ticket — route price · External / indicative** card under Ignav results. Missing file / failed scrape = badge hidden, manual Sasta link remains.
+- Price Lookup fetches `data/sasta/khi-dxb.json` (etc.) and shows a **Sasta Ticket â€” route price Â· External / indicative** card under Ignav results. Missing file / failed scrape = badge hidden, manual Sasta link remains.
 - The scraper does not log in, bypass CAPTCHA or book. If Sasta changes markup/WAF, the job fails gracefully and the last good JSON stays.
 
-## Staff portal (v2.16) — separate Cloudflare Worker
+## Staff portal (v2.16) â€” separate Cloudflare Worker
 - `staff-worker/` is a password-only staff portal at `staff-abtravels.<subdomain>.workers.dev`. No email or OTP; the password is a Worker secret and the browser gets a 12-hour signed `HttpOnly` cookie.
 - Staff can add partial payments on receivables and unpaid tickets, view/add/edit clients (no delete), create their own bookings, create ticket/Umrah invoices for any client (save + print), print/share invoices for their own bookings, open/share the shared Ticket Files, and use PNR Lookup. Saved staff invoices appear in the owner app's Invoice tab too.
 - Cost, profit, expenses, partners, Father, loans, settings, airline IDs, backups and the GitHub token never reach staff. Staff bookings are saved with `createdBy: "staff"`, `cost: 0` so the owner can add the real cost.
@@ -556,13 +561,13 @@ Current version: **2.31** (Email share opens Gmail compose with recipient prompt
 - Cause of 'check connection': Ignav's API is not callable from browser JavaScript (key must stay server-side). Direct calls fail.
 - Fix: one-click Cloudflare Worker proxy code inside Settings (free plan). Worker adds the key server-side and exposes /health, /fares, /round-trip, /booking-links with CORS.
 
-## Price Lookup — Kiwi/Tequila (v2.19)
-- Second free source alongside Ignav. `KIWI_WORKER_CODE` (Settings → Kiwi prices) deploys a separate Cloudflare Worker that proxies `api.tequila.kiwi.com/v2/search` with the key stored server-side as `TEQUILA_KEY`.
-- Setup: tequila.kiwi.com/portal/signup → free key → deploy worker → set secret → paste Worker URL → Save & test.
+## Price Lookup â€” Kiwi/Tequila (v2.19)
+- Second free source alongside Ignav. `KIWI_WORKER_CODE` (Settings â†’ Kiwi prices) deploys a separate Cloudflare Worker that proxies `api.tequila.kiwi.com/v2/search` with the key stored server-side as `TEQUILA_KEY`.
+- Setup: tequila.kiwi.com/portal/signup â†’ free key â†’ deploy worker â†’ set secret â†’ paste Worker URL â†’ Save & test.
 - One-way searches hit the worker's `/kiwi` endpoint in parallel with Ignav; results are converted to the same itinerary shape and merged into the sorted list with a **Kiwi** badge and a direct "Kiwi par book" deep link. Prices show as *unverified* (indicative).
 - Currency follows the Pricing market selector (PKR default). `kiwiProxy` URL is device-specific (stripped from shared state, like `ignavProxy`).
 ## Kiwi/Tequila removed (v2.21)
-- Tequila public signup closed May 2024 (invitation-only per Kiwi.com policy), so the v2.19 Kiwi integration was fully reverted — Ignav is again the only live source in Price Lookup. The v2.19 worker code remains in git history if a Tequila key is ever obtained.
+- Tequila public signup closed May 2024 (invitation-only per Kiwi.com policy), so the v2.19 Kiwi integration was fully reverted â€” Ignav is again the only live source in Price Lookup. The v2.19 worker code remains in git history if a Tequila key is ever obtained.
 ## Telegram price bot (v2.24)
 - New Settings card: "Telegram price bot" with a one-click copy of `pricebot-worker.js` (also kept in the repo root).
 - One Cloudflare Worker does both jobs: the Ignav proxy for the app and the Telegram bot with a 1-minute cron.
@@ -574,7 +579,7 @@ Current version: **2.31** (Email share opens Gmail compose with recipient prompt
 - Setup guide: `PRICEBOT.md`.
 
 ## Mobile-friendly price bot (v2.25)
-- Natural messages: `DXB to KHI 15 December`, `DXB KHI 15 Dec har 30 minute`, `EK601 DXB KHI 15 December` — Roman Urdu/English, city names or IATA codes, `kal`/`aaj`, `har ghantay`, `har 2 ghantay`.
+- Natural messages: `DXB to KHI 15 December`, `DXB KHI 15 Dec har 30 minute`, `EK601 DXB KHI 15 December` â€” Roman Urdu/English, city names or IATA codes, `kal`/`aaj`, `har ghantay`, `har 2 ghantay`.
 - Tracking end time (`... kal raat 10 baje tak` or `until=2026-12-14T22:00`, Pakistan time); the watch deletes itself and tells you when time is up.
 - Inline buttons on every reply: 1 / 5 / 10 / 15 / 30 / 60 min, Pause, Book, Stop; new `/interval`, `/pause`, `/resume` commands.
 - Specific flight filter for both one-off prices and watches (`flight=EK601` / `EK601` in a normal message).
@@ -582,7 +587,7 @@ Current version: **2.31** (Email share opens Gmail compose with recipient prompt
 - App proxy now has its own best-effort daily counter (`MAX_DAILY_PROXY`, default 200) and an optional `ALLOWED_ORIGIN` check, so the public `/fares` route cannot silently drain the whole Ignav allowance. The Ignav dashboard spending limit remains the hard stop.
 
 ## Invoice overnight arrival (v2.26)
-- Invoice ab arrival ki apni date dikhata hai. Agar flight raat ko utarti hai (arrival time departure se chhota, e.g. 11:05 PM → 2:05 AM), to arrival `02/12/26 (+1)` — agle din — print hoti hai, departure ki date nahi.
+- Invoice ab arrival ki apni date dikhata hai. Agar flight raat ko utarti hai (arrival time departure se chhota, e.g. 11:05 PM â†’ 2:05 AM), to arrival `02/12/26 (+1)` â€” agle din â€” print hoti hai, departure ki date nahi.
 
 ## Shared price bot (v2.27)
 - Team access: owner `/share <chat_id>` se member add karta hai (`/unshare` se remove, max 10). Member apna ID `/id` se le sakta hai.
@@ -590,9 +595,9 @@ Current version: **2.31** (Email share opens Gmail compose with recipient prompt
 - Price alerts, budget/end-time messages aur naya-watch notice **tamam allowed chats** ko jate hain.
 - Worker status page par owner aur team chats dikhte hain; bot version `v2.27`.
 
-## Ticket Files — shared PDF library (v2.33)
+## Ticket Files â€” shared PDF library (v2.33)
 - New nav tab **Ticket Files**. Upload a saved ticket PDF/image from the PC (or drag & drop); it is stored once in the private GitHub backup repo under `tickets/` (20 MB per file, PDF/JPG/PNG).
-- The invoice share row's old **LocalSend** button is now **📁 Files**: it saves the generated invoice straight into the shared library, so no download/re-upload or PC→phone transfer is needed.
+- The invoice share row's old **LocalSend** button is now **ðŸ“ Files**: it saves the generated invoice straight into the shared library, so no download/re-upload or PCâ†’phone transfer is needed.
 - Only small metadata (client, PNR, file name, size, uploader, time) goes into `HisabData.json`, so every device that has the app (mobile, Sarmad, staff) sees the list after the normal GitHub sync. Files download on first open and are cached on the device.
 - Client and PNR auto-fill from the file name when they match an existing client/ticket/invoice.
 - **WhatsApp** button: on a phone the share sheet opens with the PDF already attached (no LocalSend step). On a PC the PDF downloads and WhatsApp Web opens at the client's saved number with a ready caption.
@@ -601,8 +606,8 @@ Current version: **2.31** (Email share opens Gmail compose with recipient prompt
 - Staff Worker must be redeployed once after this version for the staff tab to appear.
 
 ## Team push notifications (v2.34)
-- New Settings card **Team notifications (free push)**. Notifications use [ntfy.sh](https://ntfy.sh) — no account, email or OTP.
-- Setup once: press **New topic** → **Save & send test** → install the free **ntfy** app on every phone (Play Store / App Store) → `+` → paste the topic → Subscribe. On a PC, open `https://ntfy.sh/<topic>` and press Subscribe.
+- New Settings card **Team notifications (free push)**. Notifications use [ntfy.sh](https://ntfy.sh) â€” no account, email or OTP.
+- Setup once: press **New topic** â†’ **Save & send test** â†’ install the free **ntfy** app on every phone (Play Store / App Store) â†’ `+` â†’ paste the topic â†’ Subscribe. On a PC, open `https://ntfy.sh/<topic>` and press Subscribe.
 - Notifications are sent automatically for: a new sale/ticket in the app, a new Ticket File upload, an invoice saved to Ticket Files, a new staff booking, and a staff payment.
 - The topic is a shared secret: anyone who knows it can read the notifications (client names/PNRs are included). Share it only with the team; press **New topic** to rotate it.
 - If ntfy.sh is unreachable, the app keeps working; only the notification fails (silently in the background).
@@ -610,28 +615,28 @@ Current version: **2.31** (Email share opens Gmail compose with recipient prompt
 
 ## Ticket Files: links, notes and pasted documents (v2.35)
 - New **Paste link / document** card in Ticket Files:
-  - **Link** — e.g. a Google Drive or airline booking URL. Stored as a clickable entry with Open link / Copy / WhatsApp.
-  - **Note / document text** — paste a document's text (max 4,000 characters). Stored in the synced data with View / Copy / WhatsApp.
-  - **📋 Paste from clipboard** — a PDF/image in the clipboard is uploaded as a file; text/URL fills the form. Pasting a PDF/image into the note box also works.
+  - **Link** â€” e.g. a Google Drive or airline booking URL. Stored as a clickable entry with Open link / Copy / WhatsApp.
+  - **Note / document text** â€” paste a document's text (max 4,000 characters). Stored in the synced data with View / Copy / WhatsApp.
+  - **ðŸ“‹ Paste from clipboard** â€” a PDF/image in the clipboard is uploaded as a file; text/URL fills the form. Pasting a PDF/image into the note box also works.
 - **These entries never send a push notification.** Notifications remain only for real ticket-file uploads, new sales, staff bookings and staff payments.
 - Links are the cheapest option for big documents: keep the file on Drive and paste the link, so GitHub storage is not used.
 - Staff portal shows links with Open/Copy and notes with View/Copy.
 
-## GitHub storage — not unlimited
+## GitHub storage â€” not unlimited
 - GitHub Free is **not unlimited**: recommended repo size is under **1 GB** (soft; GitHub may contact you above it), a single file is capped at **100 MB**, and Git LFS gives 1 GB free (not used here).
 - Each Ticket File upload is one commit. Deleting a file removes it from the current tree but the old copy stays in git history, so the repo does not shrink immediately.
-- A typical 200 KB ticket PDF ≈ 5,000 files per 1 GB. That is years of normal use, but use Drive links for big documents and delete old ticket files occasionally.
+- A typical 200 KB ticket PDF â‰ˆ 5,000 files per 1 GB. That is years of normal use, but use Drive links for big documents and delete old ticket files occasionally.
 - GitHub Pages (the app itself) is limited to 1 GB site size and 100 GB/month soft bandwidth; the app is under 1 MB.
 
 ## Notification server setting (v2.36)
-- Team notifications ab **configurable ntfy server** use karti hain. Naya field: **Settings → Team notifications → Notification server** (default `https://ntfy.sh`).
-- Kyun: kuch networks/ISPs (jaise ghar ka broadband) `ntfy.sh` ko block kar dete hain — phone par "TLS error" ya "check internet" aata hai, halanki office Wi-Fi par pehle kaam kar raha tha.
+- Team notifications ab **configurable ntfy server** use karti hain. Naya field: **Settings â†’ Team notifications â†’ Notification server** (default `https://ntfy.sh`).
+- Kyun: kuch networks/ISPs (jaise ghar ka broadband) `ntfy.sh` ko block kar dete hain â€” phone par "TLS error" ya "check internet" aata hai, halanki office Wi-Fi par pehle kaam kar raha tha.
 - Working public mirrors: `https://ntfy.envs.net`, `https://ntfy.adminforge.de`, `https://ntfy.mzte.de`. Server field mein daal kar **Save & send test** karein, aur phone ke ntfy app mein bhi wahi server add karein.
 - **Copy subscribe link** ab usi server ka link deta hai; staff Worker bhi wahi server use karta hai (redeploy zaroori).
 - Default waisa hi hai, is liye purane users ka behaviour nahi badla.
 
 ## Version
-Current version: **3.08** (v3.08 PNR Lookup tab par **🔗 Airline portals** card — Meezab B2B, Fly Jinnah, AirBlue, AirSial, PIA, Serene Air, editable/add/reset, settings.portals mein save; v3.07 From/To boxes ek line par + arrow fixed column; v3.06 base fare ka long-press tooltip hata diya (Meezab + Ignav) — sirf final price; v3.05 Price Lookup: "commission" → **Tax**, collapsible panel (default band, amount chhupi), English note, tax price mein shamil; v3.04 commission price mein hi shamil + long-press base fare; v3.03 apna commission/selling price; v3.02 Price Lookup laptop par poori width - Fares tab Sales register jaisa 1680px; v3.01 spinner/refresh/country fixes; v3.00 Price Lookup: early exit removed so no fare is dropped, all pages up to MEZ_MAX_PAGES (10/2,500 default), 3-page batches instead of 10 parallel (503 fix), fancy compact loading bar with elapsed seconds; v2.99 am/pm times + auto-refresh default ON (5 min); v2.98 compact trip/class/pax panel + poora form yaad + airport suggestions on From/To + infants≤adults check + stale-price warning; v2.97 results form card ke bahar + results tak scroll + validation apni jagah + auto-refresh default off + aakhri route yaad; v2.96 Meezab paging speed, header badge APP_VER ke sath; v2.95 header badge; v2.94 mobile par header ka airplane button hata diya — neeche ki quick bar ke beech mein wahi shortcut already he, desktop par button barqarar; v2.93 ticket files ka orphan recovery — metadata kho jaye to GitHub ke `tickets/` folder se entry khud wapas banti he, delete ki hui files wapas nahi aatin; v2.92 Ticket files sync fix — PC par upload hui file mobile par foran aati he (fileTickets ka union, pull ke baad wapas push, delete ke liye tombstones, Files tab par "Last GitHub check" line); v2.91 Meezab baggage har direction ka alag + total (`25 kg + 25 kg = 50 kg`, `50 lb + 50 lb = 100 lb`, `1 piece + 1 piece = 2 pieces`), lb/pieces ka sahi unit, baggage filter lb/pieces bhi samajhta he; v2.90 Meezab CPU-budgeted paging (poll pageSize 1) aur 503 fix; v2.89 round-trip/multi-city cards par `via` ki duplicate entries saaf — outbound aur return dono AUH se hon to sirf ek dafa `via AUH`; v2.88 Meezab round trip + multi-city (4 legs) + cabin choice — card par alag Outbound/Return ya Leg 1/2 rows, header route/dates/cabin, resume trip type bhi yaad rakhta he, worker portal ka asli `FlightDirection: Round` / `MultiCityArray` shape bhejta he; v2.87 Meezab baggage labels (`0Kilograms-0Kilograms` → "No checked bag"); v2.86 Meezab poora party — 10 adult / 10 child / 10 infant ek search mein, total + per-adult/child/infant breakdown card par, worker query aur normalize mein per-pax fares; v2.85 Meezab budget 60 → 150 searches/day and auto-refresh cap 15 → 40; v2.84 airport/client suggestion dropdown body-fixed + keyboard row fix, Meezab budget configurable `MEZ_DAILY_CAP`, unit counted after the search starts, budget shown in the app, 10-minute cache; v2.83 compact Price Lookup card; v2.69 modern look: narm kone, layered card shadows, ring-focus fields, frosted bottom bar, patli scrollbars; v2.68 notification failures visible + retry; v2.67 PC par mouse wheel register ke upar ho to bhi PAGE scroll hota hai; v2.66 sales register wheel/scroll fix; v2.65 sticky drawer header + quick-bar accent tweak; v2.64 new GitHub Pages link `abtravels.github.io` + relay origin allowlist for both hosts; v2.63 phone UI: bottom quick bar, chhota header, settings search, invoice section headings, labelled sale form, scroll fixes; v2.62 sales register full laptop width; v2.53 reminder times now shown as 12-hour am/pm; v2.52 Telegram reminders in the price bot; v2.50 Sale "Number of persons" field; v2.49 passenger ID alignment; v2.48 added-by names removed from Telegram notifications; v2.47 multi-city proxy + offline release checks; v2.46 route and current price on the first line of price alerts; v2.45 children/infants in Price Lookup; v2.44 WATCH_INDEX_DO Durable Object setup card + `wrangler.pricebot.toml`; v2.42–v2.43 SQLite Durable Object watch index, relay authentication, optional relay token; v2.41 stopped the every-minute KV.list; v2.40 sync of Telegram token/chat IDs/relay/Ignav proxy/OCR key; GitHub PAT and Ignav API key stay device-local).
+Current version: **3.09** (v3.09 portal card phones par single column - naam poore nazar aate hain; v3.08 PNR Lookup tab par **ðŸ”— Airline portals** card â€” Meezab B2B, Fly Jinnah, AirBlue, AirSial, PIA, Serene Air, editable/add/reset, settings.portals mein save; v3.07 From/To boxes ek line par + arrow fixed column; v3.06 base fare ka long-press tooltip hata diya (Meezab + Ignav) â€” sirf final price; v3.05 Price Lookup: "commission" â†’ **Tax**, collapsible panel (default band, amount chhupi), English note, tax price mein shamil; v3.04 commission price mein hi shamil + long-press base fare; v3.03 apna commission/selling price; v3.02 Price Lookup laptop par poori width - Fares tab Sales register jaisa 1680px; v3.01 spinner/refresh/country fixes; v3.00 Price Lookup: early exit removed so no fare is dropped, all pages up to MEZ_MAX_PAGES (10/2,500 default), 3-page batches instead of 10 parallel (503 fix), fancy compact loading bar with elapsed seconds; v2.99 am/pm times + auto-refresh default ON (5 min); v2.98 compact trip/class/pax panel + poora form yaad + airport suggestions on From/To + infantsâ‰¤adults check + stale-price warning; v2.97 results form card ke bahar + results tak scroll + validation apni jagah + auto-refresh default off + aakhri route yaad; v2.96 Meezab paging speed, header badge APP_VER ke sath; v2.95 header badge; v2.94 mobile par header ka airplane button hata diya â€” neeche ki quick bar ke beech mein wahi shortcut already he, desktop par button barqarar; v2.93 ticket files ka orphan recovery â€” metadata kho jaye to GitHub ke `tickets/` folder se entry khud wapas banti he, delete ki hui files wapas nahi aatin; v2.92 Ticket files sync fix â€” PC par upload hui file mobile par foran aati he (fileTickets ka union, pull ke baad wapas push, delete ke liye tombstones, Files tab par "Last GitHub check" line); v2.91 Meezab baggage har direction ka alag + total (`25 kg + 25 kg = 50 kg`, `50 lb + 50 lb = 100 lb`, `1 piece + 1 piece = 2 pieces`), lb/pieces ka sahi unit, baggage filter lb/pieces bhi samajhta he; v2.90 Meezab CPU-budgeted paging (poll pageSize 1) aur 503 fix; v2.89 round-trip/multi-city cards par `via` ki duplicate entries saaf â€” outbound aur return dono AUH se hon to sirf ek dafa `via AUH`; v2.88 Meezab round trip + multi-city (4 legs) + cabin choice â€” card par alag Outbound/Return ya Leg 1/2 rows, header route/dates/cabin, resume trip type bhi yaad rakhta he, worker portal ka asli `FlightDirection: Round` / `MultiCityArray` shape bhejta he; v2.87 Meezab baggage labels (`0Kilograms-0Kilograms` â†’ "No checked bag"); v2.86 Meezab poora party â€” 10 adult / 10 child / 10 infant ek search mein, total + per-adult/child/infant breakdown card par, worker query aur normalize mein per-pax fares; v2.85 Meezab budget 60 â†’ 150 searches/day and auto-refresh cap 15 â†’ 40; v2.84 airport/client suggestion dropdown body-fixed + keyboard row fix, Meezab budget configurable `MEZ_DAILY_CAP`, unit counted after the search starts, budget shown in the app, 10-minute cache; v2.83 compact Price Lookup card; v2.69 modern look: narm kone, layered card shadows, ring-focus fields, frosted bottom bar, patli scrollbars; v2.68 notification failures visible + retry; v2.67 PC par mouse wheel register ke upar ho to bhi PAGE scroll hota hai; v2.66 sales register wheel/scroll fix; v2.65 sticky drawer header + quick-bar accent tweak; v2.64 new GitHub Pages link `abtravels.github.io` + relay origin allowlist for both hosts; v2.63 phone UI: bottom quick bar, chhota header, settings search, invoice section headings, labelled sale form, scroll fixes; v2.62 sales register full laptop width; v2.53 reminder times now shown as 12-hour am/pm; v2.52 Telegram reminders in the price bot; v2.50 Sale "Number of persons" field; v2.49 passenger ID alignment; v2.48 added-by names removed from Telegram notifications; v2.47 multi-city proxy + offline release checks; v2.46 route and current price on the first line of price alerts; v2.45 children/infants in Price Lookup; v2.44 WATCH_INDEX_DO Durable Object setup card + `wrangler.pricebot.toml`; v2.42â€“v2.43 SQLite Durable Object watch index, relay authentication, optional relay token; v2.41 stopped the every-minute KV.list; v2.40 sync of Telegram token/chat IDs/relay/Ignav proxy/OCR key; GitHub PAT and Ignav API key stay device-local).
 
 ## Price bot: KV list limit fix (v2.41)
 - Cloudflare KV free plan mein **1,000 list requests/day** hoti hain. Bot ka cron har minute `KV.list` chalata tha (1,440/day), is liye ~15 ghante mein 90% usage email aa jati thi.
@@ -639,47 +644,47 @@ Current version: **3.08** (v3.08 PNR Lookup tab par **🔗 Airline portals** car
 - `pricebot-worker.js` v2.41 redeploy karein; KV binding aur secrets wahi rahenge.
 
 ## Notifications: Telegram via Worker relay (v2.39)
-- Telegram notifications ab **Worker relay** se jati hain: app → `ab-travels-ignav.umair5075.workers.dev/notify` → `api.telegram.org`.
-- Kyun: kuch ISPs ghar ke broadband par `api.telegram.org` bhi block karte hain. Pehle app seedha Telegram par `no-cors` se bhejti thi — fail hone par bhi "Test bhej diya" dikhta tha aur message kahin nahi jata tha.
+- Telegram notifications ab **Worker relay** se jati hain: app â†’ `ab-travels-ignav.umair5075.workers.dev/notify` â†’ `api.telegram.org`.
+- Kyun: kuch ISPs ghar ke broadband par `api.telegram.org` bhi block karte hain. Pehle app seedha Telegram par `no-cors` se bhejti thi â€” fail hone par bhi "Test bhej diya" dikhta tha aur message kahin nahi jata tha.
 - Naya Settings field **Notification relay (Worker URL)** (default `https://ab-travels-ignav.umair5075.workers.dev`); khali chhorne par default use hota he.
 - Relay Telegram ka response check karta hai; failed requests ko success nahi dikhata. Browser request ke liye device-local bot token zaroori hai.
 - `/notify` origin aur token verify karta hai, sirf bot ke allowed team chats ko bhejta hai, aur 120/hour soft cap hai.
 - **Staff portal** `PRICEBOT` service binding se relay use karta hai. Dono Workers par same `NOTIFY_KEY` secret set karein. Chat IDs synced settings se aati hain; khali hon to bot ki team use hoti hai.
 
-## Team notifications via Telegram — ntfy removed (v2.37)
+## Team notifications via Telegram â€” ntfy removed (v2.37)
 - The ntfy system (topic/server settings, ntfy.sh push) is fully removed after repeated mobile delivery problems. Telegram is now the notification channel: reliable push on every phone, no battery settings, no extra app beyond Telegram.
-- New Settings card **🤖 Team notifications (Telegram)**: paste the **bot token** (from @BotFather — the same token the price bot uses) and **chat IDs** of every team member (each member messages the bot once, then copies their ID from `https://api.telegram.org/bot<TOKEN>/getUpdates`). Save & send test.
-- Sends directly from the browser via the Bot API (`sendMessage`, no-cors GET) — no worker changes needed. Fires on: new sale/ticket, new Ticket Files upload, invoice saved to Ticket Files.
-- `tgBotToken` is device-local and stripped from sync/backups (like the PAT and Ignav key). Leftover `ntfyTopic`/`ntfyServer`/`ntfyOn` keys are stripped from sync and deleted locally when the Telegram card is saved — this also silences the staff worker's ntfy calls (its code reads the removed topic key). Staff booking/payment notifications will need a small staff-worker update later if wanted.
+- New Settings card **ðŸ¤– Team notifications (Telegram)**: paste the **bot token** (from @BotFather â€” the same token the price bot uses) and **chat IDs** of every team member (each member messages the bot once, then copies their ID from `https://api.telegram.org/bot<TOKEN>/getUpdates`). Save & send test.
+- Sends directly from the browser via the Bot API (`sendMessage`, no-cors GET) â€” no worker changes needed. Fires on: new sale/ticket, new Ticket Files upload, invoice saved to Ticket Files.
+- `tgBotToken` is device-local and stripped from sync/backups (like the PAT and Ignav key). Leftover `ntfyTopic`/`ntfyServer`/`ntfyOn` keys are stripped from sync and deleted locally when the Telegram card is saved â€” this also silences the staff worker's ntfy calls (its code reads the removed topic key). Staff booking/payment notifications will need a small staff-worker update later if wanted.
 
 
 
 ## Price bot: sab se sasta indicative fare bhi dikhega (v2.38)
-- `/price` replies, watch ke price updates aur alerts mein ab verified best ke ilawa **sab se sasta unverified (indicative) fare** bhi show hota hai: `💡 Sab se sasta (indicative/unverified): PKR … — booking se pehle confirm karein` — sirf tab jab wo verified best se sasta ho.
+- `/price` replies, watch ke price updates aur alerts mein ab verified best ke ilawa **sab se sasta unverified (indicative) fare** bhi show hota hai: `ðŸ’¡ Sab se sasta (indicative/unverified): PKR â€¦ â€” booking se pehle confirm karein` â€” sirf tab jab wo verified best se sasta ho.
 - Ye aggregator-vs-airline-direct pricing ka farq dikhata hai (masalan airarabia.com ka direct price Ignav ke verified price se sasta ho sakta hai).
 - Agar kisi route par koi **verified fare hi na mile**, to `/price` ab blank message ke bajaye indicative cheapest dikhata hai warning ke saath.
-- Alerts aur triggers waise hi **verified-only** hain — sirf display/labels badle hain, alert behaviour nahi.
-- Worker redeploy zaroori hai: Settings → **Telegram price bot** card se naya code copy karein → Cloudflare Worker → Edit code → paste → **Deploy**.
+- Alerts aur triggers waise hi **verified-only** hain â€” sirf display/labels badle hain, alert behaviour nahi.
+- Worker redeploy zaroori hai: Settings â†’ **Telegram price bot** card se naya code copy karein â†’ Cloudflare Worker â†’ Edit code â†’ paste â†’ **Deploy**.
 
 
 
-## Telegram reminders — price bot ab alarm bhi deta hai (v2.52)
-- Naya command: `/remind <kaam> <waqt>` — masalan `/remind Air Arabia: Usama ki booking 1 bje expire hogi` → team ko **12:00 aur 12:30 par alarm** (default: 1 ghanta + 30 min pehle).
-- Waqt Roman Urdu mein: `1 bje` = 1 PM (1–7 baje, bina subah/raat ke, dopahar), `subah 7 bje`, `raat 11 bje`, `9:30`, `kal 1 bje`, `15 December 1 bje`, `30 min baad`, `2 ghantay baad`.
-- Apne lead times: `lead=60,30,10` (comma list; `0` = event ke waqt par). `/reminds` — upcoming list · `/unremind R12` · `/unremind all`.
-- Reminders quiet hours (02:00–09:00 PKT) ke doran bhi aate hain — ye explicit alarms hain.
-- Storage: ek KV key `reminds`; cron har minute check karta hai, sirf fire par 1 KV write (KV.list bilkul nahi — budget-safe).
+## Telegram reminders â€” price bot ab alarm bhi deta hai (v2.52)
+- Naya command: `/remind <kaam> <waqt>` â€” masalan `/remind Air Arabia: Usama ki booking 1 bje expire hogi` â†’ team ko **12:00 aur 12:30 par alarm** (default: 1 ghanta + 30 min pehle).
+- Waqt Roman Urdu mein: `1 bje` = 1 PM (1â€“7 baje, bina subah/raat ke, dopahar), `subah 7 bje`, `raat 11 bje`, `9:30`, `kal 1 bje`, `15 December 1 bje`, `30 min baad`, `2 ghantay baad`.
+- Apne lead times: `lead=60,30,10` (comma list; `0` = event ke waqt par). `/reminds` â€” upcoming list Â· `/unremind R12` Â· `/unremind all`.
+- Reminders quiet hours (02:00â€“09:00 PKT) ke doran bhi aate hain â€” ye explicit alarms hain.
+- Storage: ek KV key `reminds`; cron har minute check karta hai, sirf fire par 1 KV write (KV.list bilkul nahi â€” budget-safe).
 - Worker v2.52 redeploy zaroori hai (DO binding ke sath, `wrangler.pricebot.toml` recommended).
 
 
 
 ## Reminder waqt ab 12-ghantay (am/pm) mein (v2.53)
 - `/remind` ke tamam messages (confirmation, alarm, `/reminds` list) ab waqt 12-ghantay ke format mein dikhate hain: `10 Nov 2026 1:00 PM PKT` (date + am/pm dono).
-- Sirf display badla — reminders ka kaam waisa hi hai. Worker v2.53 redeploy zaroori hai.
+- Sirf display badla â€” reminders ka kaam waisa hi hai. Worker v2.53 redeploy zaroori hai.
 
 
 
 ## Sales register: PC par wheel hamesha PAGE scroll karta hai (v2.67)
-- Masla: mouse register (Sales register grid) ke upar ho to mouse wheel pehle register ke andar ke scroll box ko pakar leta tha — page upar/neeche nahi jata tha; mouse ko register se bahar le jana parta tha.
-- Ab desktop/mouse par register ka andar ka scroll box bilkul nahi banta (`@media (hover:hover) and (pointer:fine)` mein `.sheet-scroll` ka max-height hata diya gaya) — wheel ka matlab hamesha page scroll. Sticky column headers ab page ke header ke neeche chipakte hain (`top:var(--header-h)`).
-- Mobile/touch par behavior nahi badla (andar ka scroll waisa hi hai). Sirf display fix — data ya save kaam par asar nahi. Worker redeploy ki zaroorat nahi.
+- Masla: mouse register (Sales register grid) ke upar ho to mouse wheel pehle register ke andar ke scroll box ko pakar leta tha â€” page upar/neeche nahi jata tha; mouse ko register se bahar le jana parta tha.
+- Ab desktop/mouse par register ka andar ka scroll box bilkul nahi banta (`@media (hover:hover) and (pointer:fine)` mein `.sheet-scroll` ka max-height hata diya gaya) â€” wheel ka matlab hamesha page scroll. Sticky column headers ab page ke header ke neeche chipakte hain (`top:var(--header-h)`).
+- Mobile/touch par behavior nahi badla (andar ka scroll waisa hi hai). Sirf display fix â€” data ya save kaam par asar nahi. Worker redeploy ki zaroorat nahi.
