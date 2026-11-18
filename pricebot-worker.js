@@ -1946,11 +1946,20 @@ function trackPick(fares, flight) {
   return pool.reduce(function (a, b) { return Number(b.amount) < Number(a.amount) ? b : a; }, pool[0]);
 }
 
+/* Interval ko insaan ki zubaan mein - 120 -> "2 ghante". */
+function everyLabel(mins) {
+  const m = Math.max(1, Math.floor(Number(mins) || DEFAULT_EVERY));
+  if (m % 60 === 0) return (m / 60) + (m === 60 ? " ghanta" : " ghante");
+  return m + " min";
+}
+
 function trackText(t, amount, prev, kind) {
   const cur = (t.last && t.last.currency) || "PKR";
   let s = "✈️ <b>" + trackTitle(t) + "</b>\n";
   if (kind === "baseline") {
     s += "Tracking on — abhi <b>" + esc(money(amount, cur)) + "</b>";
+  } else if (kind === "manual") {
+    s += "Abhi ka price: <b>" + esc(money(amount, cur)) + "</b>" + (prev && prev !== amount ? " (pehle " + esc(money(prev, cur)) + ")" : "");
   } else if (kind === "target") {
     s += "🎯 <b>Target poora</b> — " + esc(money(amount, cur));
     if (prev) s += " <i>(pehle " + esc(money(prev, cur)) + ")</i>";
@@ -1966,7 +1975,7 @@ function trackText(t, amount, prev, kind) {
   if (t.flight) s += "\nFlight: " + esc(t.flight);
   else if (t.last && t.last.flight) s += "\nFlight: " + esc(t.last.flight);
   if (t.last && t.last.airline) s += "\nAirline: " + esc(t.last.airline);
-  s += "\n\n🕒 " + pktNowText() + " · source: Meezab · har " + (t.every || TRACK_DEFAULT_EVERY) + " min" +
+  s += "\n\n🕒 " + pktNowText() + " · source: Meezab · har " + everyLabel(t.every || TRACK_DEFAULT_EVERY) +
     (t.until ? " · band " + esc(untilLabel(t.until)) + " PKT" : "");
   return s;
 }
@@ -1974,6 +1983,7 @@ function trackText(t, amount, prev, kind) {
 /* Ek tracker ka check — poora Meezab search + notification. */
 async function trackCheck(env, t, opts) {
   const notify = !(opts && opts.quiet);
+  const manual = !!(opts && opts.manual);
   const res = await mezRunSearch(env, mezQuery(trackQuery(t)), { fresh: true });
   const now = Date.now();
   const prev = (t.last && Number(t.last.amount) > 0) ? Number(t.last.amount) : null;
@@ -2022,11 +2032,17 @@ async function trackCheck(env, t, opts) {
   if (hitTarget) kind = "target";
   else if (dropped && gapOk) kind = "down";
   else if (first) kind = "baseline";
+  /* Manual "Check now" — user ne khud poocha he, is liye abhi ka price hamesha bhejein
+     (chaahe price na badla ho). v3.18 */
+  else if (manual) kind = "manual";
 
   if (kind) {
     /* Baseline sirf "tracking chalu" ki tasdeeq he — alert cooldown ko nahi
        chhoota, taake usi din pehli girawat ka alert bhi aa jaye. */
     if (kind === "baseline") {
+      try { await notifyAll(env, trackText(t, amount, prev, kind)); } catch (e) { /* ignore */ }
+    } else if (kind === "manual") {
+      /* Manual check alert-counters ko nahi badalta. */
       try { await notifyAll(env, trackText(t, amount, prev, kind)); } catch (e) { /* ignore */ }
     } else if (notify) {
       t.lastAlertAt = now;
@@ -2182,7 +2198,7 @@ async function trackApi(request, env, hdrs) {
       return jres({ ok: true, tracker: t }, 200, hdrs);
     }
     try {
-      const done = await trackCheck(env, t, { quiet: true });
+      const done = await trackCheck(env, t, { manual: true });
       return jres({ ok: true, tracker: done }, 200, hdrs);
     } catch (e) {
       return jres({ error: String((e && e.message) || e).slice(0, 200) }, 502, hdrs);

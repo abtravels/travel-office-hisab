@@ -1,5 +1,14 @@
 # Travel Office Hisab - AB Travels
 
+## Price Tracker fixes: "Check now" ka Telegram, 2/5 ghante, alag tab (v3.19)
+- **"Check now" par Telegram nahi aata tha — bug tha.** Worker manual check ko `quiet: true` se chalata tha, is liye target/drop alert chup chaap skip ho jata tha, aur price 3% se kam badle to kuch bhi nahi jata. Ab manual check hamesha **"Abhi ka price"** ka message bhejta he (chaahe price na badla ho), aur us se alert cooldown bhi nahi bigarta.
+- **Check every: 2 ghante aur 5 ghante** add (5 min se 5 ghante tak: 5 · 10 · 15 · 30 · 60 (1 ghanta) · 120 (2 ghante) · 180 (3 ghante) · 300 (5 ghante)). Telegram message aur tracker chip dono ab "har 2 ghante" likhte hain, "har 120 min" nahi.
+- **"Kab tak" ab apna alag tab** he — form do tabs mein: **Route & price** aur **Kab tak & interval**. Tab badalne par typed values zinda rehti hain (sirf show/hide, re-render nahi).
+- **Check now** ka toast ab saaf batata he: "✓ Price check ho gaya — Telegram par bhi bhej diya", ya tracker ka asal error dikhata he.
+- Tracker list ka chip bhi "har 2 ghante" style mein.
+- Sirf app + worker ka badlav; Worker **redeploy** zaroori he (Cloudflare Workers Builds push par khud deploy kar deta he).
+- Tracker ki baqi cheezein waisi hi: 5 min minimum, rozana budget ka 25 search manual ke liye bachaya jata he, alert 20 minute mein ek, price 3%+ girne par alert, aur flight filer ke liye 3 missing checks par warning.
+
 ## Price Tracker ke "kab tak" + Sales se expiry hata (v3.18)
 - **Tracker ab "kb tak" poochta he.** Price Tracker tab ke form mein naya sawal: **Kab tak track karein?** — *Jab tak main band na karun* (default), *Aaj raat 11 baje tak*, *1 / 3 / 7 din ke liye*, ya *Kisi din tak…* (date input — us din raat 11 baje tak). Chuni waqt ke record par save hota he.
 - **Waqt guzarne par Worker tracker khud khatam kar deta he** (record + index dono) — koi reminder ya alert nahi, user ne khud limit di ti he. Row par **🏁 aaj/kal/date + waqt tak** chip dikhta he, aur har Telegram alert ke neeche `band … PKT` bhi likha hota he.
