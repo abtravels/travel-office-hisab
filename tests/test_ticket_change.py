@@ -1,4 +1,4 @@
-"""Change-sale checks: the previous-ticket adjustment must stay wired in (v3.12)."""
+"""Change-sale checks: the previous-ticket adjustment must stay wired in (v3.13)."""
 import shutil
 import subprocess
 import unittest
@@ -15,15 +15,24 @@ class TicketChangeChecks(unittest.TestCase):
     def test_helpers_exist(self):
         self.assertIn("function ticketAdj(t){", self.html)
         self.assertIn("function ticketNet(t){", self.html)
+        self.assertIn("function ticketCost(t){", self.html)
+        self.assertIn("function ticketProfit(t){", self.html)
         self.assertIn("return Math.max(0, ticketNet(t) - ticketPaidAmt(t));", self.html)
 
-    def test_net_used_for_money_maths(self):
-        # Profit, pending balance, register totals and the sales row all use the
-        # net figure, so a refund credit can never inflate profit or receivables.
-        self.assertIn("b.profit += ticketNet(t) - (Number(t.cost)||0);", self.html)
+    def test_net_used_for_payables(self):
+        # Client-facing balances use the net figure, so a refund credit can
+        # never inflate receivables or the sales register totals.
         self.assertIn("bakaya += Math.max(0, ticketNet(t) - tkPaid);", self.html)
         self.assertIn("ts += ticketNet(t);", self.html)
-        self.assertIn('data-sale="\'+netSale+\'"', self.html)
+        self.assertIn("""data-sale="'+netSale+'">""", self.html)
+
+    def test_profit_ignores_the_refund_credit(self):
+        # The credit comes off the sale and off the supplier bill, so profit
+        # stays sale - cost (effective cost = cost - adjustment).
+        self.assertIn("b.profit += ticketProfit(t);", self.html)
+        self.assertIn("tc += ticketCost(t);", self.html)
+        self.assertIn("return ticketNet(t) - ticketCost(t);", self.html)
+        self.assertIn("refund credit profit par asar nahi karta", self.html)
 
     def test_change_form_and_edit(self):
         self.assertIn('id="tkChangeBox"', self.html)
