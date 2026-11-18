@@ -223,6 +223,9 @@
   .row-sheet-actions .rsa-btns{display:flex; gap:6px; flex-wrap:wrap;}
   .row-sheet-actions .rsa-btns .btn{flex:1 1 auto; min-width:88px; margin-top:0; padding:9px 10px; font-size:13px;}
   .cell-sub{font-size:10px; font-weight:600; color:var(--muted); margin-left:4px;}
+  /* Adj sub-line registers mein — gross ke neeche chhoti si line */
+  td.num .cell-sub{display:block; margin:1px 0 0; font-size:9.5px; font-weight:600; letter-spacing:0.1px; color:var(--muted); white-space:nowrap;}
+  td.num .cell-sub b{color:var(--text, inherit);}
   .cell-clip{display:inline-block; max-width:200px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; vertical-align:middle;}
   .c-client .cell-clip{max-width:170px;}
   .cell-chip{display:inline-block; font-size:10px; font-weight:800; padding:1px 7px; border-radius:999px; background:var(--blue-bg); color:var(--blue);}
@@ -721,7 +724,7 @@
   <div class="brand">
     <img src="logo.png" alt="AB Travels" decoding="async" onerror="this.style.display='none'">
     <div style="min-width:0;">
-      <h1>AB Travels <span class="ver" id="verBadge">v3.13</span></h1>
+      <h1>AB Travels <span class="ver" id="verBadge">v3.14</span></h1>
       <div class="tag">Ahmed Brothers Hajj &amp; Umra Services (Pvt) Ltd</div>
     </div>
     <button id="brandFares" class="brand-fares" type="button" title="Price Lookup — flight fares" aria-label="Price Lookup — flight fares">✈</button>
@@ -790,7 +793,7 @@
 <script>
 /* ================= DATA ================= */
 var KEY = "travelOfficeHisab";
-var APP_VER = "3.13";
+var APP_VER = "3.14";
 var MONTH_NAMES = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
 /* Cloudflare Worker — Ignav flight prices proxy (free plan, no credit card) */
 var IGNAV_WORKER_CODE = "// AB Travels - Ignav flight prices proxy (Cloudflare Worker)\n// Ignav API key SERVER par rehti hai - app/browser mein kabhi nahi aati.\n//\n// SETUP (ek dafa, ~5 min, free):\n// 1) ignav.com/signup -> free account -> dashboard se API key\n// 2) cloudflare.com -> free account -> Workers & Pages -> Create Worker -> yeh code paste -> Deploy\n// 3) Worker -> Settings -> Variables and Secrets -> secret add karein:\n//      IGNAV_API_KEY = (aap ki Ignav key)\n// 4) Worker URL (https://xxx.workers.dev) app -> Settings -> Flight prices -> paste -> Save & test\n\nexport default {\n  async fetch(request, env) {\n    const cors = {\n      'Access-Control-Allow-Origin': env.ALLOWED_ORIGIN || '*',\n      'Access-Control-Allow-Methods': 'GET,POST,OPTIONS',\n      'Access-Control-Allow-Headers': 'Content-Type',\n      'Access-Control-Max-Age': '86400'\n    };\n    const url = new URL(request.url);\n    if (request.method === 'OPTIONS') return new Response(null, { status: 204, headers: cors });\n    if (!env.IGNAV_API_KEY) {\n      return new Response(JSON.stringify({ error: { code: 'no_key', message: 'IGNAV_API_KEY secret is not set in the Worker.' } }), { status: 500, headers: Object.assign({ 'Content-Type': 'application/json' }, cors) });\n    }\n    const base = 'https://ignav.com/api';\n    let target = '';\n    let init = { method: 'GET', headers: { 'X-Api-Key': env.IGNAV_API_KEY } };\n    if (url.pathname === '/health') {\n      target = base + '/health';\n    } else if (url.pathname === '/fares') {\n      if (request.method !== 'POST') return new Response(JSON.stringify({ error: { message: 'POST only' } }), { status: 405, headers: cors });\n      const body = await request.text();\n      target = base + '/fares/one-way';\n      init = { method: 'POST', headers: { 'X-Api-Key': env.IGNAV_API_KEY, 'Content-Type': 'application/json' }, body };\n    } else if (url.pathname === '/search') {\n      if (request.method !== 'POST') return new Response(JSON.stringify({ error: { message: 'POST only' } }), { status: 405, headers: cors });\n      const body = await request.text();\n      target = base + '/fares/search';\n      init = { method: 'POST', headers: { 'X-Api-Key': env.IGNAV_API_KEY, 'Content-Type': 'application/json' }, body };\n    } else if (url.pathname === '/round-trip') {\n      if (request.method !== 'POST') return new Response(JSON.stringify({ error: { message: 'POST only' } }), { status: 405, headers: cors });\n      const body = await request.text();\n      target = base + '/fares/round-trip';\n      init = { method: 'POST', headers: { 'X-Api-Key': env.IGNAV_API_KEY, 'Content-Type': 'application/json' }, body };\n    } else if (url.pathname === '/booking-links') {\n      if (request.method !== 'POST') return new Response(JSON.stringify({ error: { message: 'POST only' } }), { status: 405, headers: cors });\n      const body = await request.text();\n      target = base + '/fares/booking-links';\n      init = { method: 'POST', headers: { 'X-Api-Key': env.IGNAV_API_KEY, 'Content-Type': 'application/json' }, body };\n    } else {\n      return new Response(JSON.stringify({ error: { message: 'not found' } }), { status: 404, headers: Object.assign({ 'Content-Type': 'application/json' }, cors) });\n    }\n    try {\n      const r = await fetch(target, init);\n      const text = await r.text();\n      return new Response(text, { status: r.status, headers: Object.assign({ 'Content-Type': 'application/json' }, cors) });\n    } catch (e) {\n      return new Response(JSON.stringify({ error: { message: String((e && e.message) || e) } }), { status: 502, headers: Object.assign({ 'Content-Type': 'application/json' }, cors) });\n    }\n  }\n};\n";
@@ -2399,7 +2402,7 @@ function openRowSheet(tr){
   var title = document.createElement("div");
   title.className = "rsa-title";
   title.innerHTML = "<b>"+esc(t.client||"")+"</b> · "+esc(dmy(t.date))+" · Sale "+money(ticketNet(t))
-    + (ticketAdj(t) ? " (adjustment −"+money(ticketAdj(t))+")" : "")
+    + (ticketAdj(t) ? " (adj −"+money(ticketAdj(t))+")" : "")
     + (t.detail ? " · "+esc(t.detail) : "")
     + (t.paid === false ? " · <span style='color:var(--gold); font-weight:700;'>Unpaid</span>" : "");
   bar.appendChild(title);
@@ -2575,7 +2578,7 @@ function reportRows(mid){
       tk.forEach(function(t){
         var note = (t.commission ? "Waseem commission: " + t.commission : "");
         if(ticketAdj(t)){
-          note += (note ? " · " : "") + "Refund credit " + ticketAdj(t) + " off sale " + (Number(t.sale)||0)
+          note += (note ? " · " : "") + "Adj " + ticketAdj(t) + " off sale " + (Number(t.sale)||0)
             + " and off cost " + (Number(t.cost)||0) + (t.prevRef ? " · previous " + t.prevRef : "");
         }
         line([dmy(t.date), (t.kind || "Ticket"), t.client||"", t.detail||"", ticketCost(t), ticketNet(t), ticketProfit(t),
@@ -3475,7 +3478,7 @@ function viewInvoice(){
         + '<div class="umrah-hide"><label>Airline</label><select id="invAir">'+airOpts+'</select></div></div>';
   var saleOpts = '<option value="">— Not linked to any sale —</option>';
   (S.tickets||[]).slice().sort(function(a,b){ return String(b.date||"").localeCompare(String(a.date||"")); }).slice(0,300).forEach(function(t){
-    saleOpts += '<option value="'+esc(t.id)+'"'+(t.id===invLinkId?' selected':'')+'>'+esc(dmy(t.date))+' — '+esc(t.client||"")+' — '+money(ticketNet(t))+(ticketAdj(t)?' (net of adjustment)':'')+(t.kind?' ('+esc(t.kind)+')':'')+'</option>';
+    saleOpts += '<option value="'+esc(t.id)+'"'+(t.id===invLinkId?' selected':'')+'>'+esc(dmy(t.date))+' — '+esc(t.client||"")+' — '+money(ticketNet(t))+(ticketAdj(t)?' (adj −'+esc(money(ticketAdj(t)))+')':'')+(t.kind?' ('+esc(t.kind)+')':'')+'</option>';
   });
   html += '<div class="row" style="margin-top:8px;"><div><label>Link this invoice to a sale (optional)</label><select id="invLinkSale">'+saleOpts+'</select>'
         + '<div class="hint" id="invLinkStatus">'+(invLinkId?'This invoice will be saved with the selected sale.':'Not every client needs an invoice — leave this empty if not needed.')+'</div></div></div>';
@@ -4649,10 +4652,13 @@ function viewTickets(){
   if(ticketFilter !== "all" && months.indexOf(ticketFilter) === -1) ticketFilter = "all";
   var list = (ticketFilter === "all") ? all : all.filter(function(t){ return String(t.date||"").slice(0,7) === ticketFilter; });
 
-  var tc = 0, ts = 0, personsTotal = 0;
+  var tc = 0, ts = 0, personsTotal = 0, tcGross = 0, tsGross = 0, adjTotal = 0;
   list.forEach(function(t){
     tc += ticketCost(t);
     ts += ticketNet(t);
+    tcGross += Number(t.cost) || 0;
+    tsGross += Number(t.sale) || 0;
+    adjTotal += ticketAdj(t);
     personsTotal += Math.max(1, Number(t.persons) || 1);
   });
   var tp = ts - tc;
@@ -4714,19 +4720,19 @@ function viewTickets(){
       var tkPaid = 0; (t.payments||[]).forEach(function(x){ tkPaid += Number(x.amount)||0; });
       var tkRem = Math.max(0, netSale - tkPaid);
       var phone = clientPhoneFor(t.client, t.phone);
-      var hay = ((t.client||"") + " " + (t.detail||"") + " " + (t.kind||"Ticket") + " " + (t.persons||"") + " " + (phone||"") + " " + (t.prevRef||"") + (adjAmt ? " adjustment refund credit" : "")).toLowerCase();
+      var hay = ((t.client||"") + " " + (t.detail||"") + " " + (t.kind||"Ticket") + " " + (t.persons||"") + " " + (phone||"") + " " + (t.prevRef||"") + (adjAmt ? " adj adjustment" : "")).toLowerCase();
       var st = (t.paid === false)
         ? '<span class="pill pending">'+esc(T("unpaid"))+'</span>'+(tkRem > 0 ? '<span class="cell-sub">due '+money(tkRem)+'</span>' : '')
         : '<span class="pill done">'+esc(T("paidp"))+'</span>'+(tkPaid > 0 ? '<span class="cell-sub">'+money(tkPaid)+'</span>' : '');
-      html += '<tr data-search="'+esc(hay)+'" data-id="'+esc(t.id)+'" data-cost="'+effCost+'" data-sale="'+netSale+'">'
+      html += '<tr data-search="'+esc(hay)+'" data-id="'+esc(t.id)+'" data-cost="'+(Number(t.cost)||0)+'" data-sale="'+(Number(t.sale)||0)+'" data-adj="'+adjAmt+'">'
             + '<td class="rn">'+(i+1)+'</td>'
             + '<td class="c-date" title="'+esc(dmy(t.date))+'">'+(dayOnly ? esc(dayNum(t.date)) : esc(dmy(t.date)))+'</td>'
             + '<td class="c-client" title="'+esc(t.client)+'"><span class="cell-clip"><b>'+esc(t.client)+'</b>'
             + (t.doubleEntry ? ' <span class="cell-flag" title="Possible duplicate">⚠</span>' : '')
             + (t.commission ? ' <span class="cell-sub">'+esc(T("wscomm"))+money(t.commission)+'</span>' : '')
             + '</span></td>'
-            + '<td class="num">'+(costPending ? '<span class="cell-warn" title="Cost price missing">—</span>' : money(effCost)+(adjAmt ? '<span class="cell-sub" title="Supplier cost '+esc(money(t.cost))+' minus refund credit">−'+esc(money(adjAmt))+' adj</span>' : ''))+'</td>'
-            + '<td class="num c-sale">'+money(netSale)+(adjAmt ? '<span class="cell-sub" title="Sale '+esc(money(t.sale))+' minus refund credit">−'+esc(money(adjAmt))+' adj</span>' : '')+'</td>'
+            + '<td class="num">'+(costPending ? '<span class="cell-warn" title="Cost price missing">—</span>' : money(t.cost)+(adjAmt ? '<span class="cell-sub" title="Supplier cost minus adj">adj −'+esc(money(adjAmt))+' = '+esc(money(effCost))+'</span>' : ''))+'</td>'
+            + '<td class="num c-sale">'+money(t.sale)+(adjAmt ? '<span class="cell-sub" title="Sale minus adj">adj −'+esc(money(adjAmt))+' = '+esc(money(netSale))+'</span>' : '')+'</td>'
             + '<td class="num '+(p>=0?"pos":"neg")+'">'+money(p)+'</td>'
             + '<td class="c-status">'+st+'</td>'
             + '<td>'+(t.kind ? '<span class="cell-chip">'+esc(t.kind)+'</span>' : '<span class="cell-muted">—</span>')+'</td>'
@@ -4748,8 +4754,8 @@ function viewTickets(){
     html += '</tbody><tfoot><tr>'
           + '<td class="rn">Σ</td><td class="c-date"></td>'
           + '<td><b>'+list.length+' sales</b></td>'
-          + '<td class="num" id="tkSumCost">'+money(tc)+'</td>'
-          + '<td class="num" id="tkSumSale">'+money(ts)+'</td>'
+          + '<td class="num" id="tkSumCost">'+money(tcGross)+(adjTotal ? '<span class="cell-sub" id="tkSumCostSub">adj −'+esc(money(adjTotal))+' = '+esc(money(tc))+'</span>' : '')+'</td>'
+          + '<td class="num" id="tkSumSale">'+money(tsGross)+(adjTotal ? '<span class="cell-sub" id="tkSumSaleSub">adj −'+esc(money(adjTotal))+' = '+esc(money(ts))+'</span>' : '')+'</td>'
           + '<td class="num '+(tp>=0?"pos":"neg")+'" id="tkSumProfit">'+money(tp)+'</td>'
           + '<td></td><td></td><td class="c-detail"></td>'
           + '<td class="num">'+personsTotal+'</td><td class="c-phone"></td><td class="c-act"></td>'
@@ -4774,17 +4780,17 @@ function viewTickets(){
         + '</div>';
   /* Change sale — purani ticket ka refund credit client ki price se minus (v3.12) */
   html += '<div id="tkChangeBox" style="display:none; margin-top:8px; padding:10px; border:1px dashed var(--line); border-radius:12px;">'
-        + '<div style="font-size:12.5px; font-weight:700; margin-bottom:6px;">⇄ Ticket change — purani ticket ka refund credit</div>'
+        + '<div style="font-size:12.5px; font-weight:700; margin-bottom:6px;">⇄ Ticket change — purani ticket ka adj</div>'
         + '<div class="row" style="margin-top:0;">'
         + '<div><label>Previous ticket (PNR / sale)</label><select id="tkPrev"><option value="">— purani sale chunein —</option></select>'
         + '<div class="hint" style="margin-top:2px;">Purani sale chunein to us ka baqi amount neeche total mein jud jayega.</div></div>'
         + '</div>'
         + '<div class="row" style="margin-top:8px;">'
-        + '<div><label>Previous Ticket Adjustment (Rs)</label><input id="tkAdj" type="number" min="0" inputmode="decimal" placeholder="0"></div>'
+        + '<div><label>Previous Ticket Adj (Rs)</label><input id="tkAdj" type="number" min="0" inputmode="decimal" placeholder="0"></div>'
         + '<div><label>Purani ticket ka PNR (agar list mein na ho)</label><input id="tkPrevRef" placeholder="e.g. EK601 · PNR 6XK2" autocomplete="off"></div>'
         + '</div>'
         + '<div class="hint" id="tkChangeHint" style="margin-top:6px;"></div>'
-        + '<div class="hint" style="margin-top:4px; font-size:11.5px;">Cost price mein supplier ka poora price likhein — refund credit app khud sale aur cost dono se minus karti he, is liye profit sahi rehta he.</div>'
+        + '<div class="hint" style="margin-top:4px; font-size:11.5px;">Cost price mein supplier ka poora price likhein — adj app khud sale aur cost dono se minus karti he, is liye profit sahi rehta he.</div>'
         + '</div>';
   html += '<div class="row" style="margin-top:8px;"><div style="flex:0 0 170px;"><label>Number of persons</label><input id="tkPersons" type="number" min="1" max="99" step="1" inputmode="numeric" value="1"></div><div style="flex:1; display:flex; align-items:flex-end;"><div class="hint" style="margin:0 0 10px;">Only a count — cost and sale stay as entered and do not multiply.</div></div></div>';
   html += '<div class="hint" id="tkProfitHint">'+esc(T("profit"))+'<b>Rs 0</b></div>';
@@ -8297,7 +8303,7 @@ function viewClients(){
         var tkPaid = 0; (t.payments||[]).forEach(function(x){ tkPaid += Number(x.amount)||0; });
         var tkRem = Math.max(0, ticketNet(t) - tkPaid);
         var adjN = ticketAdj(t);
-        hist += '<tr><td>'+esc(dmy(t.date))+'</td><td>'+esc(t.kind||"Ticket")+'</td><td>'+esc(t.detail||"—")+(adjN?'<div class="hint" style="font-size:11px;">⇄ '+esc(t.prevRef||"previous ticket")+' · refund credit '+money(adjN)+' off '+money(t.sale)+'</div>':'')+'</td><td>'+money(ticketNet(t))+'</td><td>'+(t.paid === false ? '<span class="pill pending">Unpaid</span>'+(tkPaid?'<div class="hint" style="font-size:11px;">Remaining '+money(tkRem)+'</div>':'') : '<span class="pill done">Paid</span>')+'</td></tr>';
+        hist += '<tr><td>'+esc(dmy(t.date))+'</td><td>'+esc(t.kind||"Ticket")+'</td><td>'+esc(t.detail||"—")+(adjN?'<div class="hint" style="font-size:11px;">⇄ '+esc(t.prevRef||"previous ticket")+' · adj −'+money(adjN)+' · net '+money(ticketNet(t))+'</div>':'')+'</td><td>'+money(ticketNet(t))+'</td><td>'+(t.paid === false ? '<span class="pill pending">Unpaid</span>'+(tkPaid?'<div class="hint" style="font-size:11px;">Remaining '+money(tkRem)+'</div>':'') : '<span class="pill done">Paid</span>')+'</td></tr>';
       });
       hist += '</table></div>';
     }
@@ -8351,14 +8357,13 @@ function viewClients(){
 
 /* ================= BAKAYA (RECEIVABLES) ================= */
 function ticketPaidAmt(t){ return (t && Array.isArray(t.payments) ? t.payments : []).reduce(function(n,p){ return n + (Number(p.amount)||0); }, 0); }
-/* ---------- Change sale: previous ticket adjustment (v3.12) ----------
-   Sale price client ki price rehti he; refund credit (adjustment) usi client
-   price se minus hota he, is liye client ka payable kam ho jata he. Wohi
-   credit supplier ke naye ticket ke bill se bhi kam hota he, is liye profit
-   par asar nahi padta:
-     net payable    = sale - adjustment        (client ko dena he)
+/* ---------- Change sale: previous ticket adj (v3.13) ----------
+   Sale price client ki price rehti he; adj usi client price se minus hota he,
+   is liye client ka payable kam ho jata he. Wohi adj supplier ke naye ticket
+   ke bill se bhi kam hota he, is liye profit par asar nahi padta:
+     net payable    = sale - adj        (client ko dena he)
      pending        = net payable - payments
-     effective cost = cost - adjustment        (supplier ko dena he)
+     effective cost = cost - adj        (supplier ko dena he)
      profit         = net payable - effective cost = sale - cost
    Purani ticket apni alag entry he, is liye us ka outstanding khud ba khud
    Pending Payments mein jud jata he (32,000 + 13,500 = 45,500). */
@@ -8369,10 +8374,10 @@ function ticketAdj(t){
 function ticketNet(t){
   return Math.max(0, (Number(t && t.sale) || 0) - ticketAdj(t));
 }
-/* Refund credit purani ticket se aaya he aur supplier ke naye ticket ke bill
-   mein adjust hota he. Is liye usi credit se naye ticket ki cost bhi kam hoti
-   he — profit par koi asar nahi padta:
-     effective cost = cost - adjustment
+/* Adj purani ticket se aata he aur sale + supplier cost dono se minus hota he,
+   is liye profit par asar nahi padta:
+     net payable    = sale - adj        (client ko dena he)
+     effective cost = cost - adj        (supplier ko dena he)
      profit         = net payable - effective cost = sale - cost
    Misal: sale 33,000, adj 19,500, cost 30,000 -> net 13,500,
           effective cost 10,500, profit 3,000. Purani ticket ka apna profit
@@ -8417,7 +8422,7 @@ function viewBakaya(){
       var xNet = ticketNet(x), xAdj = ticketAdj(x);
       html += '<div style="text-align:right;"><div class="gld" style="font-weight:800;">'+money(rem)+'</div><div style="font-size:12px; color:var(--muted);">'+esc(T("ublbl2"))+(paid?' · Received '+money(paid)+' of '+money(xNet):' · Sale '+money(xNet))+'</div></div>';
       html += '</div>';
-      if(xAdj) html += '<div class="hint" style="margin-top:5px;">⇄ Change: sale '+money(x.sale)+' − refund credit '+money(xAdj)+' = <b>'+money(xNet)+'</b>'+(x.prevRef?' · previous '+esc(x.prevRef):'')+'</div>';
+      if(xAdj) html += '<div class="hint" style="margin-top:5px;">⇄ Change: sale '+money(x.sale)+' − adj '+money(xAdj)+' = <b>'+money(xNet)+'</b>'+(x.prevRef?' · previous '+esc(x.prevRef):'')+'</div>';
       if(paid) html += '<div class="hint" style="margin-top:5px;">Partial payments: '+money(paid)+' received · '+money(rem)+' remaining</div>';
       var xPhone = clientPhoneFor(x.client, x.phone);
       if(xPhone) html += '<div style="font-size:12.5px; color:var(--muted); margin-top:6px;">☎ '+esc(xPhone)+'</div>';
@@ -9829,7 +9834,7 @@ function bind(){
     if(!src.length){ appToast("Is list mein koi sale nahi hai.", true); return; }
     var rows = [];
     function line(arr){ rows.push(arr.map(csvVal).join(",")); }
-    line(["Date","Client","Type","Detail","Persons","Phone","Cost","Sale","Profit","Payment","Received","Remaining","Sale price","Adjustment","Cost price","Previous ticket"]);
+    line(["Date","Client","Type","Detail","Persons","Phone","Cost","Sale","Profit","Payment","Received","Remaining","Sale price","Adj","Cost price","Previous ticket"]);
     src.forEach(function(t){
       var paid = 0; (t.payments||[]).forEach(function(x){ paid += Number(x.amount)||0; });
       var adj = ticketAdj(t), sale = ticketNet(t);
@@ -10084,7 +10089,7 @@ function bind(){
        profit wohi rehta he jo gross sale - gross cost deta he. */
     var p = (sale - adj) - Math.max(0, cost - adj);
     hint.innerHTML = 'Profit: <b>'+money(p)+'</b>'+(p<0?' <span style="color:var(--red);">(loss)</span>':'')
-      + (adj ? ' <span style="color:var(--muted);">(refund credit profit par asar nahi karta)</span>' : '');
+      + (adj ? ' <span style="color:var(--muted);">(adj profit par asar nahi karta)</span>' : '');
   }
   if(tcs) tcs.oninput = updTickHint;
   if(tsa) tsa.oninput = updTickHint;
@@ -10113,14 +10118,14 @@ function bind(){
     var oldDue = prev ? ticketRemaining(prev) : 0;
     var net = Math.max(0, sale - adj);
     var cost = Number(tcs && tcs.value) || 0;
-    var out = ['Client ko dena he: <b>'+money(net)+'</b>'+(adj ? ' ('+money(sale)+' − '+money(adj)+' refund credit)' : '')];
+    var out = ['Client ko dena he: <b>'+money(net)+'</b>'+(adj ? ' ('+money(sale)+' − '+money(adj)+' adj)' : '')];
     if(adj){
       var effCost = Math.max(0, cost - adj);
-      out.push('Supplier cost: '+money(cost)+' − '+money(adj)+' credit = <b>'+money(effCost)+'</b> · profit <b>'+money(net - effCost)+'</b>');
+      out.push('Supplier cost: '+money(cost)+' − '+money(adj)+' adj = <b>'+money(effCost)+'</b> · profit <b>'+money(net - effCost)+'</b>');
     }
     if(prev) out.push('Purani ticket ka baqi: <b>'+money(oldDue)+'</b> · client ka total pending: <b>'+money(oldDue + net)+'</b>');
     else out.push('Purani sale link nahi — sirf is ticket ka amount count hoga.');
-    if(rawAdj > sale && sale > 0) out.push('<span style="color:var(--red);">Adjustment sale price se bara nahi ho sakta — '+money(sale)+' tak mehdood kar diya jayega.</span>');
+    if(rawAdj > sale && sale > 0) out.push('<span style="color:var(--red);">Adj sale price se bara nahi ho sakta — '+money(sale)+' tak mehdood kar diya jayega.</span>');
     kHint.innerHTML = out.join('<br>');
   }
   if(kKind) kKind.onchange = function(){ tkPrevList(); tkChangeUpdate(); updTickHint(); };
@@ -10182,16 +10187,21 @@ function bind(){
     var q = this.value.trim().toLowerCase();
     var cnt = document.getElementById("tkSearchCount");
     var rowsAll = document.querySelectorAll("#tkList tbody tr[data-search]");
-    var shown = 0, sc = 0, ss = 0;
+    var shown = 0, sc = 0, ss = 0, sa = 0;
     rowsAll.forEach(function(r){
       var hay = r.getAttribute("data-search") || "";
       var ok = !q || hay.indexOf(q) >= 0;
       r.style.display = ok ? "" : "none";
-      if(ok){ shown++; sc += Number(r.getAttribute("data-cost"))||0; ss += Number(r.getAttribute("data-sale"))||0; }
+      if(ok){
+        shown++;
+        sc += Number(r.getAttribute("data-cost"))||0;
+        ss += Number(r.getAttribute("data-sale"))||0;
+        sa += Number(r.getAttribute("data-adj"))||0;
+      }
     });
     var eC = document.getElementById("tkSumCost"), eS = document.getElementById("tkSumSale"), eP = document.getElementById("tkSumProfit");
-    if(eC) eC.innerHTML = money(sc);
-    if(eS) eS.innerHTML = money(ss);
+    if(eC) eC.innerHTML = money(sc) + (sa ? '<span class="cell-sub" id="tkSumCostSub">adj −'+esc(money(sa))+' = '+esc(money(Math.max(0, sc - sa)))+'</span>' : '');
+    if(eS) eS.innerHTML = money(ss) + (sa ? '<span class="cell-sub" id="tkSumSaleSub">adj −'+esc(money(sa))+' = '+esc(money(Math.max(0, ss - sa)))+'</span>' : '');
     if(eP){ eP.innerHTML = money(ss - sc); eP.className = "num " + ((ss - sc) >= 0 ? "pos" : "neg"); }
     if(cnt) cnt.textContent = q ? (shown + " of " + rowsAll.length + " sales — ‘" + this.value.trim() + "’") : "";
   };
@@ -10726,7 +10736,7 @@ function bind(){
       if(s === null) return;
       var adjIn = null, prevIn = null;
       if((t.kind || "") === "Change"){
-        adjIn = prompt("Previous Ticket Adjustment (Rs) — khali chhod dein to purana rahega:", ticketAdj(t) || "");
+        adjIn = prompt("Previous Ticket Adj (Rs) — khali chhod dein to purana rahega:", ticketAdj(t) || "");
         if(adjIn === null) return;
         prevIn = prompt("Purani ticket ka PNR / reference — khali chhod dein to purana rahega:", t.prevRef || "");
         if(prevIn === null) return;
