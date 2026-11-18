@@ -52,6 +52,18 @@ const QUIET_KEY = "settings:quiet";
 const QUIET_DEFAULT = { enabled: true, start: "02:00", end: "09:00" };
 const PERIODIC_MIN_EVERY = 30; // 30+ min watches: send a price update after every check
 
+/* Meezab price tracker (app se chalta he): route ko har N minute check karta he.
+   Har check ek poori Meezab search he (25-60s), is liye ek cron minute mein sirf
+   TRACK_PER_TICK checks chalte hain — 5 minute wale tracker ke liye kaafi he. */
+const TRACK_MAX = 12;
+const TRACK_DEFAULT_EVERY = 5;      // minutes
+const TRACK_MIN_EVERY = 5;          // 1-2 min = rozana budget barbaad
+const TRACK_TTL = 60 * 60 * 24 * 60;
+const TRACK_PER_TICK = 2;
+const TRACK_DROP_PCT = 0.03;
+const TRACK_ALERT_GAP = 20 * 60 * 1000;
+const TRACK_MISSING_ALERTS = 3;
+
 /* ------------------------------------------------------------------ */
 /* helpers                                                             */
 /* ------------------------------------------------------------------ */
@@ -1001,6 +1013,18 @@ export class WatchIndex {
       else await this.state.storage.delete("watch:" + b.key);
       return jres({ ok: true });
     }
+    /* Meezab price trackers — alag prefix, taake Ignav watches ke sath mix na hon. */
+    if (b.action === "track-add" || b.action === "track-remove") {
+      const key = String(b.key || "");
+      if (!/^tr:[A-Za-z0-9_-]{2,40}$/.test(key)) return jres({ error: "key" }, 400);
+      if (b.action === "track-add") await this.state.storage.put("track:" + key, true);
+      else await this.state.storage.delete("track:" + key);
+      return jres({ ok: true });
+    }
+    if (b.action === "track-list") {
+      const items = await this.state.storage.list({ prefix: "track:" });
+      return jres([...items.keys()].map(k => k.slice(6)));
+    }
     const keys = await this.state.storage.list({ prefix: "watch:" });
     return jres([...keys.keys()].map(k => k.slice(6)));
   }
@@ -1831,6 +1855,393 @@ async function checkAll(env) {
 }
 
 /* ------------------------------------------------------------------ */
+/* Meezab price tracker (app se chalta he)                             */
+/*   App route save karti he (default har 5 minute) aur cron har       */
+/*   minute due trackers check karta he. Har check poora Meezab        */
+/*   search he (25-60s), is liye ek minute mein sirf TRACK_PER_TICK    */
+/*   trackers — budget aur subrequest limit dono safe rehte hain.      */
+/* ------------------------------------------------------------------ */
+
+function trackNewId() {
+  return "t" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+}
+
+async function trackDoCall(env, action, key) {
+  if (!env.WATCH_INDEX_DO) throw new Error("WATCH_INDEX_DO binding missing");
+  const stub = env.WATCH_INDEX_DO.get(env.WATCH_INDEX_DO.idFromName("team-watches"));
+  const r = await stub.fetch("https://watch-index/", {
+    method: "POST", body: JSON.stringify({ action: action, key: key || "" })
+  });
+  if (!r.ok) throw new Error("Tracker store unavailable");
+  return r.json();
+}
+
+async function trackKeys(env) {
+  try {
+    const r = await trackDoCall(env, "track-list");
+    return Array.isArray(r) ? r : [];
+  } catch (e) { return []; }
+}
+
+async function trackList(env) {
+  const out = [];
+  for (const key of await trackKeys(env)) {
+    const raw = await env.KV.get(key);
+    if (!raw) continue; // KV propagation can lag behind the index.
+    try { out.push(JSON.parse(raw)); } catch (e) { /* skip */ }
+  }
+  out.sort(function (a, b) { return (a.createdAt || 0) - (b.createdAt || 0); });
+  return out;
+}
+
+async function trackSave(env, t) {
+  await env.KV.put("tr:" + t.id, JSON.stringify(t), { expirationTtl: TRACK_TTL });
+  try { await trackDoCall(env, "track-add", "tr:" + t.id); } catch (e) { /* index exists */ }
+}
+
+async function trackDelete(env, id) {
+  await env.KV.delete("tr:" + id);
+  try { await trackDoCall(env, "track-remove", "tr:" + id); } catch (e) { /* ignore */ }
+}
+
+/* Tracker ka record wohi shape rakhta he jo /meezab/search leta he. */
+function trackQuery(t) {
+  return {
+    origin: t.origin, destination: t.destination, departure_date: t.departure,
+    return_date: t.trip_type === "round" ? t.return_date : undefined,
+    trip_type: t.trip_type || "oneway",
+    adults: Number(t.adults) || 1, children: Number(t.children) || 0,
+    infants_on_lap: Number(t.infants_on_lap) || 0,
+    infants_in_seat: Number(t.infants_in_seat) || 0,
+    cabin_class: t.cabin_class || ""
+  };
+}
+
+function trackTitle(t) {
+  return esc(t.origin) + " → " + esc(t.destination) + " · " + esc(prettyDate(t.departure)) +
+    (t.trip_type === "round" && t.return_date ? " ↔ " + esc(prettyDate(t.return_date)) : "");
+}
+
+function trackFlightLabel(f) {
+  if (!f) return "";
+  const segs = (f.legs && f.legs[0] && f.legs[0].segments) || f.segments || [];
+  if (!segs.length) return "";
+  return String(segs[0].flight || "").toUpperCase();
+}
+
+/* Flight filter diya ho to sirf usi flight ka sab se sasta fare; warna poore
+   route ka sab se sasta. Na mile to null (app "flight nahi mili" bata deta he). */
+function trackPick(fares, flight) {
+  const list = (fares || []).filter(function (f) { return Number(f.amount) > 0; });
+  if (!list.length) return null;
+  const want = String(flight || "").toUpperCase().replace(/\s/g, "");
+  let pool = list;
+  if (want) {
+    pool = list.filter(function (f) {
+      const segs = (f.legs && f.legs[0] && f.legs[0].segments) || f.segments || [];
+      return segs.some(function (s) { return String(s.flight || "").toUpperCase().replace(/\s/g, "") === want; });
+    });
+    if (!pool.length) return null;
+  }
+  return pool.reduce(function (a, b) { return Number(b.amount) < Number(a.amount) ? b : a; }, pool[0]);
+}
+
+function trackText(t, amount, prev, kind) {
+  const cur = (t.last && t.last.currency) || "PKR";
+  let s = "✈️ <b>" + trackTitle(t) + "</b>\n";
+  if (kind === "baseline") {
+    s += "Tracking on — abhi <b>" + esc(money(amount, cur)) + "</b>";
+  } else if (kind === "target") {
+    s += "🎯 <b>Target poora</b> — " + esc(money(amount, cur));
+    if (prev) s += " <i>(pehle " + esc(money(prev, cur)) + ")</i>";
+    if (t.target) s += "\nTarget: " + esc(money(t.target, cur)) + " ya kam";
+  } else if (kind === "up") {
+    const pct = prev ? ((amount - prev) / prev) * 100 : 0;
+    s += "▲ <b>Price barha</b> — " + esc(money(amount, cur)) + (prev ? " <i>(+" + pct.toFixed(1) + "%)</i>" : "");
+  } else {
+    const pct = prev ? ((prev - amount) / prev) * 100 : 0;
+    s += "🔻 <b>Price gira</b> — " + esc(money(amount, cur)) +
+      (prev ? " <i>(pehle " + esc(money(prev, cur)) + ", −" + pct.toFixed(1) + "%)</i>" : "");
+  }
+  if (t.flight) s += "\nFlight: " + esc(t.flight);
+  else if (t.last && t.last.flight) s += "\nFlight: " + esc(t.last.flight);
+  if (t.last && t.last.airline) s += "\nAirline: " + esc(t.last.airline);
+  s += "\n\n🕒 " + pktNowText() + " · source: Meezab · har " + (t.every || TRACK_DEFAULT_EVERY) + " min";
+  return s;
+}
+
+/* Ek tracker ka check — poora Meezab search + notification. */
+async function trackCheck(env, t, opts) {
+  const notify = !(opts && opts.quiet);
+  const res = await mezRunSearch(env, mezQuery(trackQuery(t)), { fresh: true });
+  const now = Date.now();
+  const prev = (t.last && Number(t.last.amount) > 0) ? Number(t.last.amount) : null;
+  const best = trackPick(res.fares, t.flight);
+  t.lastCheckAt = now;
+  t.lastError = "";
+  t.lastErrorAt = 0;
+  t.lastBudget = res.budget || null;
+
+  if (!best) {
+    t.missingCount = (Number(t.missingCount) || 0) + 1;
+    if (t.flight && t.missingCount === TRACK_MISSING_ALERTS && notify) {
+      try {
+        await notifyAll(env, "⚠️ <b>" + trackTitle(t) + "</b>\nFlight <b>" + esc(t.flight) +
+          "</b> ab search mein nahi mil rahi (3 checks). Tracker chalu he — milte hi price phir aayega.");
+      } catch (e) { /* ignore */ }
+    }
+    await trackSave(env, t);
+    return t;
+  }
+
+  t.missingCount = 0;
+  const amount = Number(best.amount) || 0;
+  t.last = {
+    amount: amount,
+    currency: best.currency || "PKR",
+    observed_at: res.observed_at || new Date().toISOString(),
+    airline: best.airline || "",
+    airline_code: best.airline_code || "",
+    flight: trackFlightLabel(best),
+    departure: best.departure || "",
+    stops: Number(best.stops) || 0,
+    seats: Number(best.seats) || 0
+  };
+  t.history = (Array.isArray(t.history) ? t.history : [])
+    .concat([{ at: now, amount: amount }]).slice(-60);
+
+  const target = Number(t.target) || 0;
+  const hitTarget = target > 0 && amount <= target &&
+    !(t.lastAlertAmount != null && Number(t.lastAlertAmount) <= target);
+  const dropped = prev != null && amount < prev && amount <= prev * (1 - TRACK_DROP_PCT);
+  const gapOk = now - (Number(t.lastAlertAt) || 0) > TRACK_ALERT_GAP;
+  const first = !(Number(t.lastAlertAt) > 0) && prev == null;
+
+  let kind = "";
+  if (hitTarget) kind = "target";
+  else if (dropped && gapOk) kind = "down";
+  else if (first) kind = "baseline";
+
+  if (kind) {
+    /* Baseline sirf "tracking chalu" ki tasdeeq he — alert cooldown ko nahi
+       chhoota, taake usi din pehli girawat ka alert bhi aa jaye. */
+    if (kind === "baseline") {
+      try { await notifyAll(env, trackText(t, amount, prev, kind)); } catch (e) { /* ignore */ }
+    } else if (notify) {
+      t.lastAlertAt = now;
+      t.lastAlertAmount = amount;
+      try { await notifyAll(env, trackText(t, amount, prev, kind)); } catch (e) { /* ignore */ }
+    }
+  }
+  await trackSave(env, t);
+  return t;
+}
+
+/* Cron: sirf due trackers, ek minute mein TRACK_PER_TICK. */
+async function checkTrackers(env) {
+  if (!env.KV || !env.WATCH_INDEX_DO) return;
+  let list = [];
+  try { list = await trackList(env); } catch (e) { return; }
+  if (!list.length) return;
+  const now = Date.now();
+  const due = list.filter(function (t) {
+    if (t.paused) return false;
+    const every = Math.max(TRACK_MIN_EVERY, Number(t.every) || TRACK_DEFAULT_EVERY);
+    return !t.lastCheckAt || now - Number(t.lastCheckAt) >= every * 60000;
+  });
+  if (!due.length) return;
+  // Manual searches ke liye budget bacha kar rakhein (warna user ka search fail hoga).
+  try {
+    const cap = mezDailyCap(env);
+    const used = Number(await env.KV.get(mezBudgetKey())) || 0;
+    if (cap - used < 25) return;
+  } catch (e) { return; }
+  due.sort(function (a, b) { return (Number(a.lastCheckAt) || 0) - (Number(b.lastCheckAt) || 0); });
+  for (const t of due.slice(0, TRACK_PER_TICK)) {
+    try {
+      await trackCheck(env, t, {});
+    } catch (e) {
+      const msg = String((e && e.message) || e).slice(0, 120);
+      t.lastError = msg;
+      t.lastCheckAt = Date.now();
+      if (Date.now() - (Number(t.lastErrorAt) || 0) > 1800000) {
+        t.lastErrorAt = Date.now();
+        try {
+          await notifyAll(env, "⚠️ <b>" + trackTitle(t) + "</b>\nTracker check fail: " + esc(msg));
+        } catch (e2) { /* ignore */ }
+      }
+      try { await trackSave(env, t); } catch (e3) { /* ignore */ }
+    }
+  }
+}
+
+/* App ke liye chhota API: list / save / remove / pause / check. */
+async function trackApi(request, env, hdrs) {
+  if (request.method !== "POST") return jres({ error: "POST only" }, 405, hdrs);
+  if (!notifyOriginOk(env, request)) return jres({ error: "origin" }, 403, hdrs);
+  if (!env.KV) return jres({ error: "KV binding missing" }, 500, hdrs);
+  let b = {};
+  try { b = (await request.json()) || {}; } catch (e) { return jres({ error: "bad json" }, 400, hdrs); }
+  const action = String(b.action || "list");
+
+  if (action === "list") {
+    let list = [];
+    try { list = await trackList(env); }
+    catch (e) { return jres({ error: "Tracker store unavailable" }, 502, hdrs); }
+    let budget = null;
+    try {
+      const cap = mezDailyCap(env);
+      const used = Number(await env.KV.get(mezBudgetKey())) || 0;
+      budget = { cap: cap, used: used, left: Math.max(0, cap - used), reset_at: mezBudgetReset() };
+    } catch (e) { /* ignore */ }
+    return jres({ ok: true, trackers: list, budget: budget,
+      every_default: TRACK_DEFAULT_EVERY, every_min: TRACK_MIN_EVERY, max: TRACK_MAX }, 200, hdrs);
+  }
+
+  if (action === "save") {
+    const src = (b.tracker && typeof b.tracker === "object") ? b.tracker : {};
+    let t = null;
+    let list = [];
+    try { list = await trackList(env); } catch (e) { list = []; }
+    if (src.id) t = list.filter(function (x) { return x.id === src.id; })[0] || null;
+    if (!t) {
+      if (list.length >= TRACK_MAX) {
+        return jres({ error: "Max " + TRACK_MAX + " trackers. Pehle koi tracker band karein." }, 400, hdrs);
+      }
+      t = { id: trackNewId(), createdAt: Date.now(), lastCheckAt: 0, last: null, history: [] };
+    }
+    const every = Number(src.every) || TRACK_DEFAULT_EVERY;
+    t.origin = String(src.origin || "").toUpperCase();
+    t.destination = String(src.destination || "").toUpperCase();
+    t.departure = String(src.departure || "");
+    t.trip_type = String(src.trip_type || "oneway") === "round" ? "round" : "oneway";
+    t.return_date = t.trip_type === "round" ? String(src.return_date || "") : "";
+    t.adults = Number(src.adults) || 1;
+    t.children = Number(src.children) || 0;
+    t.infants_on_lap = Number(src.infants_on_lap) || 0;
+    t.infants_in_seat = Number(src.infants_in_seat) || 0;
+    t.cabin_class = String(src.cabin_class || "");
+    t.flight = String(src.flight || "").toUpperCase().replace(/\s/g, "");
+    t.target = Math.max(0, Number(src.target) || 0);
+    t.every = Math.min(720, Math.max(TRACK_MIN_EVERY, Math.floor(every)));
+    t.label = String(src.label || "").slice(0, 80);
+    if (src.paused != null) t.paused = !!src.paused;
+    if (t.paused == null) t.paused = false;
+    try { mezQuery(trackQuery(t)); }
+    catch (e) { return jres({ error: e.message || "Invalid route" }, 400, hdrs); }
+    const dupe = list.filter(function (x) {
+      return x.id !== t.id && x.origin === t.origin && x.destination === t.destination &&
+        x.departure === t.departure && x.return_date === t.return_date && x.flight === t.flight;
+    })[0];
+    if (dupe) return jres({ error: "Ye route pehle se track ho raha he.", id: dupe.id }, 409, hdrs);
+    t.updatedAt = Date.now();
+    await trackSave(env, t);
+    let checked = null;
+    if (b.check !== false && !t.last) {
+      try {
+        checked = await trackCheck(env, t, { quiet: true });
+        t = checked;
+      } catch (e) {
+        t.lastError = String((e && e.message) || e).slice(0, 120);
+        t.lastCheckAt = Date.now();
+        await trackSave(env, t);
+      }
+    }
+    return jres({ ok: true, tracker: t, checked: !!checked }, 200, hdrs);
+  }
+
+  if (action === "remove" || action === "pause" || action === "check") {
+    const id = String(b.id || "");
+    if (!id) return jres({ error: "id chahiye" }, 400, hdrs);
+    if (action === "remove") {
+      await trackDelete(env, id);
+      return jres({ ok: true }, 200, hdrs);
+    }
+    let list = [];
+    try { list = await trackList(env); } catch (e) { list = []; }
+    const t = list.filter(function (x) { return x.id === id; })[0];
+    if (!t) return jres({ error: "Tracker nahi mila" }, 404, hdrs);
+    if (action === "pause") {
+      t.paused = b.paused == null ? !t.paused : !!b.paused;
+      t.updatedAt = Date.now();
+      await trackSave(env, t);
+      return jres({ ok: true, tracker: t }, 200, hdrs);
+    }
+    try {
+      const done = await trackCheck(env, t, { quiet: true });
+      return jres({ ok: true, tracker: done }, 200, hdrs);
+    } catch (e) {
+      return jres({ error: String((e && e.message) || e).slice(0, 200) }, 502, hdrs);
+    }
+  }
+
+  return jres({ error: "unknown action" }, 400, hdrs);
+}
+
+/* ------------------------------------------------------------------ */
+/* Booking expiry reminders (app se)                                   */
+/*   Ticket book hone ke baad "PNR 1 bje expire hota he" type alarm.   */
+/*   Wohi reminder store jo /remind use karta he — cron fire karta he. */
+/* ------------------------------------------------------------------ */
+async function remindApi(request, env, hdrs) {
+  if (request.method !== "POST") return jres({ error: "POST only" }, 405, hdrs);
+  if (!notifyOriginOk(env, request)) return jres({ error: "origin" }, 403, hdrs);
+  if (!env.KV && !env.WATCH_INDEX_DO) return jres({ error: "KV binding missing" }, 500, hdrs);
+  let b = {};
+  try { b = (await request.json()) || {}; } catch (e) { return jres({ error: "bad json" }, 400, hdrs); }
+  const action = String(b.action || "list");
+
+  if (action === "list") {
+    const list = await readReminds(env);
+    return jres({ ok: true, reminders: list }, 200, hdrs);
+  }
+
+  if (action === "add") {
+    const text = String(b.text || "").trim().slice(0, 300);
+    if (!text) return jres({ error: "text chahiye" }, 400, hdrs);
+    const m = String(b.at || "").match(/^(\d{4}-\d{2}-\d{2})T(\d{2}):(\d{2})$/);
+    if (!m || !isoOk(m[1]) || Number(m[2]) > 23 || Number(m[3]) > 59) {
+      return jres({ error: "Waqt misaal: 2026-12-14T13:00 (Pakistan time)" }, 400, hdrs);
+    }
+    const event = Date.parse(m[1] + "T" + m[2] + ":" + m[3] + ":00+05:00");
+    if (!isFinite(event)) return jres({ error: "Waqt samajh nahi aaya" }, 400, hdrs);
+    if (event <= Date.now()) return jres({ error: "Ye waqt guzar chuka he." }, 400, hdrs);
+    const leads = parseLeads({ lead: b.lead });
+    const slots = leads.map(function (l) {
+      return { lead: l, at: l === 0 ? event : event - l * 60000, done: false };
+    }).filter(function (s) { return s.at > Date.now() - 30000; })
+      .sort(function (a, b2) { return a.at - b2.at; });
+    if (!slots.length) slots.push({ lead: 0, at: event, done: false });
+    const list = await readReminds(env);
+    if (list.length >= MAX_REMINDS) return jres({ error: "Max " + MAX_REMINDS + " reminders." }, 400, hdrs);
+    let id = "";
+    do { id = "R" + (1 + Math.floor(Math.random() * 899)); } while (list.some(function (r) { return r.id === id; }));
+    const r = { id: id, chat: "", text: text, event: event, rel: false,
+      slots: slots, createdAt: Date.now(), src: String(b.src || "app").slice(0, 20) };
+    const added = await addRemind(env, r);
+    if (!added) return jres({ error: "Reminder save nahi hua — dobara try karein." }, 502, hdrs);
+    return jres({ ok: true, reminder: r }, 200, hdrs);
+  }
+
+  if (action === "remove") {
+    const id = String(b.id || "").toUpperCase();
+    if (!id) return jres({ error: "id chahiye" }, 400, hdrs);
+    const list = await readReminds(env);
+    const hit = list.filter(function (r) { return String(r.id).toUpperCase() === id; })[0];
+    if (!hit) return jres({ error: "Reminder nahi mila" }, 404, hdrs);
+    if (env.WATCH_INDEX_DO) {
+      try { await remindDoCall(env, "remind-remove", { id: hit.id }); }
+      catch (e) { await writeReminds(env, list.filter(function (r) { return r.id !== hit.id; })); }
+    } else {
+      await writeReminds(env, list.filter(function (r) { return r.id !== hit.id; }));
+    }
+    return jres({ ok: true }, 200, hdrs);
+  }
+
+  return jres({ error: "unknown action" }, 400, hdrs);
+}
+
+/* ------------------------------------------------------------------ */
 /* HTTP entry points                                                   */
 /* ------------------------------------------------------------------ */
 
@@ -2605,7 +3016,7 @@ async function statusPage(env) {
     "<li>Owner chat: <code>" + esc(owner) + "</code></li>" +
     "<li>Team alerts: " + (team.length ? team.map(function (c) { return "<code>" + esc(c) + "</code>"; }).join(", ") : "<i>sirf owner</i>") + "</li></ul>" +
     "<p>" + (env.TELEGRAM_BOT_TOKEN ? (info.indexOf("not set") >= 0 ? "<a href=\"/setup\">Connect the bot</a>" : "Bot connected.") : "") + "</p>" +
-    "<p><small>App proxy: <code>/health</code> <code>/fares</code> <code>/round-trip</code> <code>/booking-links</code> <code>/notify</code></small></p>");
+    "<p><small>App proxy: <code>/health</code> <code>/fares</code> <code>/round-trip</code> <code>/booking-links</code> <code>/notify</code> <code>/meezab/search</code> <code>/track</code> <code>/remind</code></small></p>");
 }
 
 export default {
@@ -2631,6 +3042,8 @@ export default {
     if (path === "/booking-links") return proxyIgnav(request, env, "/fares/booking-links", hdrs);
     if (path === "/notify") return notifyRelay(request, env, hdrs);
     if (path === "/meezab/search") return meezabSearch(request, env, hdrs);
+    if (path === "/track") return trackApi(request, env, hdrs);
+    if (path === "/remind") return remindApi(request, env, hdrs);
 
     if (path === "/telegram") {
       if (request.method !== "POST") return new Response("ok");
@@ -2669,6 +3082,7 @@ export default {
     const job = Promise.all([
       checkAll(env).catch(function () { /* never crash the cron */ }),
       checkReminders(env).catch(function () { /* reminders must not crash the cron */ }),
+      checkTrackers(env).catch(function () { /* tracker must not crash the cron */ }),
       // webhook info cache refresh (Telegram se seedha, background mein)
       (async function () {
         try {

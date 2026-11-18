@@ -99,6 +99,8 @@ const page = {
   faMoney: (a, c) => (c || "PKR") + " " + Math.round(a),
   faDurMins: (m) => (m ? Math.round(m / 60) + "h " + (m % 60) + "m" : ""),
   absAsset: (p) => "https://app/" + p,
+  /* mezComm/mezSellAmount app ke settings se markup padhte hain. */
+  S: { settings: { mezCommission: 0 } },
   Intl,
   Date,
   Number,
