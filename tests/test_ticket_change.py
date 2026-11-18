@@ -51,6 +51,16 @@ class TicketChangeChecks(unittest.TestCase):
         self.assertIn("adj:adj, prevId:prevId, prevRef:prevRef", self.html)
         self.assertIn("Previous Ticket Adj (Rs) — khali chhod dein to purana rahega:", self.html)
 
+    def test_partial_ticket_payments_are_reachable(self):
+        # `t.payments` was read in 6 places but there was no way to enter one —
+        # only a full "Paid" toggle. Payment must be enterable from both the row
+        # sheet and the Pending tab.
+        self.assertIn("function receiveTicketPayment(t){", self.html)
+        self.assertIn('if(!Array.isArray(t.payments)) t.payments = [];', self.html)
+        self.assertIn("t.payments.push({ amount:amt, date:payDt });", self.html)
+        self.assertIn('add("💵 Payment"', self.html)
+        self.assertIn('class="btn small tk-pay"', self.html)
+
     def test_arithmetic_when_node_is_available(self):
         node = shutil.which("node")
         if not node:
