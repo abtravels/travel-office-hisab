@@ -165,11 +165,12 @@ async function isAllowed(env, chat) {
 
 async function notifyAll(env, html, extra) {
   const list = await allowedChats(env);
-  const sent = [];
+  const sent = [], failed = [], errors = [];
   for (const c of list) {
-    try { await send(env, c, html, extra); sent.push(c); } catch (e) { /* ignore */ }
+    try { await send(env, c, html, extra); sent.push(c); }
+    catch (e) { failed.push(c); errors.push(String((e && e.message) || e).slice(0, 160)); }
   }
-  return sent;
+  return { sent: sent, failed: failed, errors: errors };
 }
 
 
@@ -1946,7 +1947,6 @@ function trackPick(fares, flight) {
   return pool.reduce(function (a, b) { return Number(b.amount) < Number(a.amount) ? b : a; }, pool[0]);
 }
 
-/* Interval ko insaan ki zubaan mein - 120 -> "2 ghante". */
 function everyLabel(mins) {
   const m = Math.max(1, Math.floor(Number(mins) || DEFAULT_EVERY));
   if (m % 60 === 0) return (m / 60) + (m === 60 ? " ghanta" : " ghante");
@@ -2032,8 +2032,6 @@ async function trackCheck(env, t, opts) {
   if (hitTarget) kind = "target";
   else if (dropped && gapOk) kind = "down";
   else if (first) kind = "baseline";
-  /* Manual "Check now" — user ne khud poocha he, is liye abhi ka price hamesha bhejein
-     (chaahe price na badla ho). v3.18 */
   else if (manual) kind = "manual";
 
   if (kind) {
@@ -2042,8 +2040,16 @@ async function trackCheck(env, t, opts) {
     if (kind === "baseline") {
       try { await notifyAll(env, trackText(t, amount, prev, kind)); } catch (e) { /* ignore */ }
     } else if (kind === "manual") {
-      /* Manual check alert-counters ko nahi badalta. */
-      try { await notifyAll(env, trackText(t, amount, prev, kind)); } catch (e) { /* ignore */ }
+      /* Manual "Check now": user ko Telegram ka asli nateeja bata dein —
+         pehle send fail hone par bhi app "bhej diya" keh deta tha (v3.20). */
+      let r = null;
+      try { r = await notifyAll(env, trackText(t, amount, prev, kind)); }
+      catch (e) { r = { sent: [], failed: [], errors: [String((e && e.message) || e)] }; }
+      const sentList = (r && Array.isArray(r.sent)) ? r.sent : (Array.isArray(r) ? r : []);
+      const failedN = (r && Array.isArray(r.failed)) ? r.failed.length : 0;
+      const errs = (r && Array.isArray(r.errors)) ? r.errors.slice(0, 2) : [];
+      t.lastNotify = { at: now, kind: kind, sent: sentList.length, failed: failedN,
+        reached: sentList.slice(0, 4), errors: errs };
     } else if (notify) {
       t.lastAlertAt = now;
       t.lastAlertAmount = amount;
@@ -2199,10 +2205,20 @@ async function trackApi(request, env, hdrs) {
     }
     try {
       const done = await trackCheck(env, t, { manual: true });
-      return jres({ ok: true, tracker: done }, 200, hdrs);
+      return jres({ ok: true, tracker: done, notify: done.lastNotify || null }, 200, hdrs);
     } catch (e) {
       return jres({ error: String((e && e.message) || e).slice(0, 200) }, 502, hdrs);
     }
+  }
+
+  /* Telegram delivery test — tracker card ka "Telegram test" button (v3.20). */
+  if (action === "test") {
+    let r = null;
+    try { r = await notifyAll(env, "<b>AB Travels test</b> - tracker notifications theek chal rahi hain (" + pktNowText() + ")"); }
+    catch (e) { r = { sent: [], failed: [], errors: [String((e && e.message) || e)] }; }
+    const chats = (await allowedChats(env)).length;
+    return jres({ ok: r.sent.length > 0, sent: r.sent.length, failed: r.failed.length,
+      errors: r.errors.slice(0, 2), chats: chats }, 200, hdrs);
   }
 
   return jres({ error: "unknown action" }, 400, hdrs);
@@ -3041,7 +3057,7 @@ async function statusPage(env) {
       info = "<li>Webhook: <span style=\"color:var(--gold)\">check slow</span> <small>(Telegram jawab nahi de raha - bot par message bhej kar test karein)</small></li>";
     }
   }
-  return page("AB Travels worker", "<h1>✈️ AB Travels worker <small>v3.01</small></h1><ul>" + rows.join("") + info +
+  return page("AB Travels worker", "<h1>✈️ AB Travels worker <small>v3.20</small></h1><ul>" + rows.join("") + info +
     "<li>Today's searches: <b>" + esc(used) + "</b> / " + budgetCap(env) + "</li>" +
     "<li>Owner chat: <code>" + esc(owner) + "</code></li>" +
     "<li>Team alerts: " + (team.length ? team.map(function (c) { return "<code>" + esc(c) + "</code>"; }).join(", ") : "<i>sirf owner</i>") + "</li></ul>" +
