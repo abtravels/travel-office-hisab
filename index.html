@@ -226,6 +226,12 @@
   /* Adj sub-line registers mein — gross ke neeche chhoti si line */
   td.num .cell-sub{display:block; margin:1px 0 0; font-size:9.5px; font-weight:600; letter-spacing:0.1px; color:var(--muted); white-space:nowrap;}
   td.num .cell-sub b{color:var(--text, inherit);}
+  /* Chhoti screen: sub-line ko wrap hone dein — warna "adj −19,500 = 13,500"
+     cell se bahar nikal kar baqi columns par chadh jata tha. */
+  @media (max-width:700px){
+    td.num .cell-sub{white-space:normal; overflow-wrap:anywhere; line-height:1.35;}
+    .sheet-grid .c-detail .cell-sub{white-space:normal;}
+  }
   .cell-clip{display:inline-block; max-width:200px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; vertical-align:middle;}
   .c-client .cell-clip{max-width:170px;}
   .cell-chip{display:inline-block; font-size:10px; font-weight:800; padding:1px 7px; border-radius:999px; background:var(--blue-bg); color:var(--blue);}
@@ -724,7 +730,7 @@
   <div class="brand">
     <img src="logo.png" alt="AB Travels" decoding="async" onerror="this.style.display='none'">
     <div style="min-width:0;">
-      <h1>AB Travels <span class="ver" id="verBadge">v3.14</span></h1>
+      <h1>AB Travels <span class="ver" id="verBadge">v3.15</span></h1>
       <div class="tag">Ahmed Brothers Hajj &amp; Umra Services (Pvt) Ltd</div>
     </div>
     <button id="brandFares" class="brand-fares" type="button" title="Price Lookup — flight fares" aria-label="Price Lookup — flight fares">✈</button>
@@ -793,7 +799,7 @@
 <script>
 /* ================= DATA ================= */
 var KEY = "travelOfficeHisab";
-var APP_VER = "3.14";
+var APP_VER = "3.15";
 var MONTH_NAMES = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
 /* Cloudflare Worker — Ignav flight prices proxy (free plan, no credit card) */
 var IGNAV_WORKER_CODE = "// AB Travels - Ignav flight prices proxy (Cloudflare Worker)\n// Ignav API key SERVER par rehti hai - app/browser mein kabhi nahi aati.\n//\n// SETUP (ek dafa, ~5 min, free):\n// 1) ignav.com/signup -> free account -> dashboard se API key\n// 2) cloudflare.com -> free account -> Workers & Pages -> Create Worker -> yeh code paste -> Deploy\n// 3) Worker -> Settings -> Variables and Secrets -> secret add karein:\n//      IGNAV_API_KEY = (aap ki Ignav key)\n// 4) Worker URL (https://xxx.workers.dev) app -> Settings -> Flight prices -> paste -> Save & test\n\nexport default {\n  async fetch(request, env) {\n    const cors = {\n      'Access-Control-Allow-Origin': env.ALLOWED_ORIGIN || '*',\n      'Access-Control-Allow-Methods': 'GET,POST,OPTIONS',\n      'Access-Control-Allow-Headers': 'Content-Type',\n      'Access-Control-Max-Age': '86400'\n    };\n    const url = new URL(request.url);\n    if (request.method === 'OPTIONS') return new Response(null, { status: 204, headers: cors });\n    if (!env.IGNAV_API_KEY) {\n      return new Response(JSON.stringify({ error: { code: 'no_key', message: 'IGNAV_API_KEY secret is not set in the Worker.' } }), { status: 500, headers: Object.assign({ 'Content-Type': 'application/json' }, cors) });\n    }\n    const base = 'https://ignav.com/api';\n    let target = '';\n    let init = { method: 'GET', headers: { 'X-Api-Key': env.IGNAV_API_KEY } };\n    if (url.pathname === '/health') {\n      target = base + '/health';\n    } else if (url.pathname === '/fares') {\n      if (request.method !== 'POST') return new Response(JSON.stringify({ error: { message: 'POST only' } }), { status: 405, headers: cors });\n      const body = await request.text();\n      target = base + '/fares/one-way';\n      init = { method: 'POST', headers: { 'X-Api-Key': env.IGNAV_API_KEY, 'Content-Type': 'application/json' }, body };\n    } else if (url.pathname === '/search') {\n      if (request.method !== 'POST') return new Response(JSON.stringify({ error: { message: 'POST only' } }), { status: 405, headers: cors });\n      const body = await request.text();\n      target = base + '/fares/search';\n      init = { method: 'POST', headers: { 'X-Api-Key': env.IGNAV_API_KEY, 'Content-Type': 'application/json' }, body };\n    } else if (url.pathname === '/round-trip') {\n      if (request.method !== 'POST') return new Response(JSON.stringify({ error: { message: 'POST only' } }), { status: 405, headers: cors });\n      const body = await request.text();\n      target = base + '/fares/round-trip';\n      init = { method: 'POST', headers: { 'X-Api-Key': env.IGNAV_API_KEY, 'Content-Type': 'application/json' }, body };\n    } else if (url.pathname === '/booking-links') {\n      if (request.method !== 'POST') return new Response(JSON.stringify({ error: { message: 'POST only' } }), { status: 405, headers: cors });\n      const body = await request.text();\n      target = base + '/fares/booking-links';\n      init = { method: 'POST', headers: { 'X-Api-Key': env.IGNAV_API_KEY, 'Content-Type': 'application/json' }, body };\n    } else {\n      return new Response(JSON.stringify({ error: { message: 'not found' } }), { status: 404, headers: Object.assign({ 'Content-Type': 'application/json' }, cors) });\n    }\n    try {\n      const r = await fetch(target, init);\n      const text = await r.text();\n      return new Response(text, { status: r.status, headers: Object.assign({ 'Content-Type': 'application/json' }, cors) });\n    } catch (e) {\n      return new Response(JSON.stringify({ error: { message: String((e && e.message) || e) } }), { status: 502, headers: Object.assign({ 'Content-Type': 'application/json' }, cors) });\n    }\n  }\n};\n";
@@ -2548,9 +2554,12 @@ function reportRows(mid){
   mids.forEach(function(m){
     var mm = S.months[m] || {};
     var inc = (mm.incomes||[]), exp = (mm.expenses||[]);
-    var tc = 0, ts = 0;
+    var tc = 0, ts = 0, tcGross = 0, tsGross = 0;
     var tk = (S.tickets||[]).filter(function(t){ return String(t.date||"").slice(0,7) === m; });
-    tk.forEach(function(t){ tc += ticketCost(t); ts += ticketNet(t); });
+    tk.forEach(function(t){
+      tc += ticketCost(t); ts += ticketNet(t);
+      tcGross += Number(t.cost)||0; tsGross += Number(t.sale)||0;
+    });
     var dw = [];
     (S.draws||[]).forEach(function(d){ if(String(d.date||"").slice(0,7) === m) dw.push({ date:d.date, label:(d.partner==="ABBU" ? "Father (Owner) withdrawal" : ("Withdrawal (" + (d.partner==="A" ? S.settings.partnerA : S.settings.partnerB) + ")")), note:d.note||"", amount:d.amount }); });
     (S.waseem||[]).forEach(function(w){ if(String(w.date||"").slice(0,7) === m) dw.push({ date:w.date, label:(w.kind==="commission" ? "Waseem commission paid" : "Waseem salary paid"), note:w.note||"", amount:w.amount }); });
@@ -2575,16 +2584,18 @@ function reportRows(mid){
     if(tk.length){
       sec(monthLabel(m) + " — TICKET / UMRAH SALES");
       line(["Date","Kind","Client","Details","Cost","Sale","Profit","Payment","Note"]);
+      var adjSum = 0;
       tk.forEach(function(t){
         var note = (t.commission ? "Waseem commission: " + t.commission : "");
         if(ticketAdj(t)){
+          adjSum += ticketAdj(t);
           note += (note ? " · " : "") + "Adj " + ticketAdj(t) + " off sale " + (Number(t.sale)||0)
             + " and off cost " + (Number(t.cost)||0) + (t.prevRef ? " · previous " + t.prevRef : "");
         }
         line([dmy(t.date), (t.kind || "Ticket"), t.client||"", t.detail||"", ticketCost(t), ticketNet(t), ticketProfit(t),
           (t.paid === false ? "Unpaid" : "Paid"), note]);
       });
-      line(["","TOTAL","","", tc, ts, ts - tc, "",""]);
+      line(["","TOTAL","","", tc, ts, tsGross - tcGross, adjSum ? "Adj " + adjSum + " deducted from both cost and sale" : "", ""]);
       blank();
     }
 
@@ -4661,7 +4672,7 @@ function viewTickets(){
     adjTotal += ticketAdj(t);
     personsTotal += Math.max(1, Number(t.persons) || 1);
   });
-  var tp = ts - tc;
+  var tp = tsGross - tcGross;   /* gross margin — adj se azad, register ke numbers se match */
   var pendingCnt = list.filter(function(t){ return !(Number(t.cost) > 0) && (ticketNet(t) > 0); }).length;
 
   var html = "";
@@ -4720,11 +4731,11 @@ function viewTickets(){
       var tkPaid = 0; (t.payments||[]).forEach(function(x){ tkPaid += Number(x.amount)||0; });
       var tkRem = Math.max(0, netSale - tkPaid);
       var phone = clientPhoneFor(t.client, t.phone);
-      var hay = ((t.client||"") + " " + (t.detail||"") + " " + (t.kind||"Ticket") + " " + (t.persons||"") + " " + (phone||"") + " " + (t.prevRef||"") + (adjAmt ? " adj adjustment" : "")).toLowerCase();
+      var hay = ((t.client||"") + " " + (t.detail||"") + " " + (t.kind||"Ticket") + " " + (t.persons||"") + " " + (phone||"") + " " + (t.prevRef||"") + (adjAmt ? " adj " + adjAmt : "")).toLowerCase();
       var st = (t.paid === false)
         ? '<span class="pill pending">'+esc(T("unpaid"))+'</span>'+(tkRem > 0 ? '<span class="cell-sub">due '+money(tkRem)+'</span>' : '')
         : '<span class="pill done">'+esc(T("paidp"))+'</span>'+(tkPaid > 0 ? '<span class="cell-sub">'+money(tkPaid)+'</span>' : '');
-      html += '<tr data-search="'+esc(hay)+'" data-id="'+esc(t.id)+'" data-cost="'+(Number(t.cost)||0)+'" data-sale="'+(Number(t.sale)||0)+'" data-adj="'+adjAmt+'">'
+      html += '<tr data-search="'+esc(hay)+'" data-id="'+esc(t.id)+'" data-cost="'+(Number(t.cost)||0)+'" data-sale="'+(Number(t.sale)||0)+'" data-adj="'+adjAmt+'" data-eff="'+effCost+'">'
             + '<td class="rn">'+(i+1)+'</td>'
             + '<td class="c-date" title="'+esc(dmy(t.date))+'">'+(dayOnly ? esc(dayNum(t.date)) : esc(dmy(t.date)))+'</td>'
             + '<td class="c-client" title="'+esc(t.client)+'"><span class="cell-clip"><b>'+esc(t.client)+'</b>'
@@ -4786,7 +4797,8 @@ function viewTickets(){
         + '<div class="hint" style="margin-top:2px;">Purani sale chunein to us ka baqi amount neeche total mein jud jayega.</div></div>'
         + '</div>'
         + '<div class="row" style="margin-top:8px;">'
-        + '<div><label>Previous Ticket Adj (Rs)</label><input id="tkAdj" type="number" min="0" inputmode="decimal" placeholder="0"></div>'
+        + '<div><label>Previous Ticket Adj (Rs)</label><input id="tkAdj" type="number" min="0" inputmode="decimal" placeholder="0">'
+        + '<div class="hint" style="margin-top:2px;">Purani ticket chunein to ye khud bhar jata he — badal sakte hain.</div></div>'
         + '<div><label>Purani ticket ka PNR (agar list mein na ho)</label><input id="tkPrevRef" placeholder="e.g. EK601 · PNR 6XK2" autocomplete="off"></div>'
         + '</div>'
         + '<div class="hint" id="tkChangeHint" style="margin-top:6px;"></div>'
@@ -8367,7 +8379,16 @@ function ticketPaidAmt(t){ return (t && Array.isArray(t.payments) ? t.payments :
      profit         = net payable - effective cost = sale - cost
    Purani ticket apni alag entry he, is liye us ka outstanding khud ba khud
    Pending Payments mein jud jata he (32,000 + 13,500 = 45,500). */
+function isChangeSale(t){
+  /* "Change" / "change" / " Change " — sab ek hi tarah. Kind khali ho to
+     (purana data) adj ko ihtiyat se mana jata he. */
+  var k = String((t && t.kind) || "").trim().toLowerCase();
+  return k === "" || k === "change";
+}
 function ticketAdj(t){
+  /* Adj sirf Change sales par lagta he. Kind badalne ya purana data aane par
+     bacha hua adj kisi doosri sale ka hisaab kharab na kare. */
+  if(!isChangeSale(t)) return 0;
   var sale = Math.max(0, Number(t && t.sale) || 0);
   return Math.min(sale, Math.max(0, Number(t && t.adj) || 0));
 }
@@ -8375,10 +8396,12 @@ function ticketNet(t){
   return Math.max(0, (Number(t && t.sale) || 0) - ticketAdj(t));
 }
 /* Adj purani ticket se aata he aur sale + supplier cost dono se minus hota he,
-   is liye profit par asar nahi padta:
+   is liye profit par asar nahi padta — profit hamesha gross margin rehta he:
      net payable    = sale - adj        (client ko dena he)
      effective cost = cost - adj        (supplier ko dena he)
-     profit         = net payable - effective cost = sale - cost
+     profit         = sale - cost       (adj se bilkul azad)
+   Is liye profit register ke gross Cost/Sale se seedha milta he, aur agar
+   kisi wajah se adj cost se bara ho jaye to bhi totals nahee toot te.
    Misal: sale 33,000, adj 19,500, cost 30,000 -> net 13,500,
           effective cost 10,500, profit 3,000. Purani ticket ka apna profit
           apni jagah (4,000) rehta he, total 7,000. */
@@ -8387,7 +8410,7 @@ function ticketCost(t){
   return Math.max(0, cost - ticketAdj(t));
 }
 function ticketProfit(t){
-  return ticketNet(t) - ticketCost(t);
+  return (Number(t && t.sale) || 0) - (Number(t && t.cost) || 0);
 }
 function ticketRemaining(t){
   if(t && t.paid === true) return 0;
@@ -10085,26 +10108,45 @@ function bind(){
     var sale = Number(tsa && tsa.value) || 0;
     var cost = Number(tcs && tcs.value) || 0;
     var adj = tkAdjNow();
-    /* Refund credit sale aur supplier cost dono se minus hota he, is liye
-       profit wohi rehta he jo gross sale - gross cost deta he. */
-    var p = (sale - adj) - Math.max(0, cost - adj);
+    /* Adj sale aur supplier cost dono se minus hota he, is liye profit wohi
+       rehta he jo gross sale − gross cost deta he (helper se match). */
+    var p = sale - cost;
     hint.innerHTML = 'Profit: <b>'+money(p)+'</b>'+(p<0?' <span style="color:var(--red);">(loss)</span>':'')
       + (adj ? ' <span style="color:var(--muted);">(adj profit par asar nahi karta)</span>' : '');
   }
-  if(tcs) tcs.oninput = updTickHint;
+  if(tcs) tcs.oninput = function(){ updTickHint(); tkChangeUpdate(); };
   if(tsa) tsa.oninput = updTickHint;
   function tkPrevList(){
     if(!kPrev) return;
     var cq = String(((document.getElementById("tkClient")||{}).value)||"").trim().toLowerCase();
     var list = (S.tickets||[]).slice().sort(function(a,b){ return String(b.date||"").localeCompare(String(a.date||"")); });
-    if(cq) list = list.filter(function(t){ return String(t.client||"").toLowerCase().indexOf(cq) >= 0; });
-    list = list.slice(0, 40);
+    /* Client ka naam likha he to usi ke tickets; warna sab (taze pehle) —
+       taake purani ticket har surat mein mil jaye. */
+    var only = cq ? list.filter(function(t){ return String(t.client||"").toLowerCase().indexOf(cq) >= 0; }) : list;
+    list = only.slice(0, 40);
     var keep = kPrev.value;
     kPrev.innerHTML = '<option value="">— purani sale chunein —</option>' + list.map(function(t){
-      return '<option value="'+esc(t.id)+'">'+esc(dmy(t.date))+' · '+esc(t.client||"")+(t.detail?' · '+esc(t.detail):'')
-        + ' · baqi '+money(ticketRemaining(t))+(t.paid === true ? ' (paid)' : '')+'</option>';
+      /* Pehle se kisi change se juri hui ticket dobara link na ho */
+      var linkedTo = (S.tickets||[]).filter(function(x){ return x.prevId === t.id; })[0];
+      return '<option value="'+esc(t.id)+'"'+(linkedTo?' title="Already linked to a change sale"':'')+'>'
+        + esc(dmy(t.date))+' · '+esc(t.client||"")+(t.detail?' · '+esc(t.detail):'')
+        + ' · baqi '+money(ticketRemaining(t))+(t.paid === true ? ' (paid)' : '')
+        + (linkedTo ? ' ⚠ already linked' : '')+'</option>';
     }).join("");
     if(keep) kPrev.value = keep;
+  }
+  /* Adj khud-ba-khud nahi bharta: adj airline ka refund credit hota he, jo aksar
+     purani ticket ke baqi se mukhtalif hota he (misal: baqi 32,000, adj 19,500).
+     Hint mein chhota button he — user chahe to baqi amount adj mein daal de. */
+  function tkPrevFill(){
+    tkChangeUpdate(); updTickHint();
+  }
+  function tkUsePrevDue(){
+    if(!kPrev || !kAdj || !kPrev.value) return;
+    var pt = (S.tickets||[]).filter(function(t){ return t.id === kPrev.value; })[0];
+    if(!pt) return;
+    kAdj.value = Math.max(0, Math.round(ticketRemaining(pt)));
+    tkChangeUpdate(); updTickHint();
   }
   function tkChangeUpdate(){
     if(!kBox) return;
@@ -10121,16 +10163,27 @@ function bind(){
     var out = ['Client ko dena he: <b>'+money(net)+'</b>'+(adj ? ' ('+money(sale)+' − '+money(adj)+' adj)' : '')];
     if(adj){
       var effCost = Math.max(0, cost - adj);
-      out.push('Supplier cost: '+money(cost)+' − '+money(adj)+' adj = <b>'+money(effCost)+'</b> · profit <b>'+money(net - effCost)+'</b>');
+      out.push('Supplier cost: '+money(cost)+' − '+money(adj)+' adj = <b>'+money(effCost)+'</b>');
     }
-    if(prev) out.push('Purani ticket ka baqi: <b>'+money(oldDue)+'</b> · client ka total pending: <b>'+money(oldDue + net)+'</b>');
+    if(prev){
+      out.push('Purani ticket ka baqi: <b>'+money(oldDue)+'</b> · client ka total pending: <b>'+money(oldDue + net)+'</b>'
+        + ' <button type="button" class="btn small" id="tkUseDue" style="margin:0 0 0 6px; padding:2px 8px; font-size:11px;">adj = baqi</button>');
+      var dupLink = (S.tickets||[]).filter(function(t){ return t.prevId === prev.id; })[0];
+      if(dupLink) out.push('<span style="color:var(--red);">Ye purani ticket pehle se ek change sale ('+esc(dmy(dupLink.date))+') se juri hui he.</span>');
+      if(prev.paid === true) out.push('<span style="color:var(--muted);">Purani ticket paid ho chuki he — us ka baqi 0 he.</span>');
+    }
     else out.push('Purani sale link nahi — sirf is ticket ka amount count hoga.');
     if(rawAdj > sale && sale > 0) out.push('<span style="color:var(--red);">Adj sale price se bara nahi ho sakta — '+money(sale)+' tak mehdood kar diya jayega.</span>');
     kHint.innerHTML = out.join('<br>');
   }
   if(kKind) kKind.onchange = function(){ tkPrevList(); tkChangeUpdate(); updTickHint(); };
-  if(kPrev) kPrev.onchange = tkChangeUpdate;
+  if(kPrev) kPrev.onchange = tkPrevFill;
   if(kAdj) kAdj.oninput = function(){ tkChangeUpdate(); updTickHint(); };
+  /* Hint har update par dobara banta he — is liye click delegate karte hain. */
+  if(kHint) kHint.onclick = function(ev){
+    var el = ev.target;
+    if(el && el.id === "tkUseDue"){ ev.preventDefault(); tkUsePrevDue(); }
+  };
   var kClientEl = document.getElementById("tkClient");
   if(kClientEl) kClientEl.oninput = function(){ tkPrevList(); tkChangeUpdate(); };
   if(tsa && tsa.oninput){
@@ -10146,16 +10199,30 @@ function bind(){
     if(!client || !(sale>0 || cost>0)){ alert("Client name and at least one amount (cost or sale) are required."); return; }
     var kind = (document.getElementById("tkKind")||{}).value || "Ticket";
     var tkDate = readDate("tkDate", true); if(!tkDate) return;
+    /* Change sale: adj tabhi lagta he jab client price maujood ho. Bina sale
+       ke adj clamp ho kar 0 ho jata tha, is liye pehle hi rok dete hain. */
+    if(kind === "Change" && !(sale > 0)){
+      appToast("Change sale ke liye Sale price zaroori he (adj usi se minus hota he).", true);
+      try{ document.getElementById("tkSale").focus(); }catch(e){}
+      return;
+    }
     var detailTxt = ((document.getElementById("tkDetail")||{}).value||"").trim();
     var persons = Math.min(99, Math.max(1, Math.floor(Number((document.getElementById("tkPersons")||{}).value) || 1)));
-    /* Change: refund credit client ki sale price se minus hota he */
+    /* Change: adj client ki sale price se minus hota he */
     var adj = 0, prevId = "", prevRef = "";
     if(kind === "Change"){
       var rawAdj = Number((document.getElementById("tkAdj")||{}).value) || 0;
       adj = Math.min(sale, Math.max(0, rawAdj));
-      if(rawAdj > sale) appToast("Refund credit sale price se bara tha — "+money(sale)+" tak mehdood kar diya.", true);
+      if(rawAdj > sale) appToast("Adj sale price se bara tha — "+money(sale)+" tak mehdood kar diya.", true);
       prevId = (document.getElementById("tkPrev")||{}).value || "";
       prevRef = ((document.getElementById("tkPrevRef")||{}).value||"").trim();
+      /* Ek purani ticket sirf ek hi change se jur sakti he — warna us ka
+         outstanding do dafa count hota he. */
+      var alreadyLinked = prevId ? (S.tickets||[]).filter(function(x){ return x.prevId === prevId; })[0] : null;
+      if(alreadyLinked){
+        appToast("Ye purani ticket pehle se " + dmy(alreadyLinked.date) + " ki change sale se juri hui he.", true);
+        return;
+      }
       if(!prevRef && prevId){
         var pt = (S.tickets||[]).filter(function(x){ return x.id === prevId; })[0];
         if(pt) prevRef = (pt.detail || ("Sale " + dmy(pt.date))) + (pt.kind ? " ("+pt.kind+")" : "");
@@ -10174,7 +10241,7 @@ function bind(){
     save(); render();
     try{
       var tkMsg = [client, kind, detailTxt, "Sale " + money(sale), (persons>1 ? persons + " persons" : "")];
-      if(adj) tkMsg.push("Refund credit " + money(adj) + " · net " + money(sale - adj) + (prevRef ? " · prev " + prevRef : ""));
+      if(adj) tkMsg.push("Adj " + money(adj) + " · net " + money(sale - adj) + (prevRef ? " · prev " + prevRef : ""));
       tgSend("New ticket added", tkMsg.filter(Boolean).join(" · "), { priority:"high", tags:"ticket" });
     }catch(e){}
     setCardOpen("tknew", false);
@@ -10187,7 +10254,7 @@ function bind(){
     var q = this.value.trim().toLowerCase();
     var cnt = document.getElementById("tkSearchCount");
     var rowsAll = document.querySelectorAll("#tkList tbody tr[data-search]");
-    var shown = 0, sc = 0, ss = 0, sa = 0;
+    var shown = 0, sc = 0, ss = 0, sa = 0, seff = 0;
     rowsAll.forEach(function(r){
       var hay = r.getAttribute("data-search") || "";
       var ok = !q || hay.indexOf(q) >= 0;
@@ -10197,10 +10264,11 @@ function bind(){
         sc += Number(r.getAttribute("data-cost"))||0;
         ss += Number(r.getAttribute("data-sale"))||0;
         sa += Number(r.getAttribute("data-adj"))||0;
+        seff += Number(r.getAttribute("data-eff"))||0;
       }
     });
     var eC = document.getElementById("tkSumCost"), eS = document.getElementById("tkSumSale"), eP = document.getElementById("tkSumProfit");
-    if(eC) eC.innerHTML = money(sc) + (sa ? '<span class="cell-sub" id="tkSumCostSub">adj −'+esc(money(sa))+' = '+esc(money(Math.max(0, sc - sa)))+'</span>' : '');
+    if(eC) eC.innerHTML = money(sc) + (sa ? '<span class="cell-sub" id="tkSumCostSub">adj −'+esc(money(sa))+' = '+esc(money(seff))+'</span>' : '');
     if(eS) eS.innerHTML = money(ss) + (sa ? '<span class="cell-sub" id="tkSumSaleSub">adj −'+esc(money(sa))+' = '+esc(money(Math.max(0, ss - sa)))+'</span>' : '');
     if(eP){ eP.innerHTML = money(ss - sc); eP.className = "num " + ((ss - sc) >= 0 ? "pos" : "neg"); }
     if(cnt) cnt.textContent = q ? (shown + " of " + rowsAll.length + " sales — ‘" + this.value.trim() + "’") : "";
@@ -10618,9 +10686,19 @@ function bind(){
       var id = b.getAttribute("data-id");
       var tk = (S.tickets||[]).filter(function(x){ return x.id === id; })[0];
       if(!tk) return;
-      if(!confirm("Delete this ticket?\n\n" + (tk.client||"") + " — " + dmy(tk.date||"") + " — " + money(tk.sale||0) + "\n\nAuto-backup ban jayega — ↩ Undo se wapas aa sakta hai.")) return;
+      /* Koi change sale isi ticket se juri ho to us ka link toot jayega —
+         user ko pehle bata dein. */
+      var linked = (S.tickets||[]).filter(function(x){ return x.prevId === id; });
+      var extra = linked.length
+        ? "\n\n\u26a0 " + linked.length + " change sale is ticket se juri hui he/gain: "
+          + linked.map(function(x){ return (x.client||"") + " " + dmy(x.date||""); }).join(", ")
+          + ".\nLink hat jayega, adj aur amounts jaisay he rehenge."
+        : "";
+      if(!confirm("Delete this ticket?\n\n" + (tk.client||"") + " — " + dmy(tk.date||"") + " — " + money(tk.sale||0) + extra + "\n\nAuto-backup ban jayega — ↩ Undo se wapas aa sakta hai.")) return;
       if(!takeAutoBackup("1 ticket deleted", true)){ alert("Backup nahi ban saka — delete rok diya gaya."); return; }
       S.tickets = S.tickets.filter(function(t){ return t.id !== id; });
+      /* Orphan prevId na chhodein — warna hint mein hamesha "sale not found" aata rehta he */
+      linked.forEach(function(x){ delete x.prevId; });
       save(); render();
     };
   });
@@ -10789,6 +10867,8 @@ function bind(){
     if(!confirm(rm.length+" duplicate tickets found (same client + same cost/sale).\n\nThe one with the oldest date is kept and the rest are removed. Remove them?\n\nPehle automatic backup liya jayega.")) return;
     if(!takeAutoBackup(rm.length + " duplicate tickets removed")){ alert("Backup nahi ban saka — delete rok diya gaya."); return; }
     S.tickets = S.tickets.filter(function(t){ return rm.indexOf(t.id) === -1; });
+    /* Hatayi gayi ticket se koi change sale juri thi to link saaf kar dein */
+    S.tickets.forEach(function(t){ if(t.prevId && rm.indexOf(t.prevId) >= 0) delete t.prevId; });
     save(); render();
   };
   var ctk = document.getElementById("clearTickets");

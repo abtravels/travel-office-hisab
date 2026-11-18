@@ -25,15 +25,23 @@ class TicketChangeChecks(unittest.TestCase):
         # small adjustment line underneath.
         self.assertIn("bakaya += Math.max(0, ticketNet(t) - tkPaid);", self.html)
         self.assertIn("ts += ticketNet(t);", self.html)
-        self.assertIn("""data-adj="'+adjAmt+'">""", self.html)
+        self.assertIn("""data-eff="'+effCost+'">""", self.html)
 
     def test_profit_ignores_the_refund_credit(self):
         # The credit comes off the sale and off the supplier bill, so profit
         # stays sale - cost (effective cost = cost - adjustment).
         self.assertIn("b.profit += ticketProfit(t);", self.html)
         self.assertIn("tc += ticketCost(t);", self.html)
-        self.assertIn("return ticketNet(t) - ticketCost(t);", self.html)
+        self.assertIn("return (Number(t && t.sale) || 0) - (Number(t && t.cost) || 0);", self.html)
         self.assertIn("adj profit par asar nahi karta", self.html)
+
+    def test_adj_only_on_change_sales(self):
+        # A leftover adj on a Ticket/Umrah/Hajj sale must not touch its numbers.
+        self.assertIn("function isChangeSale(t){", self.html)
+        self.assertIn('return k === "" || k === "change";', self.html)
+        self.assertIn("Already linked to a change sale", self.html)
+        self.assertIn("Change sale ke liye Sale price zaroori he", self.html)
+        self.assertIn("pehle se ek change sale", self.html)
 
     def test_change_form_and_edit(self):
         self.assertIn('id="tkChangeBox"', self.html)

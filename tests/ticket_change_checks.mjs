@@ -41,9 +41,15 @@ assert.equal(ticketAdj({ sale: 33000, adj: -500 }), 0);
 assert.equal(ticketAdj({ sale: 33000, adj: "19500" }), 19500);
 assert.equal(ticketAdj({ sale: 10000, adj: 19500 }), 10000);
 
-// Credit larger than the supplier cost never makes the cost negative.
+// Credit larger than the supplier cost never makes the cost negative, and the
+// profit still matches the gross margin (adj never touches profit).
 assert.equal(ticketCost({ sale: 33000, adj: 19500, cost: 5000 }), 0);
-assert.equal(ticketProfit({ sale: 33000, adj: 19500, cost: 5000 }), 13500);
+assert.equal(ticketProfit({ sale: 33000, adj: 19500, cost: 5000 }), 28000);
+
+// adj only applies to Change sales — a leftover adj can't touch other kinds.
+assert.equal(ticketAdj({ sale: 33000, adj: 19500, kind: "Ticket" }), 0);
+assert.equal(ticketNet({ sale: 33000, adj: 19500, kind: "Umrah" }), 33000);
+assert.equal(ticketProfit({ sale: 33000, adj: 19500, cost: 30000, kind: "Ticket" }), 3000);
 
 // Tickets without an adjustment behave exactly as before.
 assert.equal(ticketNet({ sale: 50000 }), 50000);
