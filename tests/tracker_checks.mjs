@@ -1,5 +1,6 @@
-/* Price Tracker (v3.17) checks — app helpers + worker tracker engine, bina browser.
-   index.html aur pricebot-worker.js se asli code nikaal kar chalate hain. */
+/* Price Tracker (v3.18) checks — app helpers + worker tracker engine, bina browser.
+   index.html aur pricebot-worker.js se asli code nikaal kar chalate hain.
+   Tracker alag tab he — Sales register mein tracker/expiry ka koi cheez nahi honi chahiye. */
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import vm from "node:vm";
@@ -19,8 +20,7 @@ function grab(src, start, end) {
 /* ---------- 1. app-side helpers ---------- */
 const appSrc =
   grab(html, "var TRK = {", "function viewTracker(){") +
-  grab(html, "/* ---------- Booking expiry reminders ----------", "function tkEditExpiry(t){" ) +
-  "\nthis.__x = { TRK, trkMoney, trkNextText, trkAgoText, trkSpark, trkApply, tkExpLabel, tkExpPast, tkExpRead, tkExpRemindText };";
+  "\nthis.__x = { TRK, trkMoney, trkNextText, trkAgoText, trkUntilText, trkLocalDateIso, trkSpark, trkApply };";
 
 function appCtx() {
   const ctx = vm.createContext({
@@ -56,24 +56,29 @@ assert.ok(spark.indexOf("var(--green)") > 0, "falling line = green");
 const sparkUp = A.trkSpark({ history: [{ amount: 40000 }, { amount: 50000 }] });
 assert.ok(sparkUp.indexOf("var(--red)") > 0, "rising line = red");
 
-/* expiry helpers */
-assert.equal(A.tkExpLabel("2026-12-14T13:05"), "14/12/26 1:05 pm");
-assert.equal(A.tkExpLabel("2026-12-14T00:30"), "14/12/26 12:30 am");
-assert.equal(A.tkExpLabel("2026-12-14T12:00"), "14/12/26 12:00 pm");
-assert.equal(A.tkExpLabel(""), "");
-assert.equal(A.tkExpPast("2020-01-01T10:00"), true);
-assert.equal(A.tkExpPast(""), false);
-/* PKT = UTC+5, is liye "kal" ke liye +30 ghante lein. */
-const soon = new Date(Date.now() + 30 * 3600 * 1000).toISOString().slice(0, 16);
-assert.equal(A.tkExpPast(soon), false);
-const justPast = new Date(Date.now() - 2 * 3600 * 1000).toISOString().slice(0, 16);
-assert.equal(A.tkExpPast(justPast), true);
-assert.equal(A.tkExpPast("garbage"), true);
-
-const txt = A.tkExpRemindText({ client: "Usama", detail: "KHI-DXB EK601", kind: "Ticket", expAt: "2026-12-14T13:00" });
-assert.ok(txt.indexOf("Usama") > 0 && txt.indexOf("KHI-DXB") > 0 && txt.indexOf("14/12/26 1:00 pm") > 0, txt);
-assert.ok(txt.indexOf("Ticket") < 0, "plain Ticket word skipped: " + txt);
-assert.ok(txt.indexOf("undefined") < 0, txt);
+/* "kab tak" text — aaj/kal/date tareen, timezone-independent checks */
+{
+  const d = new Date(); d.setHours(10, 30, 0, 0);
+  const iso = A.trkLocalDateIso(d.getTime());
+  const want = d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
+  assert.equal(iso, want, "local date iso: " + iso);
+}
+{
+  const tonight = new Date(); tonight.setHours(23, 59, 59, 0);
+  const lbl = A.trkUntilText(tonight.getTime());
+  assert.ok(lbl.indexOf("aaj") === 0, "tonight = aaj: " + lbl);
+  assert.ok(/[ap]m$/.test(lbl), "has am/pm: " + lbl);
+}
+{
+  const tom = new Date(); tom.setDate(tom.getDate() + 1); tom.setHours(21, 0, 0, 0);
+  const lbl = A.trkUntilText(tom.getTime());
+  assert.ok(lbl.indexOf("kal") === 0, "tomorrow = kal: " + lbl);
+}
+{
+  const far = new Date(); far.setDate(far.getDate() + 10); far.setHours(9, 30, 0, 0);
+  const lbl = A.trkUntilText(far.getTime());
+  assert.ok(lbl.indexOf("aaj") !== 0 && lbl.indexOf("kal") !== 0, "far = date form: " + lbl);
+}
 
 /* ---------- 2. worker-side tracker engine ---------- */
 wsrc = wsrc.replace("export class WatchIndex", "class WatchIndex").replace("export default", "const worker =");
@@ -335,6 +340,38 @@ const after = await json(await post({ action: "list" }));
 assert.equal(after.trackers.length, 1, "one tracker left");
 assert.ok(!env.KV.store.has("tr:" + fast.tracker.id), "KV key deleted");
 
+/* "Kab tak" — until store, 60 din ka cap, past waqt reject */
+const withUntil = await json(await post({ action: "save", check: false,
+  tracker: { origin: "ISB", destination: "DXB", departure: "2026-12-18", every: 30,
+             until: Date.now() + 3 * 3600 * 1000 } }));
+assert.ok(withUntil.tracker.until > Date.now(), "until stored");
+const farUntil = await json(await post({ action: "save", check: false,
+  tracker: { origin: "ISB", destination: "RUH", departure: "2026-12-19",
+             until: Date.now() + 90 * 24 * 3600 * 1000 } }));
+assert.ok(farUntil.tracker.until <= Date.now() + 60 * 24 * 3600 * 1000 + 60000, "capped at 60 din");
+const pastUntil = await post({ action: "save", check: false,
+  tracker: { origin: "ISB", destination: "BLR", departure: "2026-12-20",
+             until: Date.now() - 60000 } });
+assert.equal(pastUntil.status, 400, "past until rejected");
+
+/* alert text mein "band" waqt nazar aaye */
+{
+  const bandText = W.trackText({ origin: "KHI", destination: "UET", departure: "2026-12-14",
+    every: 30, until: Date.now() + 3600000, last: { currency: "PKR" } }, 40000, 50000, "down");
+  assert.ok(bandText.indexOf("band") > 0, "until shown in alert: " + bandText);
+}
+
+/* "kb tak" guzar jaye to cron tracker apne aap delete kar deta he */
+{
+  const expTrk = { id: "test-exp", origin: "LHE", destination: "DXB", departure: "2026-12-21",
+    every: 30, until: Date.now() - 60000, lastCheckAt: 0, history: [], createdAt: Date.now() };
+  env.KV.store.set("tr:" + expTrk.id, JSON.stringify(expTrk));
+  env.WATCH_INDEX_DO.storage.set("tr:" + expTrk.id, true);
+  await W.checkTrackers(env).catch(() => assert.fail("checkTrackers must never throw"));
+  assert.ok(!env.KV.store.has("tr:" + expTrk.id), "expired tracker removed from KV");
+  assert.ok(!env.WATCH_INDEX_DO.storage.has("tr:" + expTrk.id), "expired tracker removed from index");
+}
+
 /* origin gate */
 const blocked = await W.trackApi(new Request("https://worker.test/track", {
   method: "POST", headers: { "Content-Type": "application/json", Origin: "https://evil.example" },
@@ -354,7 +391,7 @@ const many = await json(await W.trackApi(new Request("https://worker.test/track"
   body: JSON.stringify({ action: "list" }) }), manyEnv, {}));
 assert.equal(many.trackers.length, 1, "reset list");
 
-/* ---------- 3. /remind API (booking expiry) ---------- */
+/* ---------- 3. /remind API (worker ka reminder store) ---------- */
 const REMENV = { KV: makeKV(), WATCH_INDEX_DO: makeDO(), __sent: [] };
 function remindPost(body) {
   return W.remindApi(new Request("https://worker.test/remind", {
@@ -398,8 +435,13 @@ assert.equal(blockedRem.status, 403, "remind origin gate");
 assert.ok(fs.readFileSync(ROOT + "/pricebot-worker.js", "utf8").indexOf('if (path === "/track")') > 0, "/track route");
 assert.ok(fs.readFileSync(ROOT + "/pricebot-worker.js", "utf8").indexOf('if (path === "/remind")') > 0, "/remind route");
 assert.ok(fs.readFileSync(ROOT + "/pricebot-worker.js", "utf8").indexOf("checkTrackers(env)") > 0, "cron wired");
-assert.ok(html.indexOf('data-tab="tracker"') > 0, "nav entry");
+assert.ok(wsrc.indexOf("Kab tak") > 0, "worker 'kab tak' expiry logic");
+assert.ok(html.indexOf('data-tab="tracker"') > 0, "nav entry (tracker alag tab)");
 assert.ok(html.indexOf("viewTracker()") > 0, "render wired");
-assert.ok(html.indexOf("tkExpSchedule(") > 0, "ticket expiry scheduling");
+assert.ok(html.indexOf("Kab tak track karein?") > 0, "'kb tak' field in tracker form");
+assert.ok(html.indexOf("Track this flight price") > 0, "fare card track button label");
+assert.ok(html.indexOf("tkExpSchedule") < 0, "sales register par koi expiry code nahi chhodna");
+assert.ok(html.indexOf("tkEditExpiry") < 0, "row menu se expiry item nahi chhodna");
+assert.ok(html.indexOf("expRemId") < 0, "ticket object par expiry field nahi chhodna");
 
 console.log("\nall tracker checks passed");

@@ -1966,7 +1966,8 @@ function trackText(t, amount, prev, kind) {
   if (t.flight) s += "\nFlight: " + esc(t.flight);
   else if (t.last && t.last.flight) s += "\nFlight: " + esc(t.last.flight);
   if (t.last && t.last.airline) s += "\nAirline: " + esc(t.last.airline);
-  s += "\n\n🕒 " + pktNowText() + " · source: Meezab · har " + (t.every || TRACK_DEFAULT_EVERY) + " min";
+  s += "\n\n🕒 " + pktNowText() + " · source: Meezab · har " + (t.every || TRACK_DEFAULT_EVERY) + " min" +
+    (t.until ? " · band " + esc(untilLabel(t.until)) + " PKT" : "");
   return s;
 }
 
@@ -2044,6 +2045,13 @@ async function checkTrackers(env) {
   try { list = await trackList(env); } catch (e) { return; }
   if (!list.length) return;
   const now = Date.now();
+  /* "Kab tak" guzar jaye to tracker khud khatam ho jata he (record + index). */
+  const expired = list.filter(function (t) { return t.until && now >= Number(t.until); });
+  for (const t of expired) {
+    try { await trackDelete(env, t.id); } catch (e) { /* ignore */ }
+  }
+  list = list.filter(function (t) { return !(t.until && now >= Number(t.until)); });
+  if (!list.length) return;
   const due = list.filter(function (t) {
     if (t.paused) return false;
     const every = Math.max(TRACK_MIN_EVERY, Number(t.every) || TRACK_DEFAULT_EVERY);
@@ -2124,6 +2132,12 @@ async function trackApi(request, env, hdrs) {
     t.flight = String(src.flight || "").toUpperCase().replace(/\s/g, "");
     t.target = Math.max(0, Number(src.target) || 0);
     t.every = Math.min(720, Math.max(TRACK_MIN_EVERY, Math.floor(every)));
+    /* "Kab tak" — is waqt ke baad tracking khud band ho jati he. */
+    t.until = Math.max(0, Number(src.until) || 0);
+    if (t.until && t.until <= Date.now()) {
+      return jres({ error: "Tracking ka waqt guzar chuka he — naya waqt chunein." }, 400, hdrs);
+    }
+    if (t.until > Date.now() + 60 * 24 * 3600 * 1000) t.until = Date.now() + 60 * 24 * 3600 * 1000;
     t.label = String(src.label || "").slice(0, 80);
     if (src.paused != null) t.paused = !!src.paused;
     if (t.paused == null) t.paused = false;
