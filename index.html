@@ -721,7 +721,7 @@
   <div class="brand">
     <img src="logo.png" alt="AB Travels" decoding="async" onerror="this.style.display='none'">
     <div style="min-width:0;">
-      <h1>AB Travels <span class="ver" id="verBadge">v3.10</span></h1>
+      <h1>AB Travels <span class="ver" id="verBadge">v3.11</span></h1>
       <div class="tag">Ahmed Brothers Hajj &amp; Umra Services (Pvt) Ltd</div>
     </div>
     <button id="brandFares" class="brand-fares" type="button" title="Price Lookup — flight fares" aria-label="Price Lookup — flight fares">✈</button>
@@ -790,7 +790,7 @@
 <script>
 /* ================= DATA ================= */
 var KEY = "travelOfficeHisab";
-var APP_VER = "3.10";
+var APP_VER = "3.11";
 var MONTH_NAMES = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
 /* Cloudflare Worker — Ignav flight prices proxy (free plan, no credit card) */
 var IGNAV_WORKER_CODE = "// AB Travels - Ignav flight prices proxy (Cloudflare Worker)\n// Ignav API key SERVER par rehti hai - app/browser mein kabhi nahi aati.\n//\n// SETUP (ek dafa, ~5 min, free):\n// 1) ignav.com/signup -> free account -> dashboard se API key\n// 2) cloudflare.com -> free account -> Workers & Pages -> Create Worker -> yeh code paste -> Deploy\n// 3) Worker -> Settings -> Variables and Secrets -> secret add karein:\n//      IGNAV_API_KEY = (aap ki Ignav key)\n// 4) Worker URL (https://xxx.workers.dev) app -> Settings -> Flight prices -> paste -> Save & test\n\nexport default {\n  async fetch(request, env) {\n    const cors = {\n      'Access-Control-Allow-Origin': env.ALLOWED_ORIGIN || '*',\n      'Access-Control-Allow-Methods': 'GET,POST,OPTIONS',\n      'Access-Control-Allow-Headers': 'Content-Type',\n      'Access-Control-Max-Age': '86400'\n    };\n    const url = new URL(request.url);\n    if (request.method === 'OPTIONS') return new Response(null, { status: 204, headers: cors });\n    if (!env.IGNAV_API_KEY) {\n      return new Response(JSON.stringify({ error: { code: 'no_key', message: 'IGNAV_API_KEY secret is not set in the Worker.' } }), { status: 500, headers: Object.assign({ 'Content-Type': 'application/json' }, cors) });\n    }\n    const base = 'https://ignav.com/api';\n    let target = '';\n    let init = { method: 'GET', headers: { 'X-Api-Key': env.IGNAV_API_KEY } };\n    if (url.pathname === '/health') {\n      target = base + '/health';\n    } else if (url.pathname === '/fares') {\n      if (request.method !== 'POST') return new Response(JSON.stringify({ error: { message: 'POST only' } }), { status: 405, headers: cors });\n      const body = await request.text();\n      target = base + '/fares/one-way';\n      init = { method: 'POST', headers: { 'X-Api-Key': env.IGNAV_API_KEY, 'Content-Type': 'application/json' }, body };\n    } else if (url.pathname === '/search') {\n      if (request.method !== 'POST') return new Response(JSON.stringify({ error: { message: 'POST only' } }), { status: 405, headers: cors });\n      const body = await request.text();\n      target = base + '/fares/search';\n      init = { method: 'POST', headers: { 'X-Api-Key': env.IGNAV_API_KEY, 'Content-Type': 'application/json' }, body };\n    } else if (url.pathname === '/round-trip') {\n      if (request.method !== 'POST') return new Response(JSON.stringify({ error: { message: 'POST only' } }), { status: 405, headers: cors });\n      const body = await request.text();\n      target = base + '/fares/round-trip';\n      init = { method: 'POST', headers: { 'X-Api-Key': env.IGNAV_API_KEY, 'Content-Type': 'application/json' }, body };\n    } else if (url.pathname === '/booking-links') {\n      if (request.method !== 'POST') return new Response(JSON.stringify({ error: { message: 'POST only' } }), { status: 405, headers: cors });\n      const body = await request.text();\n      target = base + '/fares/booking-links';\n      init = { method: 'POST', headers: { 'X-Api-Key': env.IGNAV_API_KEY, 'Content-Type': 'application/json' }, body };\n    } else {\n      return new Response(JSON.stringify({ error: { message: 'not found' } }), { status: 404, headers: Object.assign({ 'Content-Type': 'application/json' }, cors) });\n    }\n    try {\n      const r = await fetch(target, init);\n      const text = await r.text();\n      return new Response(text, { status: r.status, headers: Object.assign({ 'Content-Type': 'application/json' }, cors) });\n    } catch (e) {\n      return new Response(JSON.stringify({ error: { message: String((e && e.message) || e) } }), { status: 502, headers: Object.assign({ 'Content-Type': 'application/json' }, cors) });\n    }\n  }\n};\n";
@@ -9001,6 +9001,7 @@ function tgRelayWhy(r, txt){
     if(typeof j.error === "string") return j.error;
     return String(j.error.message || j.error.code || "relay error");
   }
+  if(j && Array.isArray(j.errors) && j.errors.length) return j.errors.join("; ").slice(0,160);
   return "relay " + ((r && r.status) || 0);
 }
 function tgPostOnce(body){
@@ -9012,7 +9013,14 @@ function tgPostOnce(body){
   }).then(function(r){
     return r.text().then(function(txt){
       var why = tgRelayWhy(r, txt);
-      if(why) throw new Error(why);
+      if(why){
+        var err = new Error(why), result;
+        try{ result = JSON.parse(txt); }catch(e){}
+        err.status = r.status;
+        err.failed = result && Array.isArray(result.failed) ? result.failed : null;
+        err.partial = !!(result && Array.isArray(result.sent) && result.sent.length);
+        throw err;
+      }
       return true;
     });
   });
@@ -9020,10 +9028,14 @@ function tgPostOnce(body){
 function tgPost(body, attempt){
   return tgPostOnce(body).catch(function(e){
     var msg = String((e && e.message) || e);
-    // network / timeout / worker ki 5xx — ek dafa dobara (Cloudflare→Telegram kabhi slow hota he)
-    if(attempt < 1 && /abort|timeout|fetch|network|failed to fetch|\b5\d\d\b/i.test(msg)){
+    var delays = [15000, 90000, 180000];
+    var retry = e.status ? e.status >= 500 : /abort|timed?\s*out|timeout|fetch|network/i.test(msg);
+    if(/Telegram sendMessage failed: (?:Bad Request|Forbidden|Unauthorized|Too Many Requests|[34]\d\d\b)/i.test(msg)) retry = false;
+    if(e.partial && !(e.failed && e.failed.length)) retry = false;
+    if(attempt < delays.length && retry){
+      var next = e.failed && e.failed.length ? Object.assign({}, body, {chats:e.failed}) : body;
       return new Promise(function(res){
-        setTimeout(function(){ res(tgPost(body, attempt + 1)); }, 1200);
+        setTimeout(function(){ res(tgPost(next, attempt + 1)); }, delays[attempt]);
       });
     }
     throw e;
@@ -9037,15 +9049,8 @@ function tgSend(title, message, opts){
   var ttl = String(title || "AB Travels");
   // Worker relay — Cloudflare se Telegram jata he, is liye ISP block (api.telegram.org)
   // hone par bhi notification pohanchti he. Relay origin check karta he; bot token ki
-  // zaroorat nahi. Agar chat IDs purani/galat hon to team list par fallback hota he.
+  // zaroorat nahi. Explicit recipients par error ho to audience ko na badlein.
   return tgPost({ title: ttl, text: text, chats: chats }, 0)
-    .catch(function(e){
-      var msg = String((e && e.message) || e);
-      if(chats.length && /no_chats|chat|origin/i.test(msg)){
-        return tgPost({ title: ttl, text: text, chats: [] }, 1);
-      }
-      throw e;
-    })
     .then(function(){ tgMark(true, ""); return true; })
     .catch(function(e){
       var msg = String((e && e.message) || e);
