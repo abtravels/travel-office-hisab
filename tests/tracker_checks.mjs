@@ -4,8 +4,9 @@
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import vm from "node:vm";
+import { fileURLToPath } from "node:url";
 
-const ROOT = "C:/Users/UMAIR/Downloads/TRAVEL SOFTWARE";
+const ROOT = fileURLToPath(new URL("..", import.meta.url)).replace(/[\\/]$/, "");
 const html = fs.readFileSync(ROOT + "/index.html", "utf8");
 let wsrc = fs.readFileSync(ROOT + "/pricebot-worker.js", "utf8");
 

@@ -43,9 +43,11 @@ class BookingExpiryChecks(unittest.TestCase):
         self.assertIn("function tkExpLocalInput(ms){", self.html)
 
     def test_lead_options(self):
-        self.assertIn('<option value="60,30">', self.html)
-        self.assertIn('<option value="120,60,30">', self.html)
-        self.assertIn('<option value="0">', self.html)
+        # v3.28: dropdown ki jagah multi-select chips — 5/10/15 min bhi.
+        self.assertIn('id="bkExpLead" value="60,30"', self.html)
+        self.assertIn('var BK_LEADS = [[1440,"1 din"],[180,"3 ghante"],[120,"2 ghante"],[60,"1 ghanta"],[30,"30 min"],', self.html)
+        self.assertIn('[15,"15 min"],[10,"10 min"],[5,"5 min"],[0,"Expire ke waqt"]];', self.html)
+        self.assertIn('class="btn small bk-lead', self.html)
 
     def test_worker_relay_add_and_cancel(self):
         self.assertIn("function tkExpSchedule(e){", self.html)

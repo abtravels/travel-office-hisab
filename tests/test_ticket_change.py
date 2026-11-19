@@ -25,14 +25,16 @@ class TicketChangeChecks(unittest.TestCase):
         # small adjustment line underneath.
         self.assertIn("bakaya += Math.max(0, ticketNet(t) - tkPaid);", self.html)
         self.assertIn("ts += ticketNet(t);", self.html)
-        self.assertIn("""data-eff="'+effCost+'">""", self.html)
+        self.assertIn("""data-eff="'+effCost+'" data-profit="'+p+'">""", self.html)
 
     def test_profit_ignores_the_refund_credit(self):
         # The credit comes off the sale and off the supplier bill, so profit
         # stays sale - cost (effective cost = cost - adjustment).
         self.assertIn("b.profit += ticketProfit(t);", self.html)
         self.assertIn("tc += ticketCost(t);", self.html)
-        self.assertIn("return (Number(t && t.sale) || 0) - (Number(t && t.cost) || 0);", self.html)
+        # v3.25: cost ya sale 0 ho to profit gina hi nahi jata.
+        self.assertIn("if(!ticketProfitReady(t)) return 0;", self.html)
+        self.assertIn("return (Number(t.sale) || 0) - (Number(t.cost) || 0);", self.html)
         self.assertIn("adj profit par asar nahi karta", self.html)
 
     def test_adj_only_on_change_sales(self):
