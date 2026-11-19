@@ -223,6 +223,18 @@
   .row-sheet-actions .rsa-btns{display:flex; gap:6px; flex-wrap:wrap;}
   .row-sheet-actions .rsa-btns .btn{flex:1 1 auto; min-width:88px; margin-top:0; padding:9px 10px; font-size:13px;}
   .cell-sub{font-size:10px; font-weight:600; color:var(--muted); margin-left:4px;}
+  /* Booking expiry reminder box (sale form) */
+  .tk-exp{margin-top:8px; padding:10px; border:1px dashed var(--line); border-radius:12px;}
+  .tk-exp-title{font-size:12.5px; font-weight:700;}
+  .tk-exp-opt{font-weight:600; color:var(--muted);}
+  .tk-exp-quick{display:flex; gap:6px; flex-wrap:wrap; margin-top:7px;}
+  .tk-exp-quick .btn{margin-top:0; flex:0 0 auto; padding:6px 10px; font-size:12px;}
+  .tk-exp-quick .btn.on{background:var(--gold-bg); color:var(--gold); border-color:transparent; font-weight:800;}
+  .tk-exp-note{font-size:12px; color:var(--gold); font-weight:700;}
+  /* Register mein expiry chip */
+  .sheet-grid td .tk-exp-chip{color:var(--gold); font-weight:700;}
+  .tk-exp-row{display:flex; align-items:center; gap:10px; justify-content:space-between; border:1px solid var(--line); border-radius:12px; padding:10px 12px; margin-bottom:8px; flex-wrap:wrap;}
+  .tk-exp-when{font-size:12.5px; font-weight:800; color:var(--gold);}
   /* Adj sub-line registers mein — gross ke neeche chhoti si line */
   td.num .cell-sub{display:block; margin:1px 0 0; font-size:9.5px; font-weight:600; letter-spacing:0.1px; color:var(--muted); white-space:nowrap;}
   td.num .cell-sub b{color:var(--text, inherit);}
@@ -763,7 +775,7 @@
   <div class="brand">
     <img src="logo.png" alt="AB Travels" decoding="async" onerror="this.style.display='none'">
     <div style="min-width:0;">
-      <h1>AB Travels <span class="ver" id="verBadge">v3.21</span></h1>
+      <h1>AB Travels <span class="ver" id="verBadge">v3.22</span></h1>
       <div class="tag">Ahmed Brothers Hajj &amp; Umra Services (Pvt) Ltd</div>
     </div>
     <button id="brandFares" class="brand-fares" type="button" title="Price Lookup — flight fares" aria-label="Price Lookup — flight fares">✈</button>
@@ -833,7 +845,7 @@
 <script>
 /* ================= DATA ================= */
 var KEY = "travelOfficeHisab";
-var APP_VER = "3.21";
+var APP_VER = "3.22";
 var MONTH_NAMES = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
 /* Cloudflare Worker — Ignav flight prices proxy (free plan, no credit card) */
 var IGNAV_WORKER_CODE = "// AB Travels - Ignav flight prices proxy (Cloudflare Worker)\n// Ignav API key SERVER par rehti hai - app/browser mein kabhi nahi aati.\n//\n// SETUP (ek dafa, ~5 min, free):\n// 1) ignav.com/signup -> free account -> dashboard se API key\n// 2) cloudflare.com -> free account -> Workers & Pages -> Create Worker -> yeh code paste -> Deploy\n// 3) Worker -> Settings -> Variables and Secrets -> secret add karein:\n//      IGNAV_API_KEY = (aap ki Ignav key)\n// 4) Worker URL (https://xxx.workers.dev) app -> Settings -> Flight prices -> paste -> Save & test\n\nexport default {\n  async fetch(request, env) {\n    const cors = {\n      'Access-Control-Allow-Origin': env.ALLOWED_ORIGIN || '*',\n      'Access-Control-Allow-Methods': 'GET,POST,OPTIONS',\n      'Access-Control-Allow-Headers': 'Content-Type',\n      'Access-Control-Max-Age': '86400'\n    };\n    const url = new URL(request.url);\n    if (request.method === 'OPTIONS') return new Response(null, { status: 204, headers: cors });\n    if (!env.IGNAV_API_KEY) {\n      return new Response(JSON.stringify({ error: { code: 'no_key', message: 'IGNAV_API_KEY secret is not set in the Worker.' } }), { status: 500, headers: Object.assign({ 'Content-Type': 'application/json' }, cors) });\n    }\n    const base = 'https://ignav.com/api';\n    let target = '';\n    let init = { method: 'GET', headers: { 'X-Api-Key': env.IGNAV_API_KEY } };\n    if (url.pathname === '/health') {\n      target = base + '/health';\n    } else if (url.pathname === '/fares') {\n      if (request.method !== 'POST') return new Response(JSON.stringify({ error: { message: 'POST only' } }), { status: 405, headers: cors });\n      const body = await request.text();\n      target = base + '/fares/one-way';\n      init = { method: 'POST', headers: { 'X-Api-Key': env.IGNAV_API_KEY, 'Content-Type': 'application/json' }, body };\n    } else if (url.pathname === '/search') {\n      if (request.method !== 'POST') return new Response(JSON.stringify({ error: { message: 'POST only' } }), { status: 405, headers: cors });\n      const body = await request.text();\n      target = base + '/fares/search';\n      init = { method: 'POST', headers: { 'X-Api-Key': env.IGNAV_API_KEY, 'Content-Type': 'application/json' }, body };\n    } else if (url.pathname === '/round-trip') {\n      if (request.method !== 'POST') return new Response(JSON.stringify({ error: { message: 'POST only' } }), { status: 405, headers: cors });\n      const body = await request.text();\n      target = base + '/fares/round-trip';\n      init = { method: 'POST', headers: { 'X-Api-Key': env.IGNAV_API_KEY, 'Content-Type': 'application/json' }, body };\n    } else if (url.pathname === '/booking-links') {\n      if (request.method !== 'POST') return new Response(JSON.stringify({ error: { message: 'POST only' } }), { status: 405, headers: cors });\n      const body = await request.text();\n      target = base + '/fares/booking-links';\n      init = { method: 'POST', headers: { 'X-Api-Key': env.IGNAV_API_KEY, 'Content-Type': 'application/json' }, body };\n    } else {\n      return new Response(JSON.stringify({ error: { message: 'not found' } }), { status: 404, headers: Object.assign({ 'Content-Type': 'application/json' }, cors) });\n    }\n    try {\n      const r = await fetch(target, init);\n      const text = await r.text();\n      return new Response(text, { status: r.status, headers: Object.assign({ 'Content-Type': 'application/json' }, cors) });\n    } catch (e) {\n      return new Response(JSON.stringify({ error: { message: String((e && e.message) || e) } }), { status: 502, headers: Object.assign({ 'Content-Type': 'application/json' }, cors) });\n    }\n  }\n};\n";
@@ -2511,6 +2523,7 @@ function openRowSheet(tr){
     appToast(txt ? "✓ Detail save ho gaya." : "Detail hata diya.");
   });
   add("📅 Date", "", ".tk-datedit");
+  add("⏰ Expiry", "", function(){ tkEditExpiry(t); });
   add("✕ Delete", "btn-del", "[data-type='ticket']");
 
   document.body.appendChild(back);
@@ -4816,7 +4829,10 @@ function viewTickets(){
             + '<td class="num '+(p>=0?"pos":"neg")+'">'+money(p)+'</td>'
             + '<td class="c-status">'+st+'</td>'
             + '<td>'+(t.kind ? '<span class="cell-chip">'+esc(t.kind)+'</span>' : '<span class="cell-muted">—</span>')+'</td>'
-            + '<td class="c-detail" title="'+esc((t.detail||"")+(adjAmt && t.prevRef ? " · previous " + t.prevRef : ""))+'">'+(t.detail ? '<span class="cell-clip">'+esc(t.detail)+'</span>' : '<span class="cell-muted">—</span>')+(adjAmt && t.prevRef ? '<span class="cell-sub">⇄ '+esc(t.prevRef)+'</span>' : '')+'</td>'
+            + '<td class="c-detail" title="'+esc((t.detail||"")+(adjAmt && t.prevRef ? " · previous " + t.prevRef : "")+(t.expAt ? " · expiry " + tkExpLabel(t.expAt) : ""))+'">'+(t.detail ? '<span class="cell-clip">'+esc(t.detail)+'</span>' : '<span class="cell-muted">—</span>')
+            + (adjAmt && t.prevRef ? '<span class="cell-sub">⇄ '+esc(t.prevRef)+'</span>' : '')
+            + (t.expAt ? '<span class="cell-sub tk-exp-chip">⏰ '+esc(tkExpLabel(t.expAt))+'</span>' : '')
+            + '</td>'
             + '<td class="num">'+Math.max(1, Number(t.persons)||1)+'</td>'
             + '<td class="c-phone">'+(phone ? '<a href="tel:'+esc(phone)+'">☎ '+esc(phone)+'</a>' : '<span class="cell-muted">—</span>')+'</td>'
             + '<td class="c-act">'
@@ -4874,6 +4890,30 @@ function viewTickets(){
         + '<div class="hint" style="margin-top:4px; font-size:11.5px;">Cost price mein supplier ka poora price likhein — adj app khud sale aur cost dono se minus karti he, is liye profit sahi rehta he.</div>'
         + '</div>';
   html += '<div class="row" style="margin-top:8px;"><div style="flex:0 0 170px;"><label>Number of persons</label><input id="tkPersons" type="number" min="1" max="99" step="1" inputmode="numeric" value="1"></div><div style="flex:1; display:flex; align-items:flex-end;"><div class="hint" style="margin:0 0 10px;">Only a count — cost and sale stay as entered and do not multiply.</div></div></div>';
+  /* Booking expiry reminder (v3.22) — booking karte waqt hi "PNR 1 bje expire hota he"
+     set kar dein. Worker ke cron se Telegram par pehle se remind ho jata he. */
+  html += '<div class="tk-exp" id="tkExpBox">'
+        + '<div class="tk-exp-title">⏰ Booking expiry reminder <span class="tk-exp-opt">(optional)</span></div>'
+        + '<div class="tk-exp-quick">'
+        + '<button type="button" class="btn small tk-exp-q" data-exp-min="30">+30 min</button>'
+        + '<button type="button" class="btn small tk-exp-q" data-exp-min="60">+1 ghanta</button>'
+        + '<button type="button" class="btn small tk-exp-q" data-exp-min="120">+2 ghante</button>'
+        + '<button type="button" class="btn small tk-exp-q" data-exp-min="180">+3 ghante</button>'
+        + '<button type="button" class="btn small tk-exp-q" data-exp-min="360">+6 ghante</button>'
+        + '<button type="button" class="btn small tk-exp-q" data-exp-min="1440">+1 din</button>'
+        + '</div>'
+        + '<div class="row" style="margin-top:8px;">'
+        + '<div><label>Expire kab</label><input type="datetime-local" id="tkExpAt"></div>'
+        + '<div><label>Kitna pehle remind</label><select id="tkExpLead">'
+        + '<option value="60,30">1 ghanta + 30 min pehle</option>'
+        + '<option value="120,60,30">2 ghante + 1 ghanta + 30 min</option>'
+        + '<option value="30">sirf 30 min pehle</option>'
+        + '<option value="60">sirf 1 ghanta pehle</option>'
+        + '<option value="0">expire ke waqt</option>'
+        + '</select></div>'
+        + '</div>'
+        + '<div class="hint" id="tkExpHint" style="margin-top:6px;">Khali chhod dein to koi reminder nahi lagega. Telegram par team ko message jayega — app band ho tab bhi.</div>'
+        + '</div>';
   html += '<div class="hint" id="tkProfitHint">'+esc(T("profit"))+'<b>Rs 0</b></div>';
   html += '<div class="row" style="margin-top:8px;"><label style="width:100%;">'+esc(T("payment"))+'</label>'
     + '<div><label>Status</label><select id="tkPaid"><option value="paid">'+esc(T("paidopt"))+'</option><option value="unpaid">'+esc(T("unpaidopt"))+'</option></select></div>'
@@ -4890,6 +4930,37 @@ function viewTickets(){
     html += '<div class="row"><select id="tkFrom">'+shiftMids.map(function(m){ return '<option value="'+m+'"'+(m===ticketFilter?" selected":"")+'>'+monthLabel(m)+' — from</option>'; }).join("")+'</select>'
           + '<select id="tkTo">'+shiftMids.map(function(m){ return '<option value="'+m+'">'+monthLabel(m)+' — to</option>'; }).join("")+'</select></div>';
     html += '<button class="btn small" id="tkShift" style="width:100%;">Move sales</button>';
+    html += '</div>';
+  }
+
+  /* ---- Booking expiries (v3.22) — aa rahi hain / guzar chuki, ek jagah ---- */
+  var expAll = (S.tickets || []).filter(function(t){ return !!t.expAt; })
+    .slice().sort(function(a,b){ return String(a.expAt).localeCompare(String(b.expAt)); });
+  if(expAll.length){
+    var expSoon = expAll.filter(function(t){ return Date.parse(t.expAt + ":00") > Date.now(); });
+    html += '<div class="card" data-collapse="tkexp" data-open="'+(expSoon.length ? "1" : "0")+'"><h2>⏰ Booking expiries ('+expSoon.length+')</h2>';
+    html += '<div class="hint" style="margin-top:0;">Jo booking expire hone wali he. Reminder Telegram par khud jata he (app band ho tab bhi) — yahan se waqt badal ya hata sakte hain.</div>';
+    if(!expSoon.length){
+      html += '<div class="empty">Koi aane wali expiry nahi. Naya ticket banate waqt “Booking expiry reminder” mein waqt likh dein.</div>';
+    } else {
+      expSoon.forEach(function(t){
+        var past = tkExpPast(t.expAt);
+        html += '<div class="tk-exp-row">'
+              + '<div style="min-width:0;">'
+              + '<b>'+esc(t.client || "")+'</b>'
+              + '<div style="font-size:12.5px; color:var(--muted);">'+esc(dmy(t.date || ""))+(t.detail ? " • "+esc(t.detail) : "")+'</div>'
+              + '</div>'
+              + '<div style="text-align:right; flex:0 0 auto;">'
+              + '<div class="tk-exp-when">'+esc(tkExpLabel(t.expAt))+'</div>'
+              + '<div style="font-size:11.5px; color:var(--muted);">'+esc(tkExpLeft(t.expAt))+'</div>'
+              + '</div>'
+              + '<div style="display:flex; gap:6px; flex:0 0 auto;">'
+              + '<button class="btn small tk-exp-edit" data-id="'+esc(t.id)+'" style="margin-top:0;">✏</button>'
+              + '<button class="btn small tk-exp-del" data-id="'+esc(t.id)+'" style="margin-top:0; background:var(--red-bg); color:var(--red);">✕</button>'
+              + '</div>'
+              + '</div>';
+      });
+    }
     html += '</div>';
   }
 
@@ -9701,6 +9772,122 @@ function tgPost(body, attempt){
     throw e;
   });
 }
+/* ---------- Booking expiry reminders (v3.22) ----------
+   Booking ke waqt hi "PNR 1 bje expire hota he" set kar dein. Waqt ticket par
+   (expAt) rehta he aur Worker ke reminder store mein alarm lag jata he. Worker ka
+   cron due waqt par Telegram bhejta he — app band ho to bhi chalta rehta he.
+   (v3.18 mein yeh UI hata diya gaya tha; ab quick buttons ke sath wapas he.) */
+function tkExpLocalInput(ms){
+  var d = new Date(ms);
+  var pad = function(n){ return String(n).padStart(2, "0"); };
+  return d.getFullYear() + "-" + pad(d.getMonth() + 1) + "-" + pad(d.getDate())
+    + "T" + pad(d.getHours()) + ":" + pad(d.getMinutes());
+}
+/* datetime-local ka value -> "YYYY-MM-DDTHH:MM" (device ka local waqt) */
+function tkExpRead(){
+  var v = String(((document.getElementById("tkExpAt") || {}).value) || "").trim();
+  if(!v) return "";
+  var m = v.match(/^(\d{4}-\d{2}-\d{2})T(\d{2}):(\d{2})/);
+  return m ? m[1] + "T" + m[2] + ":" + m[3] : "";
+}
+function tkExpPast(expAt){
+  if(!expAt) return false;
+  var ms = Date.parse(expAt + ":00");
+  return !isFinite(ms) || ms <= Date.now() + 30000;
+}
+function tkExpLabel(expAt){
+  var m = String(expAt || "").match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/);
+  if(!m) return "";
+  var hh = Number(m[4]), ap = hh >= 12 ? "pm" : "am", h12 = hh % 12;
+  if(h12 === 0) h12 = 12;
+  return dmy(m[1] + "-" + m[2] + "-" + m[3]) + " " + h12 + ":" + m[5] + " " + ap;
+}
+/* Kitna waqt baqi — "2 ghante 15 min baqi" */
+function tkExpLeft(expAt){
+  var ms = Date.parse(String(expAt || "") + ":00");
+  if(!isFinite(ms)) return "";
+  var diff = ms - Date.now();
+  if(diff <= 0) return "waqt guzar gaya";
+  var mins = Math.round(diff / 60000);
+  if(mins < 60) return mins + " min baqi";
+  var h = Math.floor(mins / 60), m2 = mins % 60;
+  if(h < 24) return h + " ghanta" + (m2 ? " " + m2 + " min" : "") + " baqi";
+  var d = Math.floor(h / 24), h2 = h % 24;
+  return d + " din" + (h2 ? " " + h2 + " ghanta" : "") + " baqi";
+}
+function tkExpRemindText(t, lead){
+  var bits = ["⏰ Booking expire", t.client || ""];
+  if(t.detail) bits.push(t.detail);
+  if(t.kind && t.kind !== "Ticket") bits.push(t.kind);
+  bits.push("expiry " + tkExpLabel(t.expAt));
+  if(lead > 0) bits.push(lead + " min baqi");
+  return bits.filter(Boolean).join(" · ");
+}
+/* Worker /remind par alarm lagayein. Fail ho to chup chaap — sale phir bhi save rahe. */
+function tkExpSchedule(t, leadCsv){
+  if(!t || !t.expAt || tkExpPast(t.expAt)) return Promise.resolve(null);
+  var body = { action:"add", text:tkExpRemindText(t, 0), at:t.expAt, src:"ticket",
+               lead: String(leadCsv || "60,30") };
+  return fetch(tgRelayUrl() + "/remind", {
+    method:"POST", headers:{ "Content-Type":"application/json" }, body:JSON.stringify(body),
+    signal: AbortSignal.timeout(30000)
+  }).then(function(r){
+    return r.json().catch(function(){ return null; }).then(function(j){
+      if(!r.ok || !j || !j.ok) throw new Error((j && (j.error || j.message)) || ("remind " + r.status));
+      return (j.reminder && j.reminder.id) || "";
+    });
+  }).catch(function(e){
+    try{ appToast("⚠ Booking reminder set nahi hua — " + String((e && e.message) || e), true); }catch(e2){}
+    return null;
+  });
+}
+function tkExpCancel(t){
+  if(!t || !t.expRemId) return Promise.resolve(false);
+  var rid = t.expRemId;
+  t.expRemId = "";
+  return fetch(tgRelayUrl() + "/remind", {
+    method:"POST", headers:{ "Content-Type":"application/json" },
+    body: JSON.stringify({ action:"remove", id:rid }),
+    signal: AbortSignal.timeout(20000)
+  }).then(function(){ return true; }).catch(function(){ return false; });
+}
+/* Row sheet se booking ka expire waqt badlein / hata dein. */
+function tkEditExpiry(t){
+  if(!t) return;
+  var cur = t.expAt || "";
+  var msg = "Booking expiry (dd/mm/yy HH:MM, 24-hour)\n\n"
+    + "Client: " + (t.client || "") + "\nAbhi: " + (cur ? tkExpLabel(cur) : "set nahi")
+    + "\n\nKhali chhod dein to reminder hata diya jayega.";
+  var ans = prompt(msg, cur ? tkExpLabel(cur) : "");
+  if(ans === null) return;
+  var txt = String(ans).trim();
+  if(!txt){
+    tkExpCancel(t);
+    t.expAt = ""; t.expTg = false;
+    save(); render();
+    appToast("⏰ Booking expiry hata di.");
+    return;
+  }
+  var m = txt.match(/^(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{2,4})\s+(\d{1,2}):(\d{2})\s*(am|pm)?$/i);
+  if(!m){ appToast("Samajh nahi aaya. Misaal: " + dmy(today()) + " 13:00", true); return; }
+  var dd = Number(m[1]), mm = Number(m[2]), yy = Number(m[3]);
+  if(yy < 100) yy += 2000;
+  var hh = Number(m[4]), mi = Number(m[5]), ap = (m[6] || "").toLowerCase();
+  if(ap === "pm" && hh < 12) hh += 12;
+  if(ap === "am" && hh === 12) hh = 0;
+  if(dd < 1 || dd > 31 || mm < 1 || mm > 12 || hh > 23 || mi > 59){ appToast("Date ya waqt ghalat he.", true); return; }
+  var expAt = yy + "-" + String(mm).padStart(2,"0") + "-" + String(dd).padStart(2,"0")
+    + "T" + String(hh).padStart(2,"0") + ":" + String(mi).padStart(2,"0");
+  if(tkExpPast(expAt)){ appToast("Ye waqt guzar chuka he — aage ka waqt dein.", true); return; }
+  tkExpCancel(t);
+  t.expAt = expAt;
+  save();
+  tkExpSchedule(t, "60,30").then(function(rid){
+    if(rid){ t.expRemId = rid; save(); }
+    render();
+    appToast("⏰ Expiry " + tkExpLabel(expAt) + " set — 1 ghanta aur 30 min pehle remind hoga.");
+  });
+}
 function tgSend(title, message, opts){
   opts = opts || {};
   if(!opts.force && !tgNotifyOn()) return Promise.resolve(false);
@@ -10766,6 +10953,41 @@ function bind(){
     tsa.oninput = function(){ tkSalePrevInput.call(this); tkChangeUpdate(); };
   }
   if(tkIsChange()){ tkPrevList(); tkChangeUpdate(); }
+  /* ---- Booking expiry reminder (v3.22) ---- */
+  var expAtEl = document.getElementById("tkExpAt");
+  var expLeadEl = document.getElementById("tkExpLead");
+  var expHintEl = document.getElementById("tkExpHint");
+  function tkExpFormHint(){
+    if(!expHintEl) return;
+    var v = tkExpRead();
+    if(!v){
+      expHintEl.innerHTML = "Khali chhod dein to koi reminder nahi lagega. Telegram par team ko message jayega — app band ho tab bhi.";
+      expHintEl.className = "hint";
+      return;
+    }
+    if(tkExpPast(v)){
+      expHintEl.innerHTML = "⚠ Ye waqt guzar chuka he — aage ka waqt chunein.";
+      expHintEl.className = "hint tk-exp-note";
+      return;
+    }
+    var lead = (expLeadEl && expLeadEl.value) || "60,30";
+    var leadTxt = lead.split(",").map(function(x){ return Number(x) ? Number(x) + " min" : "waqt par"; }).join(" · ");
+    expHintEl.innerHTML = "⏰ <b>" + esc(tkExpLabel(v)) + "</b> (" + esc(tkExpLeft(v)) + ") — remind: " + esc(leadTxt) + " pehle.";
+    expHintEl.className = "hint tk-exp-note";
+  }
+  if(expAtEl) expAtEl.oninput = tkExpFormHint;
+  if(expLeadEl) expLeadEl.onchange = tkExpFormHint;
+  app.querySelectorAll(".tk-exp-q").forEach(function(b){
+    b.onclick = function(){
+      var mins = Number(b.getAttribute("data-exp-min")) || 0;
+      if(!mins) return;
+      if(expAtEl) expAtEl.value = tkExpLocalInput(Date.now() + mins * 60000);
+      app.querySelectorAll(".tk-exp-q").forEach(function(x){ x.classList.remove("on"); });
+      b.classList.add("on");
+      tkExpFormHint();
+    };
+  });
+  tkExpFormHint();
   var at = document.getElementById("addTicket");
   if(at) at.onclick = function(){
     var client = document.getElementById("tkClient").value.trim();
@@ -10783,6 +11005,14 @@ function bind(){
     }
     var detailTxt = ((document.getElementById("tkDetail")||{}).value||"").trim();
     var persons = Math.min(99, Math.max(1, Math.floor(Number((document.getElementById("tkPersons")||{}).value) || 1)));
+    /* Booking expiry (optional) — khali ho to reminder nahi, guzra hua waqt ho to rok dein. */
+    var expAtVal = tkExpRead();
+    if(expAtVal && tkExpPast(expAtVal)){
+      appToast("Expiry ka waqt guzar chuka he — aage ka waqt chunein ya khali chhod dein.", true);
+      try{ document.getElementById("tkExpAt").focus(); }catch(e){}
+      return;
+    }
+    var expLeadVal = ((document.getElementById("tkExpLead")||{}).value || "60,30");
     /* Change: adj client ki sale price se minus hota he */
     var adj = 0, prevId = "", prevRef = "";
     if(kind === "Change"){
@@ -10809,11 +11039,24 @@ function bind(){
                      phone:((document.getElementById("tkPhone")||{}).value||"").trim(),
                      detail:detailTxt, cost:cost, sale:sale, persons:persons,
                      adj:adj, prevId:prevId, prevRef:prevRef,
+                     expAt:expAtVal || "", expRemId:"", expTg:!!expAtVal,
                      paid:(document.getElementById("tkPaid").value === "unpaid" ? false : true),
                      commission:Number(document.getElementById("tkComm").value) || 0 });
     ensureClientRecord(client, ((document.getElementById("tkNic")||{}).value||"").trim(), ((document.getElementById("tkPhone")||{}).value||"").trim());
     ticketFilter = String(tkDate).slice(0,7); // naya ticket foran nazar aaye
     save(); render();
+    /* Booking expiry reminder — save ke baad Worker par alarm lagayein. */
+    if(expAtVal){
+      var expTk = (S.tickets||[]).filter(function(x){ return x.client === client && x.date === tkDate && x.expAt === expAtVal; }).pop();
+      if(expTk){
+        tkExpSchedule(expTk, expLeadVal).then(function(rid){
+          if(rid){ expTk.expRemId = rid; save(); }
+        });
+      }
+      if(expAtEl) expAtEl.value = "";
+      app.querySelectorAll(".tk-exp-q").forEach(function(x){ x.classList.remove("on"); });
+      tkExpFormHint();
+    }
     try{
       var tkMsg = [client, kind, detailTxt, "Sale " + money(sale), (persons>1 ? persons + " persons" : "")];
       if(adj) tkMsg.push("Adj " + money(adj) + " · net " + money(sale - adj) + (prevRef ? " · prev " + prevRef : ""));
@@ -11271,6 +11514,8 @@ function bind(){
         : "";
       if(!confirm("Delete this ticket?\n\n" + (tk.client||"") + " — " + dmy(tk.date||"") + " — " + money(tk.sale||0) + extra + "\n\nAuto-backup ban jayega — ↩ Undo se wapas aa sakta hai.")) return;
       if(!takeAutoBackup("1 ticket deleted", true)){ alert("Backup nahi ban saka — delete rok diya gaya."); return; }
+      /* Booking expiry ka reminder bhi band karein — warna delete ke baad bhi alarm aata rahega. */
+      tkExpCancel(tk);
       S.tickets = S.tickets.filter(function(t){ return t.id !== id; });
       /* Orphan prevId na chhodein — warna hint mein hamesha "sale not found" aata rehta he */
       linked.forEach(function(x){ delete x.prevId; });
@@ -11289,6 +11534,27 @@ function bind(){
       tk.date = nd;
       ticketFilter = nd.slice(0,7);
       save(); render();
+    };
+  });
+  /* Booking expiries card — waqt badlein / reminder hata dein (v3.22) */
+  app.querySelectorAll(".tk-exp-edit").forEach(function(b){
+    b.onclick = function(){
+      var t = (S.tickets||[]).filter(function(x){ return x.id === b.getAttribute("data-id"); })[0];
+      if(t) tkEditExpiry(t);
+    };
+  });
+  app.querySelectorAll(".tk-exp-del").forEach(function(b){
+    b.onclick = function(){
+      var t = (S.tickets||[]).filter(function(x){ return x.id === b.getAttribute("data-id"); })[0];
+      if(!t) return;
+      appConfirm("“" + (t.client||"") + "” ka booking expiry reminder band kar dein?\n\nTicket aur uska hisaab jaisa he rahega — sirf reminder hatega.",
+        "Remove expiry reminder?", { okText:"Haan, hatao", cancelText:"Nahi", type:"warning" }).then(function(ok){
+        if(!ok) return;
+        tkExpCancel(t);
+        t.expAt = ""; t.expTg = false;
+        save(); render();
+        appToast("⏰ Expiry reminder hata diya.");
+      });
     };
   });
   // Invoice for a sale (🧾) — invoice form kholo, sale ke sath link
@@ -11441,6 +11707,8 @@ function bind(){
     if(!rm.length){ alert("No duplicate tickets found."); return; }
     if(!confirm(rm.length+" duplicate tickets found (same client + same cost/sale).\n\nThe one with the oldest date is kept and the rest are removed. Remove them?\n\nPehle automatic backup liya jayega.")) return;
     if(!takeAutoBackup(rm.length + " duplicate tickets removed")){ alert("Backup nahi ban saka — delete rok diya gaya."); return; }
+    /* Hatayi jane wali tickets ke expiry reminders band karein. */
+    (S.tickets||[]).forEach(function(t){ if(rm.indexOf(t.id) >= 0 && t.expAt) tkExpCancel(t); });
     S.tickets = S.tickets.filter(function(t){ return rm.indexOf(t.id) === -1; });
     /* Hatayi gayi ticket se koi change sale juri thi to link saaf kar dein */
     S.tickets.forEach(function(t){ if(t.prevId && rm.indexOf(t.prevId) >= 0) delete t.prevId; });
