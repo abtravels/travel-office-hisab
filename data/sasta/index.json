@@ -1,7 +1,7 @@
 {
   "v": 1,
   "provider": "sasta",
-  "observed_at": "2026-11-19T02:03:24.391Z",
+  "observed_at": "2026-11-19T10:27:01.728Z",
   "results": [
     {
       "origin": "KHI",
@@ -24,7 +24,7 @@
     {
       "origin": "KHI",
       "destination": "JED",
-      "amount": 67773,
+      "amount": 73642,
       "file": "data/sasta/khi-jed.json"
     },
     {
@@ -96,7 +96,7 @@
     {
       "origin": "KHI",
       "destination": "MED",
-      "amount": 69630,
+      "amount": 73613,
       "file": "data/sasta/khi-med.json"
     }
   ],
