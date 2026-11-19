@@ -1,5 +1,22 @@
 # Travel Office Hisab - AB Travels
 
+## Sale form mein advance / abhi mila hua (v3.24)
+- **Masla:** client poori raqam ek dafa nahi deta. Misal: sale 66,000 ki, client ne 26,000 diye. App sirf **Paid / Unpaid** janta tha — 26,000 likhne ki jagah nahi thi, is liye ya poora Paid dabana parta (aur 40,000 gum ho jate) ya poora Unpaid chhodna parta (aur 66,000 pending dikhta).
+- **Ab sale form mein do nayi cheezein:**
+  - **Advance received now (Rs)** — client ne abhi kitne diye.
+  - **Advance date** — default aaj.
+- **Field ke neeche live hint:** *"✓ Abhi mila: Rs 26,000 · baqi Rs 40,000 Pending Payments mein jayega."*
+- **Baqi khud Pending Payments mein** — 26,000 `payments[]` mein advance ke tor par darj hota he, is liye 40,000 seedha **Pending Payments**, dashboard ke bakaya aur client ke khatay mein aata he. Alag se kuch karna nahi parta.
+- **Status select ki jagah advance chalta he (jab advance likha ho):**
+  - advance kam → **Unpaid** + baqi amount (khud)
+  - advance poora → **Paid**, kuch baqi nahi
+  - advance khali → pehle ki tarah **Paid / Unpaid** select hi faisla karta he (purana behaviour bilkul waisa hi)
+- **Advance net se bara ho to net tak mehdood** — baqi kabhi negative nahi. Hint bata deta he: *"⚠ Advance net Rs 5,000 se bara he — Rs 5,000 count hoga."*
+- **Change sale par advance `net` (sale − adj) par lagta he**, gross par nahi — misal sale 33,000, adj 19,500 → net 13,500; advance 10,000 → baqi 3,500.
+- **Baad ki payments pehle ki tarah** row menu ya Pending tab ke **💵 Payment** se — dono jagah se ab bhi kaam karta he.
+- **Sale/register ka hisaab wahi** — cost, sale, profit par advance ka koi asar nahi; sirf "due / received" badalta he.
+- Sirf app ka change — Worker redeploy ki zaroorat nahi.
+
 ## Booking expiry reminder ab Price Tracker mein (v3.23)
 - **Kyun badla:** v3.22 mein yeh dabba **sale form ke andar** tha — sale aur reminder aapas mein uljhe hue the. Ab sale ka kaam sale, reminder ka kaam apni jagah.
 - **Poora system Price Tracker tab par:** naya card **⏰ Booking expiry reminders (n)**.
@@ -748,7 +765,7 @@ Current version: **2.31** (Email share opens Gmail compose with recipient prompt
 - Default waisa hi hai, is liye purane users ka behaviour nahi badla.
 
 ## Version
-Current version: **3.23** (v3.23 Booking expiry reminder sale se nikal kar Price Tracker tab par: alag `bookExps` store, quick presets + lead choice, live countdown, ✏ reschedule / ✕ remove, purana v3.22 data khud migrate, worker `/remind` se Telegram alarm — app band ho tab bhi)
+Current version: **3.24** (v3.24 Sale form mein **Advance received now** + advance date — baqi raqam khud Pending Payments / dashboard bakaya mein; advance net par clamp, poora advance = paid, khali advance = purana Paid/Unpaid select; change sale par advance net (sale − adj) par)
 
 ## Price bot: KV list limit fix (v2.41)
 - Cloudflare KV free plan mein **1,000 list requests/day** hoti hain. Bot ka cron har minute `KV.list` chalata tha (1,440/day), is liye ~15 ghante mein 90% usage email aa jati thi.

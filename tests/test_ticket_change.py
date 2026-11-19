@@ -61,6 +61,19 @@ class TicketChangeChecks(unittest.TestCase):
         self.assertIn('add("💵 Payment"', self.html)
         self.assertIn('class="btn small tk-pay"', self.html)
 
+    def test_advance_received_when_adding_a_sale(self):
+        # Sale 66,000 par client ne abhi 26,000 diye -> 40,000 khud Pending
+        # Payments mein aana chahiye (v3.24).
+        self.assertIn("function ticketAdvanceSplit(sale, adj, advRaw, markPaid){", self.html)
+        self.assertIn("var left = Math.max(0, net - adv);", self.html)
+        self.assertIn("else if(left > 0) paid = false;", self.html)
+        self.assertIn('id="tkAdv"', self.html)
+        self.assertIn('id="tkAdvDate"', self.html)
+        self.assertIn('id="tkAdvHint"', self.html)
+        self.assertIn("Pending Payments mein jayega", self.html)
+        # Advance abhi mila hua payments[] mein jata he, warna baqi count nahi hota.
+        self.assertIn('nt.payments = [{ amount:sp.adv, date:advDate, note:"advance" }];', self.html)
+
     def test_arithmetic_when_node_is_available(self):
         node = shutil.which("node")
         if not node:

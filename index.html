@@ -773,7 +773,7 @@
   <div class="brand">
     <img src="logo.png" alt="AB Travels" decoding="async" onerror="this.style.display='none'">
     <div style="min-width:0;">
-      <h1>AB Travels <span class="ver" id="verBadge">v3.23</span></h1>
+      <h1>AB Travels <span class="ver" id="verBadge">v3.24</span></h1>
       <div class="tag">Ahmed Brothers Hajj &amp; Umra Services (Pvt) Ltd</div>
     </div>
     <button id="brandFares" class="brand-fares" type="button" title="Price Lookup — flight fares" aria-label="Price Lookup — flight fares">✈</button>
@@ -843,7 +843,7 @@
 <script>
 /* ================= DATA ================= */
 var KEY = "travelOfficeHisab";
-var APP_VER = "3.23";
+var APP_VER = "3.24";
 var MONTH_NAMES = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
 /* Cloudflare Worker — Ignav flight prices proxy (free plan, no credit card) */
 var IGNAV_WORKER_CODE = "// AB Travels - Ignav flight prices proxy (Cloudflare Worker)\n// Ignav API key SERVER par rehti hai - app/browser mein kabhi nahi aati.\n//\n// SETUP (ek dafa, ~5 min, free):\n// 1) ignav.com/signup -> free account -> dashboard se API key\n// 2) cloudflare.com -> free account -> Workers & Pages -> Create Worker -> yeh code paste -> Deploy\n// 3) Worker -> Settings -> Variables and Secrets -> secret add karein:\n//      IGNAV_API_KEY = (aap ki Ignav key)\n// 4) Worker URL (https://xxx.workers.dev) app -> Settings -> Flight prices -> paste -> Save & test\n\nexport default {\n  async fetch(request, env) {\n    const cors = {\n      'Access-Control-Allow-Origin': env.ALLOWED_ORIGIN || '*',\n      'Access-Control-Allow-Methods': 'GET,POST,OPTIONS',\n      'Access-Control-Allow-Headers': 'Content-Type',\n      'Access-Control-Max-Age': '86400'\n    };\n    const url = new URL(request.url);\n    if (request.method === 'OPTIONS') return new Response(null, { status: 204, headers: cors });\n    if (!env.IGNAV_API_KEY) {\n      return new Response(JSON.stringify({ error: { code: 'no_key', message: 'IGNAV_API_KEY secret is not set in the Worker.' } }), { status: 500, headers: Object.assign({ 'Content-Type': 'application/json' }, cors) });\n    }\n    const base = 'https://ignav.com/api';\n    let target = '';\n    let init = { method: 'GET', headers: { 'X-Api-Key': env.IGNAV_API_KEY } };\n    if (url.pathname === '/health') {\n      target = base + '/health';\n    } else if (url.pathname === '/fares') {\n      if (request.method !== 'POST') return new Response(JSON.stringify({ error: { message: 'POST only' } }), { status: 405, headers: cors });\n      const body = await request.text();\n      target = base + '/fares/one-way';\n      init = { method: 'POST', headers: { 'X-Api-Key': env.IGNAV_API_KEY, 'Content-Type': 'application/json' }, body };\n    } else if (url.pathname === '/search') {\n      if (request.method !== 'POST') return new Response(JSON.stringify({ error: { message: 'POST only' } }), { status: 405, headers: cors });\n      const body = await request.text();\n      target = base + '/fares/search';\n      init = { method: 'POST', headers: { 'X-Api-Key': env.IGNAV_API_KEY, 'Content-Type': 'application/json' }, body };\n    } else if (url.pathname === '/round-trip') {\n      if (request.method !== 'POST') return new Response(JSON.stringify({ error: { message: 'POST only' } }), { status: 405, headers: cors });\n      const body = await request.text();\n      target = base + '/fares/round-trip';\n      init = { method: 'POST', headers: { 'X-Api-Key': env.IGNAV_API_KEY, 'Content-Type': 'application/json' }, body };\n    } else if (url.pathname === '/booking-links') {\n      if (request.method !== 'POST') return new Response(JSON.stringify({ error: { message: 'POST only' } }), { status: 405, headers: cors });\n      const body = await request.text();\n      target = base + '/fares/booking-links';\n      init = { method: 'POST', headers: { 'X-Api-Key': env.IGNAV_API_KEY, 'Content-Type': 'application/json' }, body };\n    } else {\n      return new Response(JSON.stringify({ error: { message: 'not found' } }), { status: 404, headers: Object.assign({ 'Content-Type': 'application/json' }, cors) });\n    }\n    try {\n      const r = await fetch(target, init);\n      const text = await r.text();\n      return new Response(text, { status: r.status, headers: Object.assign({ 'Content-Type': 'application/json' }, cors) });\n    } catch (e) {\n      return new Response(JSON.stringify({ error: { message: String((e && e.message) || e) } }), { status: 502, headers: Object.assign({ 'Content-Type': 'application/json' }, cors) });\n    }\n  }\n};\n";
@@ -4894,6 +4894,13 @@ function viewTickets(){
     + '<div><label>Status</label><select id="tkPaid"><option value="paid">'+esc(T("paidopt"))+'</option><option value="unpaid">'+esc(T("unpaidopt"))+'</option></select></div>'
     + '<div><label>Method</label><select id="tkPayMethod"><option>Cash</option><option>Online</option></select></div>'
     + '<div><label>'+esc(T("commph"))+'</label><input id="tkComm" type="number" min="0" inputmode="decimal" placeholder="0" value="0"></div></div>';
+  /* Advance / abhi mila hua — baqi khud Pending Payments mein (v3.24) */
+  html += '<div class="row" style="margin-top:8px;">'
+    + '<div><label>Advance received now (Rs)</label><input id="tkAdv" type="number" min="0" inputmode="decimal" placeholder="0">'
+    + '<div class="hint" style="margin-top:2px;">Client ne abhi kitne diye — baqi raqam khud Pending Payments mein chali jayegi.</div></div>'
+    + '<div><label>Advance date</label><input id="tkAdvDate" type="date" value="'+today()+'"></div>'
+    + '</div>';
+  html += '<div class="hint" id="tkAdvHint">Advance likhein to baqi amount yahan nazar aayega.</div>';
   html += '<button class="btn green" id="addTicket">'+esc(T("savetk"))+'</button>';
   html += '<div class="hint">'+esc(T("tkhint"))+'</div>';
   html += '</div>';
@@ -8966,6 +8973,25 @@ function viewClients(){
 
 /* ================= BAKAYA (RECEIVABLES) ================= */
 function ticketPaidAmt(t){ return (t && Array.isArray(t.payments) ? t.payments : []).reduce(function(n,p){ return n + (Number(p.amount)||0); }, 0); }
+/* ---------- Sale form: advance / received now (v3.24) ----------
+   Client poori raqam ek dafa nahi deta — aksar kuch advance deta he aur baqi
+   baad mein. Pehle sale form sirf "Paid / Unpaid" janta tha, is liye advance
+   likhne ki jagah nahi thi aur baqi amount Pending Payments mein nahi aata tha.
+     net   = sale - adj          (client ko dena he)
+     adv   = min(net, advance)   (abhi mila hua)
+     left  = net - adv           (Pending Payments mein jayega)
+     paid  = left > 0 ? false : (adv > 0 ? true : status select)
+   Misal: sale 66,000, advance 26,000 -> left 40,000 unpaid. */
+function ticketAdvanceSplit(sale, adj, advRaw, markPaid){
+  var net = Math.max(0, (Number(sale)||0) - (Number(adj)||0));
+  var adv = Math.min(net, Math.max(0, Number(advRaw)||0));
+  var left = Math.max(0, net - adv);
+  var paid;
+  if(adv <= 0) paid = !!markPaid;         // advance likha hi nahi — status jaisa he
+  else if(left > 0) paid = false;         // kuch baqi he — Pending mein dikhe
+  else paid = true;                       // poora aa gaya
+  return { net:net, adv:adv, left:left, paid:paid };
+}
 /* ---------- Change sale: previous ticket adj (v3.13) ----------
    Sale price client ki price rehti he; adj usi client price se minus hota he,
    is liye client ka payable kam ho jata he. Wohi adj supplier ke naye ticket
@@ -10967,7 +10993,24 @@ function bind(){
     var p = sale - cost;
     hint.innerHTML = 'Profit: <b>'+money(p)+'</b>'+(p<0?' <span style="color:var(--red);">(loss)</span>':'')
       + (adj ? ' <span style="color:var(--muted);">(adj profit par asar nahi karta)</span>' : '');
+    updAdvHint();
   }
+  /* Advance hint — sale/advance badalte hi baqi amount (v3.24) */
+  var kAdv = document.getElementById("tkAdv");
+  function updAdvHint(){
+    var el = document.getElementById("tkAdvHint");
+    if(!el) return;
+    var sale = Number(tsa && tsa.value) || 0;
+    var advRaw = Number(kAdv && kAdv.value) || 0;
+    var sp = ticketAdvanceSplit(sale, tkAdjNow(), advRaw, true);
+    if(!sale && !advRaw){ el.innerHTML = 'Advance likhein to baqi amount yahan nazar aayega.'; return; }
+    if(sp.adv > advRaw) el.innerHTML = '⚠ Advance net ' + money(sp.net) + ' se bara he — ' + money(sp.adv) + ' count hoga.';
+    else if(!sp.adv) el.innerHTML = 'Poora ' + money(sp.net) + ' abhi tak baqi — Pending Payments mein jayega.';
+    else if(sp.left > 0) el.innerHTML = '✓ Abhi mila: <b>' + money(sp.adv) + '</b> · baqi <b>' + money(sp.left) + '</b> Pending Payments mein jayega.';
+    else el.innerHTML = '✓ Poora ' + money(sp.net) + ' mil gaya — kuch baqi nahi.';
+  }
+  if(kAdv) kAdv.oninput = updAdvHint;
+  updAdvHint();
   if(tcs) tcs.oninput = function(){ updTickHint(); tkChangeUpdate(); };
   if(tsa) tsa.oninput = updTickHint;
   function tkPrevList(){
@@ -11029,6 +11072,7 @@ function bind(){
     else out.push('Purani sale link nahi — sirf is ticket ka amount count hoga.');
     if(rawAdj > sale && sale > 0) out.push('<span style="color:var(--red);">Adj sale price se bara nahi ho sakta — '+money(sale)+' tak mehdood kar diya jayega.</span>');
     kHint.innerHTML = out.join('<br>');
+    updAdvHint();
   }
   if(kKind) kKind.onchange = function(){ tkPrevList(); tkChangeUpdate(); updTickHint(); };
   if(kPrev) kPrev.onchange = tkPrevFill;
@@ -11082,14 +11126,32 @@ function bind(){
         if(pt) prevRef = (pt.detail || ("Sale " + dmy(pt.date))) + (pt.kind ? " ("+pt.kind+")" : "");
       }
     }
-    S.tickets.push({ id:uid(), date:tkDate, client:client, kind:kind,
+    S.tickets.push({
+                     id:uid(), date:tkDate, client:client, kind:kind,
                      payMethod:((document.getElementById("tkPayMethod")||{}).value||"Cash"),
                      nic:((document.getElementById("tkNic")||{}).value||"").trim(),
                      phone:((document.getElementById("tkPhone")||{}).value||"").trim(),
                      detail:detailTxt, cost:cost, sale:sale, persons:persons,
                      adj:adj, prevId:prevId, prevRef:prevRef,
-                     paid:(document.getElementById("tkPaid").value === "unpaid" ? false : true),
+                     paid:(function(){
+                       var advRaw = Number((document.getElementById("tkAdv")||{}).value) || 0;
+                       var wantPaid = (document.getElementById("tkPaid").value !== "unpaid");
+                       return ticketAdvanceSplit(sale, adj, advRaw, wantPaid).paid;
+                     })(),
                      commission:Number(document.getElementById("tkComm").value) || 0 });
+    /* Advance abhi mila hua -> payments[] mein, taake baqi amount khud
+       Pending Payments mein count ho (v3.24). */
+    (function(){
+      var advRaw = Number((document.getElementById("tkAdv")||{}).value) || 0;
+      if(!(advRaw > 0)) return;
+      var sp = ticketAdvanceSplit(sale, adj, advRaw, true);
+      if(!(sp.adv > 0)) return;
+      var advDateEl = document.getElementById("tkAdvDate");
+      var advDate = ((advDateEl && advDateEl.value) || "") || tkDate;
+      if(!/^\d{4}-\d{2}-\d{2}$/.test(advDate)) advDate = tkDate;
+      var nt = S.tickets[S.tickets.length - 1];
+      nt.payments = [{ amount:sp.adv, date:advDate, note:"advance" }];
+    })();
     ensureClientRecord(client, ((document.getElementById("tkNic")||{}).value||"").trim(), ((document.getElementById("tkPhone")||{}).value||"").trim());
     ticketFilter = String(tkDate).slice(0,7); // naya ticket foran nazar aaye
     save(); render();

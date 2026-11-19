@@ -10,7 +10,7 @@ const end = html.indexOf("function viewBakaya(){");
 assert.ok(start > 0 && end > start, "ticket helpers not found in index.html");
 const ctx = vm.createContext({});
 vm.runInContext(html.slice(start, end), ctx);
-const { ticketAdj, ticketNet, ticketCost, ticketProfit, ticketRemaining } = ctx;
+const { ticketAdj, ticketNet, ticketCost, ticketProfit, ticketRemaining, ticketAdvanceSplit } = ctx;
 
 const oldTicket = { sale: 32000, cost: 28000, paid: false, payments: [] };
 const change = { sale: 33000, adj: 19500, cost: 30000, paid: false, payments: [] };
@@ -57,4 +57,39 @@ assert.equal(ticketCost({ sale: 50000, cost: 40000 }), 40000);
 assert.equal(ticketProfit({ sale: 50000, cost: 40000 }), 10000);
 assert.equal(ticketRemaining({ sale: 50000, paid: false, payments: [{ amount: 20000 }] }), 30000);
 
-console.log("Ticket change checks passed (old 32,000 + new 13,500 = 45,500; profit 7,000)");
+/* ---------- Advance received while adding a sale (v3.24) ----------
+   Sale 66,000, client ne abhi 26,000 diye -> 40,000 baqi, jo khud Pending
+   Payments mein chala jata he. */
+const adv1 = ticketAdvanceSplit(66000, 0, 26000, true);
+assert.equal(adv1.net, 66000);
+assert.equal(adv1.adv, 26000, "advance as entered");
+assert.equal(adv1.left, 40000, "remaining = sale - advance");
+assert.equal(adv1.paid, false, "remaining must stay unpaid so it shows in Pending");
+
+// Kuch bhi nahi diya -> poora baqi, status select hi chalta he.
+const adv0 = ticketAdvanceSplit(66000, 0, 0, true);
+assert.equal(adv0.adv, 0);
+assert.equal(adv0.left, 66000);
+assert.equal(adv0.paid, true, "no advance -> the Paid/Unpaid select decides");
+assert.equal(ticketAdvanceSplit(66000, 0, 0, false).paid, false);
+
+// Poora amount diya -> paid, kuch baqi nahi.
+const advFull = ticketAdvanceSplit(66000, 0, 66000, false);
+assert.equal(advFull.left, 0);
+assert.equal(advFull.paid, true, "fully paid even if status said unpaid");
+
+// Advance net se bara ho to net tak clamp, negative baqi kabhi nahi.
+const advOver = ticketAdvanceSplit(66000, 0, 90000, true);
+assert.equal(advOver.adv, 66000);
+assert.equal(advOver.left, 0);
+
+// Change sale par advance net (sale - adj) par lagta he, gross par nahi.
+const advCh = ticketAdvanceSplit(33000, 19500, 10000, true);
+assert.equal(advCh.net, 13500);
+assert.equal(advCh.left, 3500, "remaining is measured on the net payable");
+assert.equal(advCh.paid, false);
+
+// Advance + payments mil kar wohi baqi dete hain jo register dikhata he.
+assert.equal(ticketRemaining({ sale: 66000, paid: false, payments: [{ amount: 26000 }] }), 40000);
+
+console.log("Ticket change checks passed (old 32,000 + new 13,500 = 45,500; profit 7,000; advance 26,000 of 66,000 -> 40,000 pending)");
