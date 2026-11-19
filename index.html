@@ -9548,6 +9548,7 @@ function ghStripSecretsForSave(s){
   if(c.settings){
     delete c.settings.githubPat;
     delete c.settings.ignavKey;
+    delete c.settings.workerKey;
     delete c.settings.ntfyTopic;    // ntfy system removed (v2.37) — Telegram ab
     delete c.settings.ntfyServer;
     delete c.settings.ntfyOn;
