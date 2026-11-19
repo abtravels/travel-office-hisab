@@ -74,7 +74,7 @@ function cors(env) {
   return {
     "Access-Control-Allow-Origin": (env && env.ALLOWED_ORIGIN) || "*",
     "Access-Control-Allow-Methods": "GET,POST,OPTIONS",
-    "Access-Control-Allow-Headers": "Content-Type",
+    "Access-Control-Allow-Headers": "Content-Type, X-App-Key",
     "Access-Control-Max-Age": "86400"
   };
 }
@@ -2182,7 +2182,8 @@ async function checkTrackers(env) {
 /* App ke liye chhota API: list / save / remove / pause / check. */
 async function trackApi(request, env, hdrs) {
   if (request.method !== "POST") return jres({ error: "POST only" }, 405, hdrs);
-  if (!notifyOriginOk(env, request)) return jres({ error: "origin" }, 403, hdrs);
+  const denied = browserDenied(env, request, hdrs);
+  if (denied) return denied;
   if (!env.KV) return jres({ error: "KV binding missing" }, 500, hdrs);
   let b = {};
   try { b = (await request.json()) || {}; } catch (e) { return jres({ error: "bad json" }, 400, hdrs); }
@@ -2305,7 +2306,8 @@ async function trackApi(request, env, hdrs) {
 /* ------------------------------------------------------------------ */
 async function remindApi(request, env, hdrs) {
   if (request.method !== "POST") return jres({ error: "POST only" }, 405, hdrs);
-  if (!notifyOriginOk(env, request)) return jres({ error: "origin" }, 403, hdrs);
+  const denied = browserDenied(env, request, hdrs);
+  if (denied) return denied;
   if (!env.KV && !env.WATCH_INDEX_DO) return jres({ error: "KV binding missing" }, 500, hdrs);
   let b = {};
   try { b = (await request.json()) || {}; } catch (e) { return jres({ error: "bad json" }, 400, hdrs); }
@@ -2367,6 +2369,7 @@ async function remindApi(request, env, hdrs) {
 
 async function proxyIgnav(request, env, path, hdrs) {
   if (request.method !== "POST") return jres({ error: { message: "POST only" } }, 405, hdrs);
+  if (!appKeyOk(env, request)) return jres({ error: { code: "app_key", message: "Worker App key missing/wrong — Settings → Telegram → App key." } }, 401, hdrs);
   const allow = String(env.ALLOWED_ORIGIN || "").trim().replace(/\/+$/, "");
   if (allow && allow !== "*") {
     const origin = String(request.headers.get("Origin") || "").replace(/\/+$/, "");
@@ -2968,7 +2971,8 @@ async function mezRunSearch(env, q, opts) {
 }
 async function meezabSearch(request, env, hdrs) {
   if (request.method !== "POST") return jres({ error: "POST only" }, 405, hdrs);
-  if (!notifyOriginOk(env, request)) return jres({ error: "origin" }, 403, hdrs);
+  const denied = browserDenied(env, request, hdrs);
+  if (denied) return denied;
   let q, fresh = false;
   try {
     const body = await request.json();
@@ -3005,10 +3009,26 @@ function notifyOriginOk(env, request) {
     /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/i.test(origin);
 }
 
+/* Origin header koi bhi bana sakta he — APP_KEY secret set ho to har browser
+   request par X-App-Key bhi zaroori he (app: Settings → Telegram → App key). */
+function appKeyOk(env, request) {
+  const want = String((env && env.APP_KEY) || "");
+  if (!want) return true;
+  return String(request.headers.get("X-App-Key") || "") === want;
+}
+function browserDenied(env, request, hdrs) {
+  if (!notifyOriginOk(env, request)) return jres({ ok: false, error: "origin" }, 403, hdrs);
+  if (!appKeyOk(env, request)) return jres({ ok: false, error: "app_key" }, 401, hdrs);
+  return null;
+}
+
 async function notifyRelay(request, env, hdrs) {
   if (request.method !== "POST") return jres({ ok: false, error: "POST only" }, 405, hdrs);
   const internal = !!env.NOTIFY_KEY && request.headers.get("X-Notify-Key") === env.NOTIFY_KEY;
-  if (!internal && !notifyOriginOk(env, request)) return jres({ ok: false, error: "origin" }, 403, hdrs);
+  if (!internal) {
+    const denied = browserDenied(env, request, hdrs);
+    if (denied) return denied;
+  }
   if (!env.TELEGRAM_BOT_TOKEN) return jres({ ok: false, error: "no_token" }, 500, hdrs);
 
   let body = {};
