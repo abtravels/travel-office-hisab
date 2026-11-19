@@ -2286,7 +2286,7 @@ async function trackApi(request, env, hdrs) {
   /* Telegram delivery test — tracker card ka "Telegram test" button (v3.20). */
   if (action === "test") {
     let r = null;
-    try { r = await notifyAll(env, "<b>AB Travels test</b> - tracker notifications theek chal rahi hain (" + pktNowText() + ")"); }
+    try { r = await notifyAll(env, "<b>AB Travels test</b> - tracker notifications theek chal rahi hain (" + pktNowText() + ")", null, { slow: true }); }
     catch (e) { r = { sent: [], failed: [], errors: [String((e && e.message) || e)] }; }
     const chats = (await allowedChats(env)).length;
     return jres({ ok: r.sent.length > 0 || !!(r.discord && r.discord.ok), sent: r.sent.length, failed: r.failed.length,
