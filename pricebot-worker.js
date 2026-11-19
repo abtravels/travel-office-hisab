@@ -60,10 +60,10 @@ const TRACK_DEFAULT_EVERY = 5;      // minutes
 const TRACK_MIN_EVERY = 5;          // 1-2 min = rozana budget barbaad
 const TRACK_TTL = 60 * 60 * 24 * 60;
 const TRACK_PER_TICK = 2;
-const TRACK_DROP_PCT = 0.01;          // 1% girawat ...
-const TRACK_DROP_MIN_RS = 300;        // ... ya Rs 300 — jo pehle ho
+/* Margin kam hota he — Rs 100 girawat par bhi rebook karte hain, is liye har
+   girawat (Rs 1 se zyada) par foran alert, koi cooldown nahi (v3.27). */
+const TRACK_DROP_MIN_RS = 1;
 const TRACK_RESEND_TRIES = 5;         // fail alert har minute dobara (5 dafa)
-const TRACK_ALERT_GAP = 20 * 60 * 1000;
 const TRACK_MISSING_ALERTS = 3;
 
 /* ------------------------------------------------------------------ */
@@ -2002,7 +2002,12 @@ function trackText(t, amount, prev, kind) {
   } else {
     const pct = prev ? ((prev - amount) / prev) * 100 : 0;
     s += "🔻 <b>Price gira</b> — " + esc(money(amount, cur)) +
-      (prev ? " <i>(pehle " + esc(money(prev, cur)) + ", −" + pct.toFixed(1) + "%)</i>" : "");
+      (prev ? "\n<b>" + esc(money(Math.round(prev - amount), cur)) + " sasta</b> <i>(pehle " + esc(money(prev, cur)) + ", −" + pct.toFixed(1) + "%)</i>" : "");
+    const hist = (Array.isArray(t.history) ? t.history : []).map(function (h) { return Number(h.amount) || 0; }).filter(Boolean);
+    const hi = hist.length ? Math.max.apply(null, hist) : 0;
+    if (hi && hi - amount > (prev ? prev - amount : 0)) {
+      s += "\nTracking shuru se: " + esc(money(Math.round(hi - amount), cur)) + " kam (sab se zyada " + esc(money(hi, cur)) + ")";
+    }
   }
   if (t.flight) s += "\nFlight: " + esc(t.flight);
   else if (t.last && t.last.flight) s += "\nFlight: " + esc(t.last.flight);
@@ -2056,18 +2061,14 @@ async function trackCheck(env, t, opts) {
   const target = Number(t.target) || 0;
   const hitTarget = target > 0 && amount <= target &&
     !(t.lastAlertAmount != null && Number(t.lastAlertAmount) <= target);
-  /* Har asli girawat par alert (1% ya Rs 300, jo bhi chhota ho) — pehle 3% se kam
-     girawat chup chaap guzar jati thi. Naya "sab se kam" price cooldown nahi dekhta. */
-  const dropMin = prev != null ? Math.min(prev * TRACK_DROP_PCT, TRACK_DROP_MIN_RS) : 0;
-  const dropped = prev != null && amount < prev && (prev - amount) >= dropMin;
-  const lastAlertAmt = Number(t.lastAlertAmount) || 0;
-  const newLow = dropped && lastAlertAmt > 0 && amount < lastAlertAmt;
-  const gapOk = newLow || now - (Number(t.lastAlertAt) || 0) > TRACK_ALERT_GAP;
+  /* Pichle check se koi bhi girawat = foran alert (Rs 100 bhi). Price wahi rahe
+     ya barhe to chup — is liye spam nahi hota. */
+  const dropped = prev != null && amount < prev && (prev - amount) >= TRACK_DROP_MIN_RS;
   const first = !(Number(t.lastAlertAt) > 0) && prev == null;
 
   let kind = "";
   if (hitTarget) kind = "target";
-  else if (dropped && gapOk) kind = "down";
+  else if (dropped) kind = "down";
   else if (first) kind = "baseline";
   else if (manual) kind = "manual";
 

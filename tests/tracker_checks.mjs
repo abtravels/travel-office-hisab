@@ -325,47 +325,38 @@ assert.equal(drop.last.amount, 40000);
 assert.ok(env.__sent.some(m => m.indexOf("Price gira") > 0), "drop alert: " + JSON.stringify(env.__sent));
 assert.equal(drop.history.length, 3, "history grows");
 
-/* Rs 100 ki halki si harkat (< 1% aur < Rs 300) chup rehti he */
+/* v3.27: Rs 100 girawat par bhi foran alert (margin kam he) */
 globalThis.__nextPrices = [39900];
 env.__sent.length = 0;
-tHit.lastAlertAt = 0;
+tHit.lastAlertAt = Date.now() - 60000;   /* 1 min pehle alert — koi cooldown nahi */
 await W.trackCheck(env, tHit, {});
-assert.equal(env.__sent.length, 0, "tiny move stays quiet: " + JSON.stringify(env.__sent));
+assert.ok(env.__sent.some(m => m.indexOf("Price gira") > 0 && m.indexOf("100 sasta") > 0), "Rs 100 drop alerts: " + JSON.stringify(env.__sent));
 
-/* v3.26: asli case — 28,173 -> 27,090 (3.8%) aur 27,090 -> 26,900 (0.7%, Rs 190) */
+/* price wahi rahe ya barhe — chup */
+globalThis.__nextPrices = [39900, 40500];
+env.__sent.length = 0;
+await W.trackCheck(env, tHit, {});
+await W.trackCheck(env, tHit, {});
+assert.equal(env.__sent.length, 0, "same / higher price stays quiet: " + JSON.stringify(env.__sent));
+
+/* asli case — 28,173 -> 27,090 -> 26,990 (Rs 100) -> 27,500 (upar) -> 27,400 (Rs 100 neeche) */
 {
   const live = { id: "live", origin: "ISB", destination: "KHI", departure: "2026-11-20", every: 5,
-    flight: "PA401", history: [], createdAt: Date.now(), last: { amount: 28173.36, currency: "PKR" },
-    lastAlertAt: Date.now() - 30 * 60000, lastAlertAmount: 28173.36 };
-  globalThis.__nextPrices = [27089.76];
+    flight: "PA401", history: [{ at: Date.now() - 600000, amount: 28173.36 }], createdAt: Date.now(),
+    last: { amount: 28173.36, currency: "PKR" }, lastAlertAt: Date.now() - 30 * 60000, lastAlertAmount: 28173.36 };
+  const steps = [[27089.76, true], [26989.76, true], [26989.76, false], [27500, false], [27400, true]];
+  for (const [price, want] of steps) {
+    globalThis.__nextPrices = [price];
+    env.__sent.length = 0;
+    await W.trackCheck(env, live, {});
+    const got = env.__sent.some(m => m.indexOf("Price gira") > 0);
+    assert.equal(got, want, "price " + price + " alert=" + want + ": " + JSON.stringify(env.__sent));
+  }
+  /* "tracking shuru se" line — sab se zyada price se kitna kam */
+  globalThis.__nextPrices = [26000];
   env.__sent.length = 0;
   await W.trackCheck(env, live, {});
-  assert.ok(env.__sent.some(m => m.indexOf("Price gira") > 0), "3.8% drop alerts");
-  /* 5 min baad phir gira — cooldown ke andar magar naya sab se kam price */
-  globalThis.__nextPrices = [26700];
-  env.__sent.length = 0;
-  await W.trackCheck(env, live, {});
-  assert.ok(env.__sent.some(m => m.indexOf("Price gira") > 0), "new low inside cooldown still alerts (Rs 390): " + JSON.stringify(env.__sent));
-  /* 1% ya Rs 300 se kam — chup */
-  globalThis.__nextPrices = [26600];
-  env.__sent.length = 0;
-  live.lastAlertAt = Date.now() - 60000;
-  await W.trackCheck(env, live, {});
-  assert.equal(env.__sent.length, 0, "Rs 100 move stays quiet");
-  /* price wapas barha phir pehle wale level tak gira — naya low nahi, cooldown lagta he */
-  globalThis.__nextPrices = [28000, 27000];
-  await W.trackCheck(env, live, {});
-  env.__sent.length = 0;
-  live.lastAlertAt = Date.now() - 60000;
-  await W.trackCheck(env, live, {});
-  assert.equal(env.__sent.length, 0, "bounce back (not a new low) waits for cooldown");
-  /* cooldown khatam -> wahi girawat alert deti he */
-  globalThis.__nextPrices = [27900, 26900];
-  await W.trackCheck(env, live, {});
-  env.__sent.length = 0;
-  live.lastAlertAt = Date.now() - 21 * 60000;
-  await W.trackCheck(env, live, {});
-  assert.ok(env.__sent.some(m => m.indexOf("Price gira") > 0), "after cooldown a 1000 drop alerts");
+  assert.ok(env.__sent.some(m => m.indexOf("Tracking shuru se") > 0 && m.indexOf("2,173") > 0), "from-start saving line: " + JSON.stringify(env.__sent));
   await W.trackDelete(env, live.id);
 }
 
@@ -521,6 +512,12 @@ assert.ok(html.indexOf('data-tab="tracker"') > 0, "nav entry (tracker alag tab)"
 assert.ok(html.indexOf("viewTracker()") > 0, "render wired");
 assert.ok(html.indexOf("Kab tak track karein?") > 0, "'kb tak' field in tracker form");
 assert.ok(html.indexOf("Track this flight price") > 0, "fare card track button label");
+/* v3.27: plane button (header + bottom bar) -> 3 options menu */
+assert.ok(/bf\.addEventListener\("click"[\s\S]{0,120}flyMenuOpen\(bf\)/.test(html), "header plane opens menu");
+assert.ok(/bn\.addEventListener\("click"[\s\S]{0,120}flyMenuOpen\(bn\)[\s\S]{0,20}\}, true\)/.test(html), "bottom plane opens menu (capture)");
+for (const k of ['data-fly="fares"', 'data-fly="tracker"', 'data-fly="alerts"']) assert.ok(html.indexOf(k) > 0, "menu option " + k);
+assert.ok(html.indexOf('id="bkExpCardEl"') > 0, "alerts option scroll target");
+assert.ok(wsrc.indexOf("TRACK_ALERT_GAP") < 0, "no drop-alert cooldown left");
 /* Reminders Price Tracker tab mein hain (v3.23) — sale form / row menu mein nahi. */
 assert.ok(html.indexOf('id="tkExpDate"') < 0, "sale form par expiry field nahi");
 assert.ok(html.indexOf("tkEditExpiry") < 0, "row menu se expiry item nahi");

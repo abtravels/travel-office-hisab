@@ -363,7 +363,9 @@ const brandBtn = html.match(/<button id="brandFares"[^>]*>([\s\S]{0,40}?)<\/butt
 assert.ok(brandBtn, "header plane button missing");
 assert.ok(/✈/.test(brandBtn[1]), "header plane button icon missing");
 assert.ok(/class="brand-fares"/.test(brandBtn[0]), "header plane button class missing");
-assert.ok(/aria-label="Price Lookup/.test(brandBtn[0]), "header plane button is not labelled for Price Lookup");
+/* v3.27: plane ab menu kholta he (Price Lookup / Flight Tracker / Booking alerts) */
+assert.ok(/aria-label="Flights menu"/.test(brandBtn[0]) && /aria-haspopup="menu"/.test(brandBtn[0]), "header plane button is not labelled as the flights menu");
+assert.ok(/data-fly="fares"[\s\S]{0,200}Price Lookup/.test(html), "flights menu has Price Lookup");
 
 const bnBlock = html.slice(html.indexOf('<nav id="bottomNav"'), html.indexOf("</nav>", html.indexOf('<nav id="bottomNav"')));
 const bnBtns = bnBlock.match(/<button[\s\S]*?<\/button>/g) || [];
@@ -372,7 +374,8 @@ assert.ok(/id="bnFares"[^>]*data-tab="fares"/.test(bnBlock), "bottom bar plane b
 assert.equal(bnBtns[3].indexOf("bnFares") >= 0, true, "bottom bar plane button is not in the middle");
 assert.ok(/<span class="bf-circle">✈<\/span>/.test(bnBlock), "bottom bar plane icon missing");
 assert.ok(/function switchTab\(k\)/.test(html), "switchTab missing");
-assert.ok(/getElementById\("brandFares"\)[\s\S]{0,300}switchTab\("fares"\)/.test(html), "header plane button does not call switchTab('fares')");
+assert.ok(/getElementById\("brandFares"\)[\s\S]{0,300}flyMenuOpen\(bf\)/.test(html), "header plane button does not open the flights menu");
+assert.ok(/function flyGo\(where\)[\s\S]{0,300}switchTab\("fares"\)/.test(html), "menu Price Lookup option does not call switchTab('fares')");
 
 /* Country search har mulk par chalti he, sirf UAE par nahi (v2.81) */
 const mapCount = (countryMapSrc.match(/"[^"]*"/g) || []).length;

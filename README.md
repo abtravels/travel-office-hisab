@@ -1,5 +1,15 @@
 # Travel Office Hisab - AB Travels
 
+## Plane menu + har girawat par alert (v3.27)
+- **Plane button (✈) ab 3 options kholta he** — header wala (laptop) aur neeche ki bar ke beech wala (mobile) dono:
+  - **🔍 Price Lookup** — fares search.
+  - **📈 Flight Tracker** — Price Tracker tab (tracked routes ki ginti badge mein).
+  - **⏰ Booking alerts** — Price Tracker tab khul kar seedha Booking expiry reminders card par scroll (aane wale reminders ki ginti badge mein).
+  - Bahar tap ya Esc se band.
+- **Rs 100 girawat par bhi alert.** Margin kam hota he, is liye pichle check se **koi bhi** girawat (Rs 1+) ho to foran Telegram — koi % hadd nahi, koi 20 min cooldown nahi. Price wahi rahe ya barhe to koi message nahi, is liye spam nahi.
+  - Alert mein ab saaf likha hota he **"Rs 100 sasta"** (pehle kitna tha), aur agar tracking shuru se zyada gira ho to "Tracking shuru se: Rs 2,173 kam".
+- **Worker + app dono badle.**
+
 ## Tracker alert drop na ho + chhoti girawat par bhi alert (v3.26)
 - **Masla (ISB→KHI 9P-679, 19 Nov):** price 28,173 → 27,090 gira, Worker ne alert banaya magar Telegram ki ek chat tak message **8 second timeout** mein atak gaya aur dobara koi koshish nahi hui. Test se bhi yahi mila: 2 mein se 1 chat timeout.
 - **Fix — delivery:** cron ke alerts ab Telegram ko 20s + 30s ka waqt dete hain (pehle 8s + 12s). Jo chat fail ho, us ke liye alert **`pendingAlert`** mein rakh liya jata he aur cron **har minute sirf usi chat ko dobara** bhejta he (5 dafa tak) — is mein Meezab search nahi lagti.
@@ -792,7 +802,7 @@ Current version: **2.31** (Email share opens Gmail compose with recipient prompt
 - Default waisa hi hai, is liye purane users ka behaviour nahi badla.
 
 ## Version
-Current version: **3.26** (v3.26 tracker alerts: Telegram timeout 20s+30s, fail chat ko har minute dobara (5 dafa, bina search), 1% ya Rs 300 girawat par alert, naya low cooldown mein bhi, card par aakhri alert ka haal; v3.25 v3.25 profit sirf tab jab cost aur sale dono > 0 (register row —, totals, month, dashboard, report, CSV); Price Tracker laptop par 2 column, interval/kab tak hamesha saamne + live checks khulasa, low price chip, ending-soon highlight; booking reminders: PNR field, client suggestions, alarm ✓/⚠ retry, urgent laal, form-based edit, duplicate block, purane saaf; v3.24 v3.24 Sale form mein **Advance received now** + advance date — baqi raqam khud Pending Payments / dashboard bakaya mein; advance net par clamp, poora advance = paid, khali advance = purana Paid/Unpaid select; change sale par advance net (sale − adj) par)
+Current version: **3.27** (v3.27 plane button menu: Price Lookup / Flight Tracker / Booking alerts; har girawat (Rs 1+) par foran alert, koi % ya cooldown nahi, alert mein "Rs X sasta"; v3.26 v3.26 tracker alerts: Telegram timeout 20s+30s, fail chat ko har minute dobara (5 dafa, bina search), 1% ya Rs 300 girawat par alert, naya low cooldown mein bhi, card par aakhri alert ka haal; v3.25 v3.25 profit sirf tab jab cost aur sale dono > 0 (register row —, totals, month, dashboard, report, CSV); Price Tracker laptop par 2 column, interval/kab tak hamesha saamne + live checks khulasa, low price chip, ending-soon highlight; booking reminders: PNR field, client suggestions, alarm ✓/⚠ retry, urgent laal, form-based edit, duplicate block, purane saaf; v3.24 v3.24 Sale form mein **Advance received now** + advance date — baqi raqam khud Pending Payments / dashboard bakaya mein; advance net par clamp, poora advance = paid, khali advance = purana Paid/Unpaid select; change sale par advance net (sale − adj) par)
 
 ## Price bot: KV list limit fix (v2.41)
 - Cloudflare KV free plan mein **1,000 list requests/day** hoti hain. Bot ka cron har minute `KV.list` chalata tha (1,440/day), is liye ~15 ghante mein 90% usage email aa jati thi.
