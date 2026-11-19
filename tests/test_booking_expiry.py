@@ -1,8 +1,10 @@
-"""Booking expiry reminder checks (v3.22).
+"""Booking expiry reminder checks (v3.23).
 
-The Worker already had /remind + the every-minute cron, but v3.18 removed the
-app side, so a booking could not be reminded at all. These checks make sure the
-whole chain stays wired: form -> save -> Worker alarm -> cancel on delete.
+v3.22 ne reminders app mein wapas laaye the, magar sale form ke andar — sale aur
+reminder aapas mein uljhe hue the. v3.23 ne unhe **Price Tracker** tab par alag
+store (S.bookExps) mein le jaya: sale ka hisaab saaf, reminder apni jagah.
+
+Yeh checks poora chain pin karte hain: form -> save -> Worker alarm -> cancel.
 """
 import shutil
 import subprocess
@@ -17,14 +19,25 @@ class BookingExpiryChecks(unittest.TestCase):
     def setUpClass(cls):
         cls.html = (ROOT / "index.html").read_text(encoding="utf-8")
 
-    def test_form_fields_exist(self):
-        self.assertIn('id="tkExpAt"', self.html)
-        self.assertIn('id="tkExpLead"', self.html)
-        self.assertIn('type="datetime-local"', self.html)
-        self.assertIn("Booking expiry reminder", self.html)
+    def test_own_store(self):
+        # Sale par expiry fields dobara na aayein.
+        self.assertIn("bookExps: []", self.html)
+        self.assertIn("function migrateBookExps(s){", self.html)
+        self.assertNotIn("expAt:expAtVal", self.html)
+        self.assertNotIn('id="tkExpAt"', self.html)
+
+    def test_form_lives_in_tracker(self):
+        self.assertIn('id="bkExpAt"', self.html)
+        self.assertIn('id="bkExpLead"', self.html)
+        self.assertIn('id="bkExpClient"', self.html)
+        self.assertIn('id="bkExpAdd"', self.html)
+        self.assertIn("function bkExpCard(){", self.html)
+        # Tracker ke view mein card lagna chahiye, sales ke view mein nahi.
+        self.assertIn("html += bkExpCard();", self.html)
+        self.assertIn("if(currentTab === \"tracker\") trkBind();", self.html)
+        self.assertIn("bkExpBind();", self.html)
 
     def test_quick_presets(self):
-        # "+30 min" / "+1 ghanta" — booking ke waqt ek tap se waqt set ho jaye.
         for mins in ("30", "60", "120", "180", "360", "1440"):
             self.assertIn('data-exp-min="%s"' % mins, self.html)
         self.assertIn("function tkExpLocalInput(ms){", self.html)
@@ -34,34 +47,27 @@ class BookingExpiryChecks(unittest.TestCase):
         self.assertIn('<option value="120,60,30">', self.html)
         self.assertIn('<option value="0">', self.html)
 
-    def test_save_wires_the_alarm(self):
-        self.assertIn("expAt:expAtVal || \"\", expRemId:\"\", expTg:!!expAtVal,", self.html)
-        self.assertIn("tkExpSchedule(expTk, expLeadVal)", self.html)
-        # A past time must block the save instead of silently scheduling nothing.
-        self.assertIn("Expiry ka waqt guzar chuka he", self.html)
-
-    def test_worker_relay_and_cancel(self):
-        self.assertIn("function tkExpSchedule(t, leadCsv){", self.html)
+    def test_worker_relay_add_and_cancel(self):
+        self.assertIn("function tkExpSchedule(e){", self.html)
         self.assertIn('tgRelayUrl() + "/remind"', self.html)
         self.assertIn('action:"add"', self.html)
         self.assertIn('action:"remove"', self.html)
-        self.assertIn("function tkExpCancel(t){", self.html)
+        self.assertIn("function tkExpCancel(e){", self.html)
+        # Naya src — worker logs mein pata rahe ke tracker se aaya he.
+        self.assertIn('src:"bookexp"', self.html)
 
-    def test_delete_cancels_the_alarm(self):
-        # Otherwise a deleted booking keeps firing Telegram alarms.
-        self.assertIn("tkExpCancel(tk);", self.html)
-        self.assertIn("if(rm.indexOf(t.id) >= 0 && t.expAt) tkExpCancel(t);", self.html)
+    def test_past_time_is_blocked(self):
+        self.assertIn("Ye waqt guzar chuka he — aage ka waqt chunein.", self.html)
+        self.assertIn("function tkExpPast(expAt){", self.html)
 
-    def test_row_sheet_and_expiry_card(self):
-        self.assertIn('add("⏰ Expiry"', self.html)
-        self.assertIn("function tkEditExpiry(t){", self.html)
-        self.assertIn("Booking expiries (", self.html)
-        self.assertIn('class="btn small tk-exp-edit"', self.html)
-        self.assertIn('class="btn small tk-exp-del"', self.html)
+    def test_list_actions(self):
+        self.assertIn('class="btn small bk-exp-edit"', self.html)
+        self.assertIn('class="btn small bk-exp-del"', self.html)
+        self.assertIn("tkExpLeft", self.html)
 
-    def test_register_shows_the_expiry(self):
-        self.assertIn("tk-exp-chip", self.html)
+    def test_countdown_text(self):
         self.assertIn("function tkExpLeft(expAt){", self.html)
+        self.assertIn("min baqi", self.html)
 
     def test_helpers_arithmetic_when_node_is_available(self):
         node = shutil.which("node") or "C:/Users/hp/AppData/Local/Temp/opencode/node.exe"

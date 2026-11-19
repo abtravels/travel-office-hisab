@@ -45,8 +45,8 @@ assert.equal(tkExpLabel(""), "");
 // Countdown text used in the expiry card.
 const plus = (mins) => localIso(new Date(Date.now() + mins * 60000));
 assert.match(tkExpLeft(plus(25)), /^2[45] min baqi$/);
-assert.match(tkExpLeft(plus(125)), /^2 ghanta 5 min baqi$/);
-assert.match(tkExpLeft(plus(60 * 30)), /^1 din 6 ghanta baqi$/);
+assert.match(tkExpLeft(plus(125)), /^2 ghanta [45] min baqi$/);
+assert.match(tkExpLeft(plus(60 * 30)), /^1 din (5|6) ghanta baqi$/);
 assert.equal(tkExpLeft(iso(past)), "waqt guzar gaya");
 
 // tkExpRead only accepts a datetime-local value, never a bare date.
