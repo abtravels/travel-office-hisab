@@ -20,7 +20,7 @@ function grab(src, start, end) {
 /* ---------- 1. app-side helpers ---------- */
 const appSrc =
   grab(html, "var TRK = {", "function viewTracker(){") +
-  "\nthis.__x = { TRK, trkMoney, trkNextText, trkAgoText, trkUntilText, trkLocalDateIso, trkSpark, trkApply };";
+  "\nthis.__x = { TRK, trkMoney, trkNextText, trkAgoText, trkUntilText, trkLocalDateIso, trkSpark, trkApply, trkPlanText, trackerRow, trkEveryLabel };";
 
 function appCtx() {
   const ctx = vm.createContext({
@@ -78,6 +78,20 @@ assert.ok(sparkUp.indexOf("var(--red)") > 0, "rising line = red");
   const far = new Date(); far.setDate(far.getDate() + 10); far.setHours(9, 30, 0, 0);
   const lbl = A.trkUntilText(far.getTime());
   assert.ok(lbl.indexOf("aaj") !== 0 && lbl.indexOf("kal") !== 0, "far = date form: " + lbl);
+}
+
+/* v3.25 plan hint + row */
+{
+  const p1 = A.trkPlanText(30, 0, "");
+  assert.ok(p1.includes("~48 checks") && p1.includes("band na karein"), p1);
+  const p2 = A.trkPlanText(5, Date.now() + 3 * 86400000, "2026-11-20");
+  assert.ok(p2.includes("~288 checks") && p2.includes("budget"), p2);
+  assert.ok(p2.includes("flight ki date ke baad"), "warns when until > departure: " + p2);
+  const row = A.trackerRow({ id: "x", origin: "KHI", destination: "UET", departure: "2026-12-14", every: 30,
+    until: Date.now() + 2 * 3600000, last: { amount: 20300, currency: "PKR" },
+    history: [{ amount: 22000 }, { amount: 19800 }, { amount: 20300 }] });
+  assert.ok(row.includes("trk-row expiring"), "ending within 6h is highlighted");
+  assert.ok(row.includes("low PKR 19,800"), "lowest seen price chip");
 }
 
 /* ---------- 2. worker-side tracker engine ---------- */
@@ -440,8 +454,9 @@ assert.ok(html.indexOf('data-tab="tracker"') > 0, "nav entry (tracker alag tab)"
 assert.ok(html.indexOf("viewTracker()") > 0, "render wired");
 assert.ok(html.indexOf("Kab tak track karein?") > 0, "'kb tak' field in tracker form");
 assert.ok(html.indexOf("Track this flight price") > 0, "fare card track button label");
-assert.ok(html.indexOf("tkExpSchedule") < 0, "sales register par koi expiry code nahi chhodna");
-assert.ok(html.indexOf("tkEditExpiry") < 0, "row menu se expiry item nahi chhodna");
-assert.ok(html.indexOf("expRemId") < 0, "ticket object par expiry field nahi chhodna");
+/* Reminders Price Tracker tab mein hain (v3.23) — sale form / row menu mein nahi. */
+assert.ok(html.indexOf('id="tkExpDate"') < 0, "sale form par expiry field nahi");
+assert.ok(html.indexOf("tkEditExpiry") < 0, "row menu se expiry item nahi");
+assert.ok(html.indexOf("html += bkExpCard();") > html.indexOf("function viewTracker(){"), "reminders tracker tab par");
 
 console.log("\nall tracker checks passed");

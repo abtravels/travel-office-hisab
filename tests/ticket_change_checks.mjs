@@ -55,6 +55,20 @@ assert.equal(ticketProfit({ sale: 33000, adj: 19500, cost: 30000, kind: "Ticket"
 assert.equal(ticketNet({ sale: 50000 }), 50000);
 assert.equal(ticketCost({ sale: 50000, cost: 40000 }), 40000);
 assert.equal(ticketProfit({ sale: 50000, cost: 40000 }), 10000);
+
+/* v3.25: cost ya sale 0 ho to profit gina hi nahi jata (na row, na totals) */
+assert.equal(ticketProfit({ sale: 25000, cost: 0 }), 0, "no cost -> no profit");
+assert.equal(ticketProfit({ sale: 0, cost: 18000 }), 0, "no sale -> no loss either");
+assert.equal(ticketProfit({ sale: 0, cost: 0 }), 0);
+assert.equal(ticketProfit({}), 0);
+assert.equal(ctx.ticketProfitReady({ sale: 25000, cost: 0 }), false);
+assert.equal(ctx.ticketProfitReady({ sale: 33000, cost: 30000 }), true);
+{
+  const list = [{ cost: 30000, sale: 33000 }, { cost: 0, sale: 25000 }, { cost: 18000, sale: 0 }];
+  const total = list.reduce((a, t) => a + ticketProfit(t), 0);
+  assert.equal(total, 3000, "register total sirf poori sales ka: " + total);
+}
+assert.equal(ticketProfit({ sale: 30000, cost: 32000 }), -2000, "real loss still shows");
 assert.equal(ticketRemaining({ sale: 50000, paid: false, payments: [{ amount: 20000 }] }), 30000);
 
 /* ---------- Advance received while adding a sale (v3.24) ----------

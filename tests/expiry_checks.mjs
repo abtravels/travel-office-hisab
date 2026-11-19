@@ -53,4 +53,31 @@ assert.equal(tkExpLeft(iso(past)), "waqt guzar gaya");
 assert.equal(tkExpRead(), "", "no field -> no reminder");
 assert.equal(tkExpRead.call(null), "");
 
-console.log("Booking expiry checks passed (past rejected, label 12-hour, countdown text)");
+// v3.25 card: urgent rows, alarm sync status, PNR field, purane saaf karne ka button.
+{
+  const S = { clients: [{ name: "Usama" }], tickets: [{ client: "Ali" }], bookExps: [
+    { id: "a", client: "Usama", ref: "KHI-DXB", expAt: plus(90), lead: "60,30", remId: "r1" },
+    { id: "b", client: "Ali", ref: "", expAt: plus(60 * 48), lead: "60,30", remId: "" },
+    { id: "c", client: "Old", ref: "", expAt: iso(past), lead: "60,30", remId: "" }
+  ] };
+  const cctx = vm.createContext({
+    Date, Math, String, Number, isFinite, JSON, Object, S,
+    dmy: (x) => x,
+    esc: (s) => String(s == null ? "" : s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;"),
+    document: { getElementById: () => null }
+  });
+  vm.runInContext(slice("function tkExpLocalInput(ms){", "function tkExpSchedule") +
+    slice("var bkEditId = null;", "/* Card ke saare events"), cctx);
+  const card = cctx.bkExpCard();
+  assert.ok(card.includes('id="bkExpRef"'), "PNR / route field");
+  assert.ok(card.includes('list="bkExpClients"') && card.includes('value="Usama"') && card.includes('value="Ali"'), "client suggestions");
+  assert.equal((card.match(/tk-exp-row urgent/g) || []).length, 1, "only the <3h one is urgent");
+  assert.ok(card.includes("bk-exp-retry"), "unsynced reminder offers retry");
+  assert.ok(card.includes("✓ 60 min · 30 min pehle"), "synced reminder shows lead chip");
+  assert.ok(card.includes('id="bkExpClear"') && card.includes("1 purane"), "past reminders can be cleared");
+  assert.ok(!card.includes(">Old<"), "past reminder not listed");
+}
+assert.ok(!/bk-exp-edit[\s\S]{0,1200}prompt\(/.test(html.slice(html.indexOf("function bkExpBind"), html.indexOf("function tgSend"))),
+  "reminder edit uses the form, not prompt()");
+
+console.log("Booking expiry checks passed (past rejected, label 12-hour, countdown text, card v3.25)");

@@ -64,6 +64,12 @@
   body.wide-register main{max-width:1680px;}
   body.wide-register .sheet-grid th, body.wide-register .sheet-grid td{padding-left:3px; padding-right:3px;}
 }
+/* Price Tracker: laptop par do column — left naya tracker, right list + reminders */
+@media (min-width: 1200px){
+  body.tab-tracker main{max-width:1440px;}
+  .trk-grid{display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:14px; align-items:start;}
+  .trk-grid > div > .card:last-child{margin-bottom:0;}
+}
   .card{background:var(--card); border-radius:var(--radius); padding:14px; margin-bottom:14px; box-shadow:0 1px 3px rgba(0,0,0,.06);}
   .card h2{margin:0 0 10px; font-size:16px;}
   /* ---------- Collapsible cards ---------- */
@@ -299,6 +305,11 @@
     padding:7px 10px; cursor:pointer; border-bottom:2px solid transparent; margin-bottom:-1px; border-radius:6px 6px 0 0;}
   .trk-tab:hover{color:var(--ink);}
   .trk-tab.on{color:var(--blue); border-bottom-color:var(--blue);}
+  .trk-sec{margin-top:12px; padding-top:10px; border-top:1px solid var(--line-soft); font-size:12.5px; font-weight:800;}
+  .trk-row.expiring{border-color:var(--gold);}
+  .tk-exp-row.urgent{border-color:var(--red); background:var(--red-bg);}
+  .tk-exp-row.urgent .tk-exp-when{color:var(--red);}
+  .tk-exp-row.past{opacity:.6;}
   .trk-banner{margin-top:8px; padding:9px 10px; border-radius:10px; background:var(--red-bg); color:var(--red); font-size:12.5px; font-weight:600;}
   .trk-muted{color:var(--muted);}
   .mez-card-act{display:flex; justify-content:flex-end; margin-top:8px;}
@@ -773,7 +784,7 @@
   <div class="brand">
     <img src="logo.png" alt="AB Travels" decoding="async" onerror="this.style.display='none'">
     <div style="min-width:0;">
-      <h1>AB Travels <span class="ver" id="verBadge">v3.24</span></h1>
+      <h1>AB Travels <span class="ver" id="verBadge">v3.25</span></h1>
       <div class="tag">Ahmed Brothers Hajj &amp; Umra Services (Pvt) Ltd</div>
     </div>
     <button id="brandFares" class="brand-fares" type="button" title="Price Lookup — flight fares" aria-label="Price Lookup — flight fares">✈</button>
@@ -843,7 +854,7 @@
 <script>
 /* ================= DATA ================= */
 var KEY = "travelOfficeHisab";
-var APP_VER = "3.24";
+var APP_VER = "3.25";
 var MONTH_NAMES = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
 /* Cloudflare Worker — Ignav flight prices proxy (free plan, no credit card) */
 var IGNAV_WORKER_CODE = "// AB Travels - Ignav flight prices proxy (Cloudflare Worker)\n// Ignav API key SERVER par rehti hai - app/browser mein kabhi nahi aati.\n//\n// SETUP (ek dafa, ~5 min, free):\n// 1) ignav.com/signup -> free account -> dashboard se API key\n// 2) cloudflare.com -> free account -> Workers & Pages -> Create Worker -> yeh code paste -> Deploy\n// 3) Worker -> Settings -> Variables and Secrets -> secret add karein:\n//      IGNAV_API_KEY = (aap ki Ignav key)\n// 4) Worker URL (https://xxx.workers.dev) app -> Settings -> Flight prices -> paste -> Save & test\n\nexport default {\n  async fetch(request, env) {\n    const cors = {\n      'Access-Control-Allow-Origin': env.ALLOWED_ORIGIN || '*',\n      'Access-Control-Allow-Methods': 'GET,POST,OPTIONS',\n      'Access-Control-Allow-Headers': 'Content-Type',\n      'Access-Control-Max-Age': '86400'\n    };\n    const url = new URL(request.url);\n    if (request.method === 'OPTIONS') return new Response(null, { status: 204, headers: cors });\n    if (!env.IGNAV_API_KEY) {\n      return new Response(JSON.stringify({ error: { code: 'no_key', message: 'IGNAV_API_KEY secret is not set in the Worker.' } }), { status: 500, headers: Object.assign({ 'Content-Type': 'application/json' }, cors) });\n    }\n    const base = 'https://ignav.com/api';\n    let target = '';\n    let init = { method: 'GET', headers: { 'X-Api-Key': env.IGNAV_API_KEY } };\n    if (url.pathname === '/health') {\n      target = base + '/health';\n    } else if (url.pathname === '/fares') {\n      if (request.method !== 'POST') return new Response(JSON.stringify({ error: { message: 'POST only' } }), { status: 405, headers: cors });\n      const body = await request.text();\n      target = base + '/fares/one-way';\n      init = { method: 'POST', headers: { 'X-Api-Key': env.IGNAV_API_KEY, 'Content-Type': 'application/json' }, body };\n    } else if (url.pathname === '/search') {\n      if (request.method !== 'POST') return new Response(JSON.stringify({ error: { message: 'POST only' } }), { status: 405, headers: cors });\n      const body = await request.text();\n      target = base + '/fares/search';\n      init = { method: 'POST', headers: { 'X-Api-Key': env.IGNAV_API_KEY, 'Content-Type': 'application/json' }, body };\n    } else if (url.pathname === '/round-trip') {\n      if (request.method !== 'POST') return new Response(JSON.stringify({ error: { message: 'POST only' } }), { status: 405, headers: cors });\n      const body = await request.text();\n      target = base + '/fares/round-trip';\n      init = { method: 'POST', headers: { 'X-Api-Key': env.IGNAV_API_KEY, 'Content-Type': 'application/json' }, body };\n    } else if (url.pathname === '/booking-links') {\n      if (request.method !== 'POST') return new Response(JSON.stringify({ error: { message: 'POST only' } }), { status: 405, headers: cors });\n      const body = await request.text();\n      target = base + '/fares/booking-links';\n      init = { method: 'POST', headers: { 'X-Api-Key': env.IGNAV_API_KEY, 'Content-Type': 'application/json' }, body };\n    } else {\n      return new Response(JSON.stringify({ error: { message: 'not found' } }), { status: 404, headers: Object.assign({ 'Content-Type': 'application/json' }, cors) });\n    }\n    try {\n      const r = await fetch(target, init);\n      const text = await r.text();\n      return new Response(text, { status: r.status, headers: Object.assign({ 'Content-Type': 'application/json' }, cors) });\n    } catch (e) {\n      return new Response(JSON.stringify({ error: { message: String((e && e.message) || e) } }), { status: 502, headers: Object.assign({ 'Content-Type': 'application/json' }, cors) });\n    }\n  }\n};\n";
@@ -2633,11 +2644,11 @@ function reportRows(mid){
   mids.forEach(function(m){
     var mm = S.months[m] || {};
     var inc = (mm.incomes||[]), exp = (mm.expenses||[]);
-    var tc = 0, ts = 0, tcGross = 0, tsGross = 0;
+    var tc = 0, ts = 0, tpSum = 0;
     var tk = (S.tickets||[]).filter(function(t){ return String(t.date||"").slice(0,7) === m; });
     tk.forEach(function(t){
       tc += ticketCost(t); ts += ticketNet(t);
-      tcGross += Number(t.cost)||0; tsGross += Number(t.sale)||0;
+      tpSum += ticketProfit(t);
     });
     var dw = [];
     (S.draws||[]).forEach(function(d){ if(String(d.date||"").slice(0,7) === m) dw.push({ date:d.date, label:(d.partner==="ABBU" ? "Father (Owner) withdrawal" : ("Withdrawal (" + (d.partner==="A" ? S.settings.partnerA : S.settings.partnerB) + ")")), note:d.note||"", amount:d.amount }); });
@@ -2671,10 +2682,10 @@ function reportRows(mid){
           note += (note ? " · " : "") + "Adj " + ticketAdj(t) + " off sale " + (Number(t.sale)||0)
             + " and off cost " + (Number(t.cost)||0) + (t.prevRef ? " · previous " + t.prevRef : "");
         }
-        line([dmy(t.date), (t.kind || "Ticket"), t.client||"", t.detail||"", ticketCost(t), ticketNet(t), ticketProfit(t),
+        line([dmy(t.date), (t.kind || "Ticket"), t.client||"", t.detail||"", ticketCost(t), ticketNet(t), (ticketProfitReady(t) ? ticketProfit(t) : ""),
           (t.paid === false ? "Unpaid" : "Paid"), note]);
       });
-      line(["","TOTAL","","", tc, ts, tsGross - tcGross, adjSum ? "Adj " + adjSum + " deducted from both cost and sale" : "", ""]);
+      line(["","TOTAL","","", tc, ts, tpSum, adjSum ? "Adj " + adjSum + " deducted from both cost and sale" : "", ""]);
       blank();
     }
 
@@ -4298,6 +4309,7 @@ function render(){
   }
   /* Sales register aur Price Lookup laptop par poori width lein - baqi tabs ki width waisi hi rahe */
   document.body.classList.toggle("wide-register", currentTab === "tickets" || currentTab === "fares");
+  document.body.classList.toggle("tab-tracker", currentTab === "tracker");
   syncBottomNav();
   if(currentTab==="dash") app.innerHTML = viewDash();
   else if(currentTab==="month") app.innerHTML = viewMonth();
@@ -4745,7 +4757,7 @@ function viewTickets(){
   if(ticketFilter !== "all" && months.indexOf(ticketFilter) === -1) ticketFilter = "all";
   var list = (ticketFilter === "all") ? all : all.filter(function(t){ return String(t.date||"").slice(0,7) === ticketFilter; });
 
-  var tc = 0, ts = 0, personsTotal = 0, tcGross = 0, tsGross = 0, adjTotal = 0;
+  var tc = 0, ts = 0, personsTotal = 0, tcGross = 0, tsGross = 0, adjTotal = 0, tp = 0, tpSkip = 0;
   list.forEach(function(t){
     tc += ticketCost(t);
     ts += ticketNet(t);
@@ -4753,9 +4765,9 @@ function viewTickets(){
     tsGross += Number(t.sale) || 0;
     adjTotal += ticketAdj(t);
     personsTotal += Math.max(1, Number(t.persons) || 1);
+    /* gross margin — adj se azad; cost/sale 0 wali sale profit mein nahi */
+    if(ticketProfitReady(t)) tp += ticketProfit(t); else tpSkip++;
   });
-  var tp = tsGross - tcGross;   /* gross margin — adj se azad, register ke numbers se match */
-  var pendingCnt = list.filter(function(t){ return !(Number(t.cost) > 0) && (ticketNet(t) > 0); }).length;
 
   var html = "";
 
@@ -4785,7 +4797,7 @@ function viewTickets(){
     html += '<div class="empty">'+(ticketFilter==="all" ? esc(T("emptytk")) : "No sales in "+esc(monthLabel(ticketFilter))+". Choose &lsquo;All months&rsquo; in the filter.")+'</div>';
     html += '</div>';
   } else {
-    if(pendingCnt) html += '<div class="sheet-note">⚠ '+pendingCnt+' sale(s) mein cost price khali hai — row ke ✏ se daal dein.</div>';
+    if(tpSkip) html += '<div class="sheet-note">⚠ '+tpSkip+' sale(s) mein cost ya sale price khali he — in ka profit total mein nahi gina gaya. Row ke ⋯ → Edit se daal dein.</div>';
     html += '<div class="sheet-scroll"><table id="tkList" class="sheet-grid" data-sheet="1">';
     html += '<thead><tr>'
           + '<th class="rn">#</th><th class="c-date">Date</th><th>Client</th><th class="num">Cost</th>'
@@ -4817,7 +4829,7 @@ function viewTickets(){
       var st = (t.paid === false)
         ? '<span class="pill pending">'+esc(T("unpaid"))+'</span>'+(tkRem > 0 ? '<span class="cell-sub">due '+money(tkRem)+'</span>' : '')
         : '<span class="pill done">'+esc(T("paidp"))+'</span>'+(tkPaid > 0 ? '<span class="cell-sub">'+money(tkPaid)+'</span>' : '');
-      html += '<tr data-search="'+esc(hay)+'" data-id="'+esc(t.id)+'" data-cost="'+(Number(t.cost)||0)+'" data-sale="'+(Number(t.sale)||0)+'" data-adj="'+adjAmt+'" data-eff="'+effCost+'">'
+      html += '<tr data-search="'+esc(hay)+'" data-id="'+esc(t.id)+'" data-cost="'+(Number(t.cost)||0)+'" data-sale="'+(Number(t.sale)||0)+'" data-adj="'+adjAmt+'" data-eff="'+effCost+'" data-profit="'+p+'">'
             + '<td class="rn">'+(i+1)+'</td>'
             + '<td class="c-date" title="'+esc(dmy(t.date))+'">'+(dayOnly ? esc(dayNum(t.date)) : esc(dmy(t.date)))+'</td>'
             + '<td class="c-client" title="'+esc(t.client)+'"><span class="cell-clip"><b>'+esc(t.client)+'</b>'
@@ -4825,8 +4837,10 @@ function viewTickets(){
             + (t.commission ? ' <span class="cell-sub">'+esc(T("wscomm"))+money(t.commission)+'</span>' : '')
             + '</span></td>'
             + '<td class="num">'+(costPending ? '<span class="cell-warn" title="Cost price missing">—</span>' : money(t.cost)+(adjAmt ? '<span class="cell-sub" title="Supplier cost minus adj">adj −'+esc(money(adjAmt))+' = '+esc(money(effCost))+'</span>' : ''))+'</td>'
-            + '<td class="num c-sale">'+money(t.sale)+(adjAmt ? '<span class="cell-sub" title="Sale minus adj">adj −'+esc(money(adjAmt))+' = '+esc(money(netSale))+'</span>' : '')+'</td>'
-            + '<td class="num '+(p>=0?"pos":"neg")+'">'+money(p)+'</td>'
+            + '<td class="num c-sale">'+(!(Number(t.sale) > 0) ? '<span class="cell-warn" title="Sale price missing">—</span>' : money(t.sale))+(adjAmt ? '<span class="cell-sub" title="Sale minus adj">adj −'+esc(money(adjAmt))+' = '+esc(money(netSale))+'</span>' : '')+'</td>'
+            + (ticketProfitReady(t)
+                ? '<td class="num '+(p>=0?"pos":"neg")+'">'+money(p)+'</td>'
+                : '<td class="num"><span class="cell-muted" title="Cost ya sale 0 he — profit mein nahi gina gaya">—</span></td>')
             + '<td class="c-status">'+st+'</td>'
             + '<td>'+(t.kind ? '<span class="cell-chip">'+esc(t.kind)+'</span>' : '<span class="cell-muted">—</span>')+'</td>'
             + '<td class="c-detail" title="'+esc((t.detail||"")+(adjAmt && t.prevRef ? " · previous " + t.prevRef : ""))+'">'+(t.detail ? '<span class="cell-clip">'+esc(t.detail)+'</span>' : '<span class="cell-muted">—</span>')
@@ -4889,7 +4903,7 @@ function viewTickets(){
         + '<div class="hint" style="margin-top:4px; font-size:11.5px;">Cost price mein supplier ka poora price likhein — adj app khud sale aur cost dono se minus karti he, is liye profit sahi rehta he.</div>'
         + '</div>';
   html += '<div class="row" style="margin-top:8px;"><div style="flex:0 0 170px;"><label>Number of persons</label><input id="tkPersons" type="number" min="1" max="99" step="1" inputmode="numeric" value="1"></div><div style="flex:1; display:flex; align-items:flex-end;"><div class="hint" style="margin:0 0 10px;">Only a count — cost and sale stay as entered and do not multiply.</div></div></div>';
-  html += '<div class="hint" id="tkProfitHint">'+esc(T("profit"))+'<b>Rs 0</b></div>';
+  html += '<div class="hint" id="tkProfitHint">'+esc(T("profit"))+'<b>—</b> <span style="color:var(--muted);">(cost aur sale dono likhein)</span></div>';
   html += '<div class="row" style="margin-top:8px;"><label style="width:100%;">'+esc(T("payment"))+'</label>'
     + '<div><label>Status</label><select id="tkPaid"><option value="paid">'+esc(T("paidopt"))+'</option><option value="unpaid">'+esc(T("unpaidopt"))+'</option></select></div>'
     + '<div><label>Method</label><select id="tkPayMethod"><option>Cash</option><option>Online</option></select></div>'
@@ -6320,6 +6334,23 @@ function trkUntilText(ms){
   if(diff === 1) return "kal " + tstr;
   return dmy(trkLocalDateIso(d.getTime())) + " " + tstr;
 }
+/* Form ke neeche live khulasa — "har 30 min · 3 din tak · ~144 checks". */
+function trkPlanText(every, until, departure){
+  var ev = Math.max(TRK.min || 5, Number(every) || TRK.def || 5);
+  var perDay = Math.round(1440 / ev);
+  var s = "Har " + trkEveryLabel(ev) + " = din mein ~" + perDay + " checks";
+  var end = Number(until) || 0;
+  var depMs = departure ? Date.parse(departure + "T23:59:59") : 0;
+  if(end > Date.now()){
+    var total = Math.max(1, Math.round((end - Date.now()) / (ev * 60000)));
+    s += " · " + trkUntilText(end) + " tak (~" + total + " checks)";
+  } else {
+    s += " · jab tak aap band na karein";
+  }
+  if(depMs && end && end > depMs) s += " · ⚠ flight ki date ke baad tracking ka faida nahi";
+  if(perDay > 150) s += " · zyada checks Meezab ka budget jaldi khatam karte hain";
+  return s + ".";
+}
 function trkLocalDateIso(ms){
   var d = new Date(Number(ms));
   return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
@@ -6353,7 +6384,9 @@ function trackerRow(t){
   var target = Number(t.target) || 0;
   var hit = target > 0 && amt > 0 && amt <= target;
   var pct = (first && delta) ? " (" + (delta < 0 ? "▼ " : "▲ ") + Math.abs((delta / first) * 100).toFixed(1) + "%)" : "";
-  var html = '<div class="trk-row' + (t.paused ? ' paused' : '') + '" data-trk="' + esc(t.id) + '">';
+  var low = hist.length > 1 ? Math.min.apply(null, hist.map(function(x){ return Number(x.amount); })) : 0;
+  var endingSoon = t.until && Number(t.until) > Date.now() && Number(t.until) - Date.now() < 6 * 3600000;
+  var html = '<div class="trk-row' + (t.paused ? ' paused' : '') + (endingSoon ? ' expiring' : '') + '" data-trk="' + esc(t.id) + '">';
   html += '<div class="trk-head">'
         + '<div class="trk-route"><b>' + esc(t.origin) + '</b><span class="trk-arrow">→</span><b>' + esc(t.destination) + '</b>'
         + '<span class="trk-date">' + esc(dmy(t.departure)) + (t.return_date ? ' ↔ ' + esc(dmy(t.return_date)) : '') + '</span>'
@@ -6366,7 +6399,8 @@ function trackerRow(t){
   if(last && last.flight && !t.flight) html += '<span class="trk-chip">✈ ' + esc(String(last.flight).toUpperCase()) + '</span>';
   html += '<span class="trk-chip">⏱ har ' + esc(trkEveryLabel(Math.max(TRK.min, Number(t.every) || TRK.def))) + '</span>';
   if(target > 0) html += '<span class="trk-chip' + (hit ? ' ok' : '') + '">🎯 ' + esc(trkMoney(target, cur)) + (hit ? ' ✓' : '') + '</span>';
-  if(t.until && Number(t.until) > Date.now()) html += '<span class="trk-chip">🏁 ' + esc(trkUntilText(t.until)) + ' tak</span>';
+  if(t.until && Number(t.until) > Date.now()) html += '<span class="trk-chip' + (endingSoon ? ' warn' : '') + '">🏁 ' + esc(trkUntilText(t.until)) + ' tak</span>';
+  if(low > 0 && low < amt) html += '<span class="trk-chip" title="Ab tak ki sab se kam price">⬇ low ' + esc(trkMoney(low, cur)) + '</span>';
   if(t.paused) html += '<span class="trk-chip warn">⏸ paused</span>';
   html += '</div>';
   html += '<div class="trk-foot">'
@@ -6376,7 +6410,7 @@ function trackerRow(t){
   if(t.lastError) html += '<div class="trk-err">⚠ ' + esc(String(t.lastError).slice(0, 140)) + '</div>';
   html += '<div class="trk-actions">'
         + '<button class="btn small" data-trk-check="' + esc(t.id) + '">↻ Check now</button>'
-        + '<button class="btn small" data-trk-edit="' + esc(t.id) + '">✏ Edit</button>'
+        + '<button class="btn small" data-trk-edit="' + esc(t.id) + '">Edit</button>'
         + '<button class="btn small" data-trk-pause="' + esc(t.id) + '">' + (t.paused ? '▶ Resume' : '⏸ Pause') + '</button>'
         + '<button class="btn small btn-del" data-trk-del="' + esc(t.id) + '">✕ Stop</button>'
         + '</div>';
@@ -6387,9 +6421,9 @@ var trkEditId = null;
 function viewTracker(){
   var f = TRK.form || {};
   var list = TRK.list || [];
-  var html = '<div class="card"><h2>📈 Price Tracker</h2>'
-    + '<div class="hint" style="margin-top:0;">Route aur date save karein — price har <b>'
-    + esc(String(TRK.def)) + ' minute</b> Meezab se check hota rahega aur price girne (ya target poora hone) par '
+  var html = '<div class="trk-grid"><div><div class="card"><h2>📈 Price Tracker</h2>'
+    + '<div class="hint" style="margin-top:0;">Route aur date save karein — aap ke chune hue waqfe par price '
+    + 'Meezab se check hota rahega aur price girne (ya target poora hone) par '
     + 'Telegram par alert aayega. App band ho tab bhi tracking chalti rehti he.</div>';
 
   if(TRK.err){
@@ -6423,15 +6457,11 @@ function viewTracker(){
           }).join("")
         + '</select></div>'
         + '</div>';
-  /* Form ke do tabs — "Kab tak" (end time) aur interval alag, taake main form chhota rahe. */
+  /* Interval + "kab tak" hamesha saamne — har tracker par ye do sawal poochhe jate hain. */
   var up = String(f.until_preset || "");
-  var tab1 = !!up;
-  html += '<div class="trk-tabs">'
-        + '<button type="button" class="trk-tab' + (tab1 ? '' : ' on') + '" data-trk-tab="0">Route &amp; price</button>'
-        + '<button type="button" class="trk-tab' + (tab1 ? ' on' : '') + '" data-trk-tab="1">Kab tak &amp; interval</button>'
-        + '</div>';
-  html += '<div id="trkPane1"' + (tab1 ? '' : ' style="display:none;"') + '>';
-  html += '<div class="row" style="margin-top:8px; align-items:flex-start;">'
+  html += '<div class="trk-sec">⏱ Kitni dafa check karein aur kab tak?</div>';
+  html += '<div id="trkPane1">';
+  html += '<div class="row" style="margin-top:6px; align-items:flex-start;">'
         + '<div><label>Check every</label><select id="trkEvery">'
         + [[5,"5 min"],[10,"10 min"],[15,"15 min"],[30,"30 min"],[60,"1 ghanta"],[120,"2 ghante"],[180,"3 ghante"],[300,"5 ghante"]].map(function(o){
             return '<option value="' + o[0] + '"' + (Number(f.every || TRK.def) === o[0] ? " selected" : "") + '>' + o[1] + '</option>';
@@ -6447,7 +6477,7 @@ function viewTracker(){
         + '</select><div class="hint" style="margin-top:2px;">Waqt guzarne ke baad tracking khud band ho jati he (60 din se zyada nahi ho sakta).</div></div>'
         + '<div id="trkUntilDateWrap"' + (up === "date" ? '' : ' style="display:none;"') + '><label>Is din tak</label><input type="date" id="trkUntilDate" value="' + esc(f.until_date || "") + '"><div class="hint" style="margin-top:2px;">Us din raat 11 baje tak.</div></div>'
         + '</div>';
-  html += '<div class="hint">5 minute se kam interval Meezab ka rozana budget jaldi khatam karta he — is liye 5 minute minimum he. Har check ek poori search he (25–60 second leti he). 2 ya 5 ghante ka interval budget bachata he.</div>';
+  html += '<div class="hint" id="trkPlanHint"></div>';
   html += '</div>';
   html += '<div class="trk-actions" style="margin-top:10px;">'
         + '<button class="btn green" id="trkSave" style="flex:2;">' + (trkEditId ? "Save changes" : "Start tracking") + '</button>'
@@ -6463,16 +6493,18 @@ function viewTracker(){
   if(TRK.busy && !list.length){
     html += '<div class="empty">Load ho raha he…</div>';
   } else if(!list.length){
-    html += '<div class="empty">Abhi koi route track nahi ho raha. Upar se ek route add karein — maslan KHI → UET.</div>';
+    html += '<div class="empty">Abhi koi route track nahi ho raha. Form se ek route add karein — ya Price Lookup mein kisi fare par “Track this flight price” dabayein.</div>';
   } else {
     list.forEach(function(t){ html += trackerRow(t); });
     html += '<div class="hint">Alerts Telegram par aate hain (Settings → Telegram on hona chahiye). Price 3%+ gire ya target poora ho to foran; warna 20 minute mein ek se zyada alert nahi.</div>';
   }
   html += '</div>';
+  html += '</div><div>';
 
   /* Booking expiry reminders — Price Tracker ka hissa (v3.23) */
   html += bkExpCard();
 
+  html += '</div></div>';
   return html;
 }
 function trkFormRead(){
@@ -6522,33 +6554,30 @@ function trkBind(){
   };
   if(trip){ var ret0 = document.getElementById("trkRet"); if(ret0) ret0.disabled = trip.value !== "round"; }
 
-  /* Form tabs — sirf show/hide, koi re-render nahi (taake typed values zinda rahein). */
-  var trkTabs = root.querySelectorAll("[data-trk-tab]");
-  if(trkTabs.length){
-    trkTabs.forEach(function(btn){
-      btn.onclick = function(){
-        var want = btn.getAttribute("data-trk-tab") === "1";
-        var pane = document.getElementById("trkPane1");
-        if(pane) pane.style.display = want ? "" : "none";
-        trkTabs.forEach(function(x){ x.classList.toggle("on", x === btn); });
-      };
-    });
-  }
-
-  /* "Kab tak" — 'Kisi din tak' par date input nazer aaye. */
+  /* "Kab tak" — 'Kisi din tak' par date input nazar aaye + live plan hint. */
   var untilSel = document.getElementById("trkUntil");
-  if(untilSel){
-    var untilWrap = document.getElementById("trkUntilDateWrap");
-    var untilDate = document.getElementById("trkUntilDate");
-    if(untilDate) untilDate.min = today();
-    var syncUntil = function(){
-      if(!untilWrap) return;
-      if(untilSel.value === "date") untilWrap.style.display = "";
-      else untilWrap.style.display = "none";
-    };
-    untilSel.onchange = syncUntil;
-    syncUntil();
+  var everySel = document.getElementById("trkEvery");
+  var planEl = document.getElementById("trkPlanHint");
+  var untilWrap = document.getElementById("trkUntilDateWrap");
+  var untilDate = document.getElementById("trkUntilDate");
+  if(untilDate){
+    untilDate.min = today();
+    var depEl = document.getElementById("trkDate");
+    if(depEl && depEl.value) untilDate.max = depEl.value;
   }
+  var syncUntil = function(){
+    if(untilWrap) untilWrap.style.display = (untilSel && untilSel.value === "date") ? "" : "none";
+    if(planEl){
+      var f0 = trkFormRead();
+      planEl.innerHTML = esc(trkPlanText(f0.every, f0.until, f0.departure));
+    }
+  };
+  if(untilSel) untilSel.onchange = syncUntil;
+  if(everySel) everySel.onchange = syncUntil;
+  if(untilDate) untilDate.oninput = syncUntil;
+  var depIn = document.getElementById("trkDate");
+  if(depIn) depIn.addEventListener("change", function(){ if(untilDate) untilDate.max = depIn.value || ""; syncUntil(); });
+  syncUntil();
 
   var sv = document.getElementById("trkSave");
   if(sv) sv.onclick = function(){
@@ -6655,14 +6684,17 @@ function trkBind(){
     b.onclick = function(){
       var id = b.getAttribute("data-trk-del");
       var t = (TRK.list||[]).filter(function(x){ return x.id === id; })[0] || {};
-      if(!confirm("Tracker band karein?\n\n" + (t.origin||"") + " → " + (t.destination||"") + " · " + dmy(t.departure||"") + "\n\nIs route ki tracking ruk jayegi.")) return;
-      trkFetch({ action:"remove", id:id })
-        .then(function(){
-          TRK.list = (TRK.list||[]).filter(function(x){ return x.id !== id; });
-          render();
-          appToast("🗑 Tracker band.");
-        })
-        .catch(function(e){ appToast("⚠ " + String((e && e.message) || e), true); });
+      appConfirm((t.origin||"") + " → " + (t.destination||"") + " · " + dmy(t.departure||"") + "\n\nIs route ki tracking ruk jayegi.",
+        "Tracker band karein?", { okText:"Haan, band karo", cancelText:"Nahi", type:"warning" }).then(function(ok){
+        if(!ok) return;
+        trkFetch({ action:"remove", id:id })
+          .then(function(){
+            TRK.list = (TRK.list||[]).filter(function(x){ return x.id !== id; });
+            render();
+            appToast("🗑 Tracker band.");
+          })
+          .catch(function(e){ appToast("⚠ " + String((e && e.message) || e), true); });
+      });
     };
   });
   root.querySelectorAll("[data-trk-edit]").forEach(function(b){
@@ -9032,8 +9064,14 @@ function ticketCost(t){
   var cost = Math.max(0, Number(t && t.cost) || 0);
   return Math.max(0, cost - ticketAdj(t));
 }
+/* Cost ya sale 0 ho (abhi likha nahi gaya) to profit adhoora he — na row mein,
+   na totals, month, dashboard ya report mein gina jata he. */
+function ticketProfitReady(t){
+  return (Number(t && t.cost) || 0) > 0 && (Number(t && t.sale) || 0) > 0;
+}
 function ticketProfit(t){
-  return (Number(t && t.sale) || 0) - (Number(t && t.cost) || 0);
+  if(!ticketProfitReady(t)) return 0;
+  return (Number(t.sale) || 0) - (Number(t.cost) || 0);
 }
 function ticketRemaining(t){
   if(t && t.paid === true) return 0;
@@ -9854,16 +9892,26 @@ function migrateBookExps(s){
   });
 }
 /* Price Tracker tab ka card — form + aane wali expiries */
+var bkEditId = null;
 function bkExpCard(){
   var list = (S.bookExps || []).slice().sort(function(a,b){ return String(a.expAt).localeCompare(String(b.expAt)); });
-  var soon = list.filter(function(e){ return Date.parse(e.expAt + ":00") > Date.now(); });
+  var now = Date.now();
+  var soon = list.filter(function(e){ return Date.parse(e.expAt + ":00") > now; });
+  var past = list.length - soon.length;
   var html = '<div class="card"><h2>⏰ Booking expiry reminders <span class="trk-count">' + soon.length + '</span></h2>';
   html += '<div class="hint" style="margin-top:0;">Booking banate waqt PNR ka <b>expire waqt</b> likh dein — due waqt se pehle <b>Telegram</b> par reminder aayega. App band ho tab bhi reminder aata he (Cloudflare Worker ka cron bhejta he).</div>';
 
+  var names = {};
+  (S.clients || []).forEach(function(c){ if(c && c.name) names[c.name] = 1; });
+  (S.tickets || []).slice(-200).forEach(function(t){ if(t && t.client) names[t.client] = 1; });
+  html += '<datalist id="bkExpClients">' + Object.keys(names).slice(0, 300).map(function(n){ return '<option value="' + esc(n) + '">'; }).join("") + '</datalist>';
+
   html += '<div class="trk-form">';
   html += '<div class="row" style="align-items:flex-start;">'
-        + '<div><label>Client / booking *</label><input id="bkExpClient" placeholder="Usama — KHI-DXB EK601" autocomplete="off"><div class="hint" style="margin-top:2px;">Naam ke sath route/PNR bhi likh dein — reminder message wahi dikhata he.</div></div>'
-        + '</div>';
+        + '<div><label>Client *</label><input id="bkExpClient" list="bkExpClients" placeholder="Usama" autocomplete="off"></div>'
+        + '<div><label>PNR / route</label><input id="bkExpRef" placeholder="KHI-DXB EK601 · PNR AB12CD" autocomplete="off"></div>'
+        + '</div>'
+        + '<div class="hint" style="margin-top:2px;">Reminder message mein naam aur PNR/route dono aate hain.</div>';
   html += '<div class="tk-exp-quick">'
         + '<button type="button" class="btn small tk-exp-q" data-exp-min="30">+30 min</button>'
         + '<button type="button" class="btn small tk-exp-q" data-exp-min="60">+1 ghanta</button>'
@@ -9883,28 +9931,40 @@ function bkExpCard(){
         + '</select></div>'
         + '</div>';
   html += '<div class="hint" id="bkExpHint" style="margin-top:6px;">Waqt likhein — kitna baqi he yahan nazar aayega.</div>';
-  html += '<div class="trk-actions" style="margin-top:10px;"><button class="btn green" id="bkExpAdd" style="flex:2;">⏰ Reminder lagayen</button></div>';
+  html += '<div class="trk-actions" style="margin-top:10px;"><button class="btn green" id="bkExpAdd" style="flex:2;">⏰ Reminder lagayen</button>'
+        + '<button class="btn" id="bkExpCancel" style="display:none;">Cancel</button></div>';
   html += '</div>';
 
   if(!soon.length){
     html += '<div class="empty">Abhi koi booking expire hone wali nahi. Upar se ek reminder lagayen — maslan “Usama KHI-DXB, aaj 3 baje expire”.</div>';
   } else {
     soon.forEach(function(e){
-      html += '<div class="tk-exp-row">'
+      var left = Date.parse(e.expAt + ":00") - now;
+      var urgent = left < 3 * 3600000;
+      var sync = e.remId
+        ? '<span class="trk-chip ok" title="Worker par alarm laga hua he">✓ ' + esc(tkExpLeadLabel(e.lead)) + ' pehle</span>'
+        : '<button class="btn small bk-exp-retry" data-id="' + esc(e.id) + '" title="Worker par alarm nahi laga — dobara try karein" style="margin-top:0; padding:2px 8px; font-size:11px; background:var(--gold-bg); color:var(--gold);">⚠ Alarm nahi laga — dobara</button>';
+      html += '<div class="tk-exp-row' + (urgent ? ' urgent' : '') + '">'
             + '<div style="min-width:0;">'
             + '<b>' + esc(e.client || "") + '</b>'
             + (e.ref ? '<div style="font-size:12.5px; color:var(--muted);">' + esc(e.ref) + '</div>' : '')
+            + '<div style="margin-top:4px;">' + sync + '</div>'
             + '</div>'
             + '<div style="text-align:right; flex:0 0 auto;">'
             + '<div class="tk-exp-when">' + esc(tkExpLabel(e.expAt)) + '</div>'
-            + '<div style="font-size:11.5px; color:var(--muted);">' + esc(tkExpLeft(e.expAt)) + '</div>'
+            + '<div style="font-size:11.5px; color:' + (urgent ? 'var(--red); font-weight:800' : 'var(--muted)') + ';">' + esc(tkExpLeft(e.expAt)) + '</div>'
             + '</div>'
             + '<div style="display:flex; gap:6px; flex:0 0 auto;">'
-            + '<button class="btn small bk-exp-edit" data-id="' + esc(e.id) + '" style="margin-top:0;">✏</button>'
+            + '<button class="btn small bk-exp-edit" data-id="' + esc(e.id) + '" title="Edit" style="margin-top:0;">Edit</button>'
             + '<button class="btn small bk-exp-del" data-id="' + esc(e.id) + '" style="margin-top:0; background:var(--red-bg); color:var(--red);">✕</button>'
             + '</div>'
             + '</div>';
     });
+  }
+  if(past){
+    html += '<div class="hint" style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">'
+          + past + ' purane (guzar chuke) reminder save hain.'
+          + '<button class="btn small" id="bkExpClear" style="margin-top:0; padding:3px 9px; font-size:11.5px;">🧹 Saaf karein</button></div>';
   }
   html += '</div>';
   return html;
@@ -9954,42 +10014,69 @@ function bkExpBind(){
     var expAt = tkExpRead();
     if(!expAt){ appToast("Expire hone ka waqt chunein.", true); try{ document.getElementById("bkExpAt").focus(); }catch(e){} return; }
     if(tkExpPast(expAt)){ appToast("Ye waqt guzar chuka he — aage ka waqt chunein.", true); return; }
-    var e = { id: uid(), client: client, ref: "", note: "", expAt: expAt,
-              lead: (leadEl && leadEl.value) || "60,30", remId: "", at: Date.now() };
-    S.bookExps.push(e);
-    save(); render();
+    var ref = String(((document.getElementById("bkExpRef") || {}).value) || "").trim();
+    var lead = (leadEl && leadEl.value) || "60,30";
+    if(!Array.isArray(S.bookExps)) S.bookExps = [];
+    var e = bkEditId ? S.bookExps.filter(function(x){ return x.id === bkEditId; })[0] : null;
+    var dupe = S.bookExps.filter(function(x){ return x !== e && x.client === client && x.expAt === expAt; })[0];
+    if(dupe){ appToast("Ye reminder pehle se laga hua he.", true); return; }
+    if(e){
+      tkExpCancel(e);   // purana alarm hata kar naya lagta he
+      e.client = client; e.ref = ref; e.expAt = expAt; e.lead = lead; e.remId = "";
+    } else {
+      e = { id: uid(), client: client, ref: ref, note: "", expAt: expAt, lead: lead, remId: "", at: Date.now() };
+      S.bookExps.push(e);
+    }
+    bkEditId = null;
+    save();
+    addBtn.disabled = true; addBtn.textContent = "Lag raha he…";
     tkExpSchedule(e).then(function(rid){
       if(rid){ e.remId = rid; save(); }
+      if(currentTab === "tracker") render();
+      appToast(rid ? ("⏰ Reminder set — " + tkExpLabel(expAt) + " (" + tkExpLeft(expAt) + ")")
+                   : "Reminder save hua magar Worker par alarm nahi laga — list mein ⚠ dabakar dobara try karein.", !rid);
     });
-    appToast("⏰ Reminder set — " + tkExpLabel(expAt) + " (" + tkExpLeft(expAt) + ")");
   };
 
+  root.querySelectorAll(".bk-exp-retry").forEach(function(b){
+    b.onclick = function(){
+      var e = (S.bookExps || []).filter(function(x){ return x.id === b.getAttribute("data-id"); })[0];
+      if(!e) return;
+      b.disabled = true; b.textContent = "try ho raha…";
+      tkExpSchedule(e).then(function(rid){
+        if(rid){ e.remId = rid; save(); }
+        render();
+        appToast(rid ? "✓ Alarm lag gaya." : "⚠ Ab bhi nahi laga — internet / Worker check karein.", !rid);
+      });
+    };
+  });
+
+  var clr = document.getElementById("bkExpClear");
+  if(clr) clr.onclick = function(){
+    var n0 = (S.bookExps || []).length;
+    S.bookExps = (S.bookExps || []).filter(function(x){ return !tkExpPast(x.expAt); });
+    save(); render();
+    appToast("🧹 " + (n0 - S.bookExps.length) + " purane reminder hata diye.");
+  };
+
+  /* Edit — prompt() ki jagah wohi form bhar jata he (mobile par behtar). */
   root.querySelectorAll(".bk-exp-edit").forEach(function(b){
     b.onclick = function(){
       var e = (S.bookExps || []).filter(function(x){ return x.id === b.getAttribute("data-id"); })[0];
       if(!e) return;
-      var ans = prompt("Expire kab? (dd/mm/yy HH:MM, 24-hour)\n\n" + (e.client || "") + "\nAbhi: " + tkExpLabel(e.expAt), tkExpLabel(e.expAt));
-      if(ans === null) return;
-      var m = String(ans).trim().match(/^(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{2,4})\s+(\d{1,2}):(\d{2})\s*(am|pm)?$/i);
-      if(!m){ appToast("Samajh nahi aaya. Misaal: " + dmy(today()) + " 13:00", true); return; }
-      var dd = Number(m[1]), mm = Number(m[2]), yy = Number(m[3]);
-      if(yy < 100) yy += 2000;
-      var hh = Number(m[4]), mi = Number(m[5]), ap = (m[6] || "").toLowerCase();
-      if(ap === "pm" && hh < 12) hh += 12;
-      if(ap === "am" && hh === 12) hh = 0;
-      if(dd < 1 || dd > 31 || mm < 1 || mm > 12 || hh > 23 || mi > 59){ appToast("Date ya waqt ghalat he.", true); return; }
-      var next = yy + "-" + String(mm).padStart(2,"0") + "-" + String(dd).padStart(2,"0")
-        + "T" + String(hh).padStart(2,"0") + ":" + String(mi).padStart(2,"0");
-      if(tkExpPast(next)){ appToast("Ye waqt guzar chuka he — aage ka waqt dein.", true); return; }
-      tkExpCancel(e);
-      e.expAt = next;
-      save(); render();
-      tkExpSchedule(e).then(function(rid){
-        if(rid){ e.remId = rid; save(); }
-        appToast("⏰ Expiry " + tkExpLabel(next) + " set.");
-      });
+      bkEditId = e.id;
+      var c = document.getElementById("bkExpClient"); if(c) c.value = e.client || "";
+      var r = document.getElementById("bkExpRef"); if(r) r.value = e.ref || "";
+      if(atEl) atEl.value = e.expAt || "";
+      if(leadEl) leadEl.value = e.lead || "60,30";
+      if(addBtn) addBtn.textContent = "💾 Reminder update karein";
+      var cx = document.getElementById("bkExpCancel"); if(cx) cx.style.display = "";
+      hint();
+      try{ c.scrollIntoView({ behavior:"smooth", block:"center" }); c.focus(); }catch(err){}
     };
   });
+  var bkCx = document.getElementById("bkExpCancel");
+  if(bkCx) bkCx.onclick = function(){ bkEditId = null; render(); };
 
   root.querySelectorAll(".bk-exp-del").forEach(function(b){
     b.onclick = function(){
@@ -10742,7 +10829,7 @@ function bind(){
       var paid = 0; (t.payments||[]).forEach(function(x){ paid += Number(x.amount)||0; });
       var adj = ticketAdj(t), sale = ticketNet(t);
       line([dmy(t.date), t.client||"", t.kind||"Ticket", t.detail||"", Math.max(1, Number(t.persons)||1),
-            clientPhoneFor(t.client, t.phone), ticketCost(t), sale, ticketProfit(t),
+            clientPhoneFor(t.client, t.phone), ticketCost(t), sale, (ticketProfitReady(t) ? ticketProfit(t) : ""),
             (t.paid === false ? "Unpaid" : "Paid"), paid, Math.max(0, sale - paid),
             Number(t.sale)||0, adj, Number(t.cost)||0, t.prevRef||""]);
     });
@@ -10990,6 +11077,11 @@ function bind(){
     var adj = tkAdjNow();
     /* Adj sale aur supplier cost dono se minus hota he, is liye profit wohi
        rehta he jo gross sale − gross cost deta he (helper se match). */
+    if(!(sale > 0) || !(cost > 0)){
+      hint.innerHTML = 'Profit: <b>—</b> <span style="color:var(--muted);">(cost aur sale dono likhein — tab tak profit mein nahi gina jayega)</span>';
+      updAdvHint();
+      return;
+    }
     var p = sale - cost;
     hint.innerHTML = 'Profit: <b>'+money(p)+'</b>'+(p<0?' <span style="color:var(--red);">(loss)</span>':'')
       + (adj ? ' <span style="color:var(--muted);">(adj profit par asar nahi karta)</span>' : '');
@@ -11170,7 +11262,7 @@ function bind(){
     var q = this.value.trim().toLowerCase();
     var cnt = document.getElementById("tkSearchCount");
     var rowsAll = document.querySelectorAll("#tkList tbody tr[data-search]");
-    var shown = 0, sc = 0, ss = 0, sa = 0, seff = 0;
+    var shown = 0, sc = 0, ss = 0, sa = 0, seff = 0, sp = 0;
     rowsAll.forEach(function(r){
       var hay = r.getAttribute("data-search") || "";
       var ok = !q || hay.indexOf(q) >= 0;
@@ -11181,12 +11273,13 @@ function bind(){
         ss += Number(r.getAttribute("data-sale"))||0;
         sa += Number(r.getAttribute("data-adj"))||0;
         seff += Number(r.getAttribute("data-eff"))||0;
+        sp += Number(r.getAttribute("data-profit"))||0;
       }
     });
     var eC = document.getElementById("tkSumCost"), eS = document.getElementById("tkSumSale"), eP = document.getElementById("tkSumProfit");
     if(eC) eC.innerHTML = money(sc) + (sa ? '<span class="cell-sub" id="tkSumCostSub">adj −'+esc(money(sa))+' = '+esc(money(seff))+'</span>' : '');
     if(eS) eS.innerHTML = money(ss) + (sa ? '<span class="cell-sub" id="tkSumSaleSub">adj −'+esc(money(sa))+' = '+esc(money(Math.max(0, ss - sa)))+'</span>' : '');
-    if(eP){ eP.innerHTML = money(ss - sc); eP.className = "num " + ((ss - sc) >= 0 ? "pos" : "neg"); }
+    if(eP){ eP.innerHTML = money(sp); eP.className = "num " + (sp >= 0 ? "pos" : "neg"); }
     if(cnt) cnt.textContent = q ? (shown + " of " + rowsAll.length + " sales — ‘" + this.value.trim() + "’") : "";
   };
   // Invoice generator

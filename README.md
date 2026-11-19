@@ -1,5 +1,22 @@
 # Travel Office Hisab - AB Travels
 
+## Profit sirf poori sales ka + Tracker/Reminder UX (v3.25)
+- **Cost ya sale 0 = profit mein nahi.** Jis sale ki cost price ya sale price abhi 0 he (likhi nahi gayi), us ka profit **na register row mein, na total, na mahine ki income, dashboard, report ya CSV** mein gina jata he. Pehle cost 0 wali sale ka poora sale price "profit" ban jata tha aur sale 0 wali sale "loss" — dono ghalat.
+  - Register ke Profit column mein aisi sale par **—** dikhta he; khali Sale cell bhi **—** (sone rang) se nishan.
+  - Upar ek line: `⚠ N sale(s) mein cost ya sale price khali he — in ka profit total mein nahi gina gaya`.
+  - Search karne par neeche ka Profit total bhi isi qaida se banta he. Form ka hint cost + sale dono likhne tak `Profit: —` dikhata he.
+  - Asli loss (dono likhe hon aur cost > sale) pehle ki tarah laal mein dikhta he.
+- **Price Tracker:** laptop par **do column** (left naya tracker + tracked routes, right booking reminders). "Check every" aur "Kab tak" ab tab ke peeche chhupe nahi — hamesha saamne, aur neeche live khulasa: *Har 30 min = din mein ~48 checks · kal 9:00 pm tak (~70 checks)*; flight ki date ke baad tak tracking ho to warning, bohot zyada checks par budget warning. "Kisi din tak" ki date flight ki date se aage nahi ja sakti.
+  - Tracker card par **⬇ low** (ab tak ki sab se kam price) chip, aur 6 ghante se kam baqi ho to card + 🏁 chip sone rang mein.
+  - **Stop** ab app ka apna confirm dialog dikhata he (browser ka purana confirm nahi).
+- **Booking expiry reminders:**
+  - Alag **PNR / route** field, aur Client mein purane clients ke naam ki suggestions.
+  - Har reminder par haal: `✓ 60 min · 30 min pehle` (Worker par alarm laga) ya `⚠ Alarm nahi laga — dobara` (ek tap par retry). Pehle alarm fail hone par bhi "Reminder set" likha aata tha.
+  - 3 ghante se kam baqi = laal card.
+  - **Edit** ab wohi form bhar deta he (date picker ke sath) — pehle `dd/mm/yy HH:MM` likhne wala prompt tha jo mobile par mushkil tha. Cancel button bhi.
+  - Ek hi client + waqt ka reminder do dafa nahi lagta; guzre hue reminders **🧹 Saaf karein** se ek tap mein hat jate hain.
+- Sirf app ka change — Worker redeploy ki zaroorat nahi.
+
 ## Sale form mein advance / abhi mila hua (v3.24)
 - **Masla:** client poori raqam ek dafa nahi deta. Misal: sale 66,000 ki, client ne 26,000 diye. App sirf **Paid / Unpaid** janta tha — 26,000 likhne ki jagah nahi thi, is liye ya poora Paid dabana parta (aur 40,000 gum ho jate) ya poora Unpaid chhodna parta (aur 66,000 pending dikhta).
 - **Ab sale form mein do nayi cheezein:**
@@ -765,7 +782,7 @@ Current version: **2.31** (Email share opens Gmail compose with recipient prompt
 - Default waisa hi hai, is liye purane users ka behaviour nahi badla.
 
 ## Version
-Current version: **3.24** (v3.24 Sale form mein **Advance received now** + advance date — baqi raqam khud Pending Payments / dashboard bakaya mein; advance net par clamp, poora advance = paid, khali advance = purana Paid/Unpaid select; change sale par advance net (sale − adj) par)
+Current version: **3.25** (v3.25 profit sirf tab jab cost aur sale dono > 0 (register row —, totals, month, dashboard, report, CSV); Price Tracker laptop par 2 column, interval/kab tak hamesha saamne + live checks khulasa, low price chip, ending-soon highlight; booking reminders: PNR field, client suggestions, alarm ✓/⚠ retry, urgent laal, form-based edit, duplicate block, purane saaf; v3.24 v3.24 Sale form mein **Advance received now** + advance date — baqi raqam khud Pending Payments / dashboard bakaya mein; advance net par clamp, poora advance = paid, khali advance = purana Paid/Unpaid select; change sale par advance net (sale − adj) par)
 
 ## Price bot: KV list limit fix (v2.41)
 - Cloudflare KV free plan mein **1,000 list requests/day** hoti hain. Bot ka cron har minute `KV.list` chalata tha (1,440/day), is liye ~15 ghante mein 90% usage email aa jati thi.
