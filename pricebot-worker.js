@@ -1622,7 +1622,7 @@ async function cmdRemind(env, chat, args, opts) {
 function remindText(r, s) {
   let t = "⏰ <b>REMINDER</b>\n";
   t += esc(r.text) + "\n";
-  if (!r.rel) t += "\nEvent: " + pktEventText(r.event) + (s.lead > 0 ? " (" + s.lead + " min baqi)" : " (waqt ho gaya)") + "\n";
+  if (!r.rel) t += "\nEvent: " + pktEventText(r.event) + (s.lead > 0 ? " (" + everyLabel(s.lead) + " baqi)" : " (waqt ho gaya)") + "\n";
   t += "\n🕒 " + pktNowText();
   return t;
 }
@@ -1634,7 +1634,8 @@ async function checkReminders(env) {
     fired = await claimDueReminders(env);
   } catch (e) { return; }
   for (const item of fired) {
-    try { await notifyAll(env, remindText(item.r, item.slot)); } catch (e) { /* ignore */ }
+    /* Reminder ek hi dafa fire hota he — Telegram ko lamba waqt dein (5 min wala miss na ho). */
+    try { await notifyAll(env, remindText(item.r, item.slot), null, { slow: true }); } catch (e) { /* ignore */ }
   }
 }
 

@@ -73,9 +73,15 @@ assert.equal(tkExpRead.call(null), "");
   assert.ok(card.includes('list="bkExpClients"') && card.includes('value="Usama"') && card.includes('value="Ali"'), "client suggestions");
   assert.equal((card.match(/tk-exp-row urgent/g) || []).length, 1, "only the <3h one is urgent");
   assert.ok(card.includes("bk-exp-retry"), "unsynced reminder offers retry");
-  assert.ok(card.includes("✓ 60 min · 30 min pehle"), "synced reminder shows lead chip");
+  assert.ok(card.includes("✓ 1 ghanta · 30 min pehle"), "synced reminder shows lead chip");
   assert.ok(card.includes('id="bkExpClear"') && card.includes("1 purane"), "past reminders can be cleared");
   assert.ok(!card.includes(">Old<"), "past reminder not listed");
+  /* v3.28: 5 / 10 / 15 min lead chips, multi-select, default 1 ghanta + 30 min */
+  for (const m of [5, 10, 15, 30, 60, 120, 180, 1440, 0]) assert.ok(card.includes('data-lead="' + m + '"'), "lead chip " + m);
+  assert.equal((card.match(/bk-lead on/g) || []).length, 2, "default 60 + 30 selected");
+  assert.ok(card.includes('id="bkExpLead" value="60,30"'), "hidden csv default");
+  assert.equal(cctx.tkExpLeadLabel("15,10,5"), "15 min · 10 min · 5 min");
+  assert.equal(cctx.tkExpLeadLabel("1440,60,0"), "1 din · 1 ghanta · waqt par");
 }
 assert.ok(!/bk-exp-edit[\s\S]{0,1200}prompt\(/.test(html.slice(html.indexOf("function bkExpBind"), html.indexOf("function tgSend"))),
   "reminder edit uses the form, not prompt()");
