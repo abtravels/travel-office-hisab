@@ -7,7 +7,7 @@ const source = html.slice(html.indexOf("function tgRelayWhy("), html.indexOf("fu
 async function scenario(replies, ok) {
   const waits = [], recipients = [];
   const ctx = vm.createContext({
-    AbortSignal, tgRelayUrl: () => "",
+    AbortSignal, tgRelayUrl: () => "", S: { settings: {} },
     setTimeout(fn, ms) { waits.push(ms); fn(); },
     async fetch(_, {body}) {
       recipients.push(JSON.parse(body).chats);

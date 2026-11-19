@@ -1,5 +1,11 @@
 # Travel Office Hisab - AB Travels
 
+## Worker App key + payment/amount checks
+
+- **Worker App key (optional):** Origin header koi bhi bana sakta he, is liye ab Worker par `APP_KEY` secret set kar sakte hain (`npx wrangler secret put APP_KEY`). Set hone ke baad `/notify`, `/track`, `/remind`, `/meezab/search` aur Ignav proxy routes har browser request par `X-App-Key` maangte hain. Phir har device par **Settings → Team notifications (Telegram) → Worker App key** mein wahi value dalein. Secret set na ho to sab pehle jaisa chalta he. Staff portal `NOTIFY_KEY` se chalta rehta he.
+- **Payment receive:** baqi raqam se zyada payment darj nahi hoti.
+- **New sale:** cost, sale, advance, commission ya adj negative ho to sale save nahi hoti.
+
 ## Har device ka apna theme + file chunte hi upload (v3.29)
 - **Theme ab device ka apna:** mobile par OLED aur PC par Light — ek par badalne se doosra nahi badalta. Theme ab GitHub sync wale data (`S.settings`) mein nahi, sirf us device ke `localStorage` (`ab_theme`) mein save hota he. Pehli dafa naya version khulne par jo theme pehle se tha wahi us device par pin ho jata he.
 - **Ticket Files:** file chunte (ya PC par drag kar ke chhorte) hi upload shuru — alag **⬆ Upload** button hata diya. Button ka naam ab **⬆ Choose & upload file(s)**. Client / PNR / Note pehle likh dein; khali hon to file ke naam se khud bhar jate hain. Upload chal rahi ho to doosri dafa chunne par double upload nahi hoti.
