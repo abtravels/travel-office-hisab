@@ -165,7 +165,14 @@ const env = {
 const fakeSearch = `
 globalThis.__searchCalls = [];
 /* Test ke liye Telegram: network nahi, seedha __sent mein. */
-async function notifyAll(env, html) { (env.__sent || globalThis.__sent || []).push(html); return ["1"]; }
+async function notifyAll(env, html, extra, opts) {
+  const chats = (opts && opts.only) || ["1", "2"];
+  const failSet = globalThis.__failChats || [];
+  const sent = chats.filter(c => failSet.indexOf(c) < 0), failed = chats.filter(c => failSet.indexOf(c) >= 0);
+  if (sent.length) (env.__sent || globalThis.__sent || []).push(html);
+  (globalThis.__deliveries = globalThis.__deliveries || []).push({ only: opts && opts.only, sent, failed });
+  return { sent, failed, errors: failed.map(() => "timeout"), discord: null };
+}
 async function send(env, chat, html) { (env.__sent || globalThis.__sent || []).push(html); return true; }
 async function mezRunSearch(env, q, opts) {
   globalThis.__searchCalls.push(q);
@@ -318,27 +325,87 @@ assert.equal(drop.last.amount, 40000);
 assert.ok(env.__sent.some(m => m.indexOf("Price gira") > 0), "drop alert: " + JSON.stringify(env.__sent));
 assert.equal(drop.history.length, 3, "history grows");
 
-/* small move does not alert */
+/* Rs 100 ki halki si harkat (< 1% aur < Rs 300) chup rehti he */
 globalThis.__nextPrices = [39900];
 env.__sent.length = 0;
 tHit.lastAlertAt = 0;
 await W.trackCheck(env, tHit, {});
 assert.equal(env.__sent.length, 0, "tiny move stays quiet: " + JSON.stringify(env.__sent));
 
-/* cooldown blocks a second drop alert */
-globalThis.__nextPrices = [30000];
-env.__sent.length = 0;
-tHit.lastAlertAt = Date.now() - 60000;   /* 1 min pehle alert hua tha */
-await W.trackCheck(env, tHit, {});
-assert.equal(env.__sent.length, 0, "20 min cooldown respected");
+/* v3.26: asli case — 28,173 -> 27,090 (3.8%) aur 27,090 -> 26,900 (0.7%, Rs 190) */
+{
+  const live = { id: "live", origin: "ISB", destination: "KHI", departure: "2026-11-20", every: 5,
+    flight: "PA401", history: [], createdAt: Date.now(), last: { amount: 28173.36, currency: "PKR" },
+    lastAlertAt: Date.now() - 30 * 60000, lastAlertAmount: 28173.36 };
+  globalThis.__nextPrices = [27089.76];
+  env.__sent.length = 0;
+  await W.trackCheck(env, live, {});
+  assert.ok(env.__sent.some(m => m.indexOf("Price gira") > 0), "3.8% drop alerts");
+  /* 5 min baad phir gira — cooldown ke andar magar naya sab se kam price */
+  globalThis.__nextPrices = [26700];
+  env.__sent.length = 0;
+  await W.trackCheck(env, live, {});
+  assert.ok(env.__sent.some(m => m.indexOf("Price gira") > 0), "new low inside cooldown still alerts (Rs 390): " + JSON.stringify(env.__sent));
+  /* 1% ya Rs 300 se kam — chup */
+  globalThis.__nextPrices = [26600];
+  env.__sent.length = 0;
+  live.lastAlertAt = Date.now() - 60000;
+  await W.trackCheck(env, live, {});
+  assert.equal(env.__sent.length, 0, "Rs 100 move stays quiet");
+  /* price wapas barha phir pehle wale level tak gira — naya low nahi, cooldown lagta he */
+  globalThis.__nextPrices = [28000, 27000];
+  await W.trackCheck(env, live, {});
+  env.__sent.length = 0;
+  live.lastAlertAt = Date.now() - 60000;
+  await W.trackCheck(env, live, {});
+  assert.equal(env.__sent.length, 0, "bounce back (not a new low) waits for cooldown");
+  /* cooldown khatam -> wahi girawat alert deti he */
+  globalThis.__nextPrices = [27900, 26900];
+  await W.trackCheck(env, live, {});
+  env.__sent.length = 0;
+  live.lastAlertAt = Date.now() - 21 * 60000;
+  await W.trackCheck(env, live, {});
+  assert.ok(env.__sent.some(m => m.indexOf("Price gira") > 0), "after cooldown a 1000 drop alerts");
+  await W.trackDelete(env, live.id);
+}
 
-/* cooldown khatam hone par dobara alert */
-globalThis.__nextPrices = [25000];
-env.__sent.length = 0;
-tHit.lastAlertAt = Date.now() - 21 * 60000;
-await W.trackCheck(env, tHit, {});
-assert.ok(env.__sent.some(m => m.indexOf("Price gira") > 0 || m.indexOf("Target poora") > 0),
-  "alert again after cooldown: " + JSON.stringify(env.__sent));
+/* Telegram ek chat par timeout -> pendingAlert, cron sirf usi chat ko dobara bhejta he (bina search) */
+{
+  const KV2 = makeKV(), DO2 = makeDO();
+  const env2 = { KV: KV2, WATCH_INDEX_DO: DO2, MEZ_DAILY_CAP: "4000", __sent: [] };
+  const tr = { id: "retry1", origin: "ISB", destination: "KHI", departure: "2026-11-20", every: 60,
+    history: [], createdAt: Date.now(), last: { amount: 30000, currency: "PKR" },
+    lastAlertAt: Date.now() - 30 * 60000, lastAlertAmount: 30000 };
+  globalThis.__failChats = ["2"];
+  globalThis.__nextPrices = [28000];
+  await W.trackCheck(env2, tr, {});
+  assert.ok(tr.pendingAlert && tr.pendingAlert.only.join() === "2", "failed chat queued: " + JSON.stringify(tr.pendingAlert));
+  assert.equal(tr.lastNotify.failed, 1);
+  assert.equal(tr.lastNotify.sent, 1);
+  /* cron: Telegram ab theek — sirf chat 2 ko, koi search nahi */
+  globalThis.__failChats = [];
+  tr.pendingAlert.at = Date.now() - 60000;
+  tr.lastCheckAt = Date.now();          /* abhi due nahi */
+  KV2.store.set("tr:" + tr.id, JSON.stringify(tr));
+  DO2.storage.set("tr:" + tr.id, true);
+  const searchesBefore = globalThis.__searchCalls.length;
+  globalThis.__deliveries = [];
+  await W.checkTrackers(env2);
+  const saved2 = JSON.parse(KV2.store.get("tr:" + tr.id));
+  assert.equal(globalThis.__searchCalls.length, searchesBefore, "resend uses no Meezab search");
+  assert.ok(globalThis.__deliveries.some(d => d.only && d.only.join() === "2" && d.sent.length === 1), "resent only to failed chat");
+  assert.ok(!saved2.pendingAlert, "pending cleared after delivery");
+  assert.equal(saved2.lastNotify.failed, 0);
+  assert.equal(saved2.lastNotify.sent, 2, "total delivered counted");
+  /* hamesha fail ho to 5 dafa ke baad chhor deta he */
+  globalThis.__failChats = ["1", "2"];
+  const tr3 = Object.assign({}, tr, { id: "retry3", pendingAlert: { html: "x", kind: "down", only: ["1"], tries: 5, at: 0 } });
+  KV2.store.set("tr:" + tr3.id, JSON.stringify(tr3));
+  DO2.storage.set("tr:" + tr3.id, true);
+  await W.checkTrackers(env2);
+  assert.ok(!JSON.parse(KV2.store.get("tr:" + tr3.id)).pendingAlert, "gives up after TRACK_RESEND_TRIES");
+  globalThis.__failChats = [];
+}
 
 /* search failure is recorded, cron never throws */
 globalThis.__nextPrices = ["fail", "fail"];

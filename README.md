@@ -1,5 +1,15 @@
 # Travel Office Hisab - AB Travels
 
+## Tracker alert drop na ho + chhoti girawat par bhi alert (v3.26)
+- **Masla (ISB→KHI 9P-679, 19 Nov):** price 28,173 → 27,090 gira, Worker ne alert banaya magar Telegram ki ek chat tak message **8 second timeout** mein atak gaya aur dobara koi koshish nahi hui. Test se bhi yahi mila: 2 mein se 1 chat timeout.
+- **Fix — delivery:** cron ke alerts ab Telegram ko 20s + 30s ka waqt dete hain (pehle 8s + 12s). Jo chat fail ho, us ke liye alert **`pendingAlert`** mein rakh liya jata he aur cron **har minute sirf usi chat ko dobara** bhejta he (5 dafa tak) — is mein Meezab search nahi lagti.
+- **Fix — kab alert:** pehle sirf **3%+** girawat par alert aata tha, aur 20 minute ke andar doosri girawat chup rehti thi. Ab:
+  - **1% ya Rs 300** (jo pehle ho) girawat par alert.
+  - **Naya sab se kam price** (pichle alert se bhi kam) — cooldown ke andar bhi foran alert.
+  - Price upar ja kar wapas aaye (naya low nahi) to 20 min cooldown pehle ki tarah.
+- **App mein nazar:** har tracker card par aakhri alert ka haal — `🔔 Price gira alert 5 min pehle: ✓ Telegram 2 chat` ya laal mein `1 chat tak nahi pohncha — har minute dobara bhej rahe hain`.
+- **Worker + app dono badle** (Workers Builds `main` push par khud deploy).
+
 ## Profit sirf poori sales ka + Tracker/Reminder UX (v3.25)
 - **Cost ya sale 0 = profit mein nahi.** Jis sale ki cost price ya sale price abhi 0 he (likhi nahi gayi), us ka profit **na register row mein, na total, na mahine ki income, dashboard, report ya CSV** mein gina jata he. Pehle cost 0 wali sale ka poora sale price "profit" ban jata tha aur sale 0 wali sale "loss" — dono ghalat.
   - Register ke Profit column mein aisi sale par **—** dikhta he; khali Sale cell bhi **—** (sone rang) se nishan.
@@ -782,7 +792,7 @@ Current version: **2.31** (Email share opens Gmail compose with recipient prompt
 - Default waisa hi hai, is liye purane users ka behaviour nahi badla.
 
 ## Version
-Current version: **3.25** (v3.25 profit sirf tab jab cost aur sale dono > 0 (register row —, totals, month, dashboard, report, CSV); Price Tracker laptop par 2 column, interval/kab tak hamesha saamne + live checks khulasa, low price chip, ending-soon highlight; booking reminders: PNR field, client suggestions, alarm ✓/⚠ retry, urgent laal, form-based edit, duplicate block, purane saaf; v3.24 v3.24 Sale form mein **Advance received now** + advance date — baqi raqam khud Pending Payments / dashboard bakaya mein; advance net par clamp, poora advance = paid, khali advance = purana Paid/Unpaid select; change sale par advance net (sale − adj) par)
+Current version: **3.26** (v3.26 tracker alerts: Telegram timeout 20s+30s, fail chat ko har minute dobara (5 dafa, bina search), 1% ya Rs 300 girawat par alert, naya low cooldown mein bhi, card par aakhri alert ka haal; v3.25 v3.25 profit sirf tab jab cost aur sale dono > 0 (register row —, totals, month, dashboard, report, CSV); Price Tracker laptop par 2 column, interval/kab tak hamesha saamne + live checks khulasa, low price chip, ending-soon highlight; booking reminders: PNR field, client suggestions, alarm ✓/⚠ retry, urgent laal, form-based edit, duplicate block, purane saaf; v3.24 v3.24 Sale form mein **Advance received now** + advance date — baqi raqam khud Pending Payments / dashboard bakaya mein; advance net par clamp, poora advance = paid, khali advance = purana Paid/Unpaid select; change sale par advance net (sale − adj) par)
 
 ## Price bot: KV list limit fix (v2.41)
 - Cloudflare KV free plan mein **1,000 list requests/day** hoti hain. Bot ka cron har minute `KV.list` chalata tha (1,440/day), is liye ~15 ghante mein 90% usage email aa jati thi.

@@ -60,7 +60,9 @@ const TRACK_DEFAULT_EVERY = 5;      // minutes
 const TRACK_MIN_EVERY = 5;          // 1-2 min = rozana budget barbaad
 const TRACK_TTL = 60 * 60 * 24 * 60;
 const TRACK_PER_TICK = 2;
-const TRACK_DROP_PCT = 0.03;
+const TRACK_DROP_PCT = 0.01;          // 1% girawat ...
+const TRACK_DROP_MIN_RS = 300;        // ... ya Rs 300 — jo pehle ho
+const TRACK_RESEND_TRIES = 5;         // fail alert har minute dobara (5 dafa)
 const TRACK_ALERT_GAP = 20 * 60 * 1000;
 const TRACK_MISSING_ALERTS = 3;
 
@@ -163,16 +165,21 @@ async function isAllowed(env, chat) {
   return (await allowedChats(env)).indexOf(String(chat)) >= 0;
 }
 
-async function notifyAll(env, html, extra) {
-  const list = await allowedChats(env);
+async function notifyAll(env, html, extra, opts) {
+  /* opts.only = sirf in chats ko (failed alert ka retry). */
+  let list = await allowedChats(env);
+  if (opts && Array.isArray(opts.only)) {
+    const only = opts.only.map(String);
+    list = list.filter(function (c) { return only.indexOf(String(c)) >= 0; });
+  }
   const sent = [], failed = [], errors = [];
   /* Sab chats ek saath — ek slow chat poore request ko latka na de. */
   await Promise.all(list.map(async function (c) {
-    try { await send(env, c, html, extra); sent.push(c); }
+    try { await send(env, c, html, extra, opts); sent.push(c); }
     catch (e) { failed.push(c); errors.push(String((e && e.message) || e).slice(0, 160)); }
   }));
   let discord = null;
-  if (env.DISCORD_WEBHOOK) {
+  if (env.DISCORD_WEBHOOK && !(opts && opts.only)) {
     try { await discordSend(env, html); discord = { ok: true }; }
     catch (e) { discord = { ok: false, error: String((e && e.message) || e).slice(0, 160) }; }
   }
@@ -303,8 +310,10 @@ function bestFare(j, flight) {
 /* Telegram                                                            */
 /* ------------------------------------------------------------------ */
 
-async function tg(env, method, payload) {
+async function tg(env, method, payload, opts) {
   if (!env.TELEGRAM_BOT_TOKEN) throw new Error("TELEGRAM_BOT_TOKEN secret is not set in the Worker.");
+  /* Cron (koi user intezar nahi kar raha) ko lamba waqt dein — 8s par alerts drop ho rahe thay. */
+  const slow = !!(opts && opts.slow);
   /* Cloudflare se Telegram ki raasta kabhi 15-40s leti hai (kabhi block bhi hoti
      hai). Is liye ek retry - timeout ya network error par dobara try, taake
      notification drop na ho. */
@@ -315,7 +324,7 @@ async function tg(env, method, payload) {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload || {}),
-        signal: AbortSignal.timeout(attempt === 0 ? 8000 : 12000)
+        signal: AbortSignal.timeout(slow ? (attempt === 0 ? 20000 : 30000) : (attempt === 0 ? 8000 : 12000))
       });
       let j = null;
       try { j = await r.json(); } catch (e) { /* ignore */ }
@@ -337,12 +346,12 @@ async function tg(env, method, payload) {
   throw lastErr || new Error("Telegram " + method + " failed");
 }
 
-async function send(env, chat, html, extra) {
+async function send(env, chat, html, extra, opts) {
   const text = String(html || "");
   if (text.length <= 3800) {
     return tg(env, "sendMessage", Object.assign({
       chat_id: chat, text: text, parse_mode: "HTML", disable_web_page_preview: true
-    }, extra || {}));
+    }, extra || {}), opts);
   }
   let left = text;
   while (left.length) {
@@ -352,7 +361,7 @@ async function send(env, chat, html, extra) {
     left = left.slice(cut);
     await tg(env, "sendMessage", Object.assign({
       chat_id: chat, text: part, parse_mode: "HTML", disable_web_page_preview: true
-    }, extra || {}));
+    }, extra || {}), opts);
   }
 }
 
@@ -2047,8 +2056,13 @@ async function trackCheck(env, t, opts) {
   const target = Number(t.target) || 0;
   const hitTarget = target > 0 && amount <= target &&
     !(t.lastAlertAmount != null && Number(t.lastAlertAmount) <= target);
-  const dropped = prev != null && amount < prev && amount <= prev * (1 - TRACK_DROP_PCT);
-  const gapOk = now - (Number(t.lastAlertAt) || 0) > TRACK_ALERT_GAP;
+  /* Har asli girawat par alert (1% ya Rs 300, jo bhi chhota ho) — pehle 3% se kam
+     girawat chup chaap guzar jati thi. Naya "sab se kam" price cooldown nahi dekhta. */
+  const dropMin = prev != null ? Math.min(prev * TRACK_DROP_PCT, TRACK_DROP_MIN_RS) : 0;
+  const dropped = prev != null && amount < prev && (prev - amount) >= dropMin;
+  const lastAlertAmt = Number(t.lastAlertAmount) || 0;
+  const newLow = dropped && lastAlertAmt > 0 && amount < lastAlertAmt;
+  const gapOk = newLow || now - (Number(t.lastAlertAt) || 0) > TRACK_ALERT_GAP;
   const first = !(Number(t.lastAlertAt) > 0) && prev == null;
 
   let kind = "";
@@ -2061,7 +2075,7 @@ async function trackCheck(env, t, opts) {
     /* Baseline sirf "tracking chalu" ki tasdeeq he — alert cooldown ko nahi
        chhoota, taake usi din pehli girawat ka alert bhi aa jaye. */
     if (kind === "baseline") {
-      try { await notifyAll(env, trackText(t, amount, prev, kind)); } catch (e) { /* ignore */ }
+      await trackDeliver(env, t, trackText(t, amount, prev, kind), kind, null);
     } else if (kind === "manual") {
       /* Manual "Check now": user ko Telegram ka asli nateeja bata dein —
          pehle send fail hone par bhi app "bhej diya" keh deta tha (v3.20). */
@@ -2076,11 +2090,43 @@ async function trackCheck(env, t, opts) {
     } else if (notify) {
       t.lastAlertAt = now;
       t.lastAlertAmount = amount;
-      try { await notifyAll(env, trackText(t, amount, prev, kind)); } catch (e) { /* ignore */ }
+      await trackDeliver(env, t, trackText(t, amount, prev, kind), kind, null);
     }
   }
   await trackSave(env, t);
   return t;
+}
+
+/* Alert bhejein aur nateeja record karein. Jo chat fail ho (Telegram timeout),
+   us ke liye pendingAlert bana dein — cron har minute dobara bhejta he. */
+async function trackDeliver(env, t, html, kind, only) {
+  let r = null;
+  try { r = await notifyAll(env, html, null, { slow: true, only: only || undefined }); }
+  catch (e) { r = { sent: [], failed: only || [], errors: [String((e && e.message) || e)] }; }
+  const sent = (r && r.sent) || [], failed = (r && r.failed) || [];
+  const prevSent = (only && t.lastNotify && Number(t.lastNotify.sent)) || 0;
+  t.lastNotify = { at: Date.now(), kind: kind, sent: prevSent + sent.length, failed: failed.length,
+    errors: ((r && r.errors) || []).slice(0, 2), discord: !!(r && r.discord && r.discord.ok) };
+  const tries = (t.pendingAlert && Number(t.pendingAlert.tries)) || 0;
+  if (failed.length && tries < TRACK_RESEND_TRIES) {
+    t.pendingAlert = { html: String(html).slice(0, 3800), kind: kind, only: failed.map(String),
+      tries: tries + 1, at: Date.now() };
+  } else {
+    delete t.pendingAlert;
+  }
+  return r;
+}
+
+/* Cron: pichli dafa fail hue alerts dobara (search budget nahi lagta). */
+async function trackResendPending(env, list) {
+  for (const t of list) {
+    const p = t.pendingAlert;
+    if (!p || !p.html || !Array.isArray(p.only) || !p.only.length) continue;
+    if (Date.now() - (Number(p.at) || 0) < 50000) continue;
+    try { await trackDeliver(env, t, p.html, p.kind || "down", p.only); }
+    catch (e) { /* agli dafa */ }
+    try { await trackSave(env, t); } catch (e) { /* ignore */ }
+  }
 }
 
 /* Cron: sirf due trackers, ek minute mein TRACK_PER_TICK. */
@@ -2097,6 +2143,9 @@ async function checkTrackers(env) {
   }
   list = list.filter(function (t) { return !(t.until && now >= Number(t.until)); });
   if (!list.length) return;
+  /* Fail hue alerts pehle — jo isi tick check hone wale hain unhe chhor kar
+     (un ka naya check khud bhejega). */
+  try { await trackResendPending(env, list); } catch (e) { /* ignore */ }
   const due = list.filter(function (t) {
     if (t.paused) return false;
     const every = Math.max(TRACK_MIN_EVERY, Number(t.every) || TRACK_DEFAULT_EVERY);
