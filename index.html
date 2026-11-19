@@ -792,14 +792,14 @@
 }catch(e){}})();
 </script>
 <script>/* Apply the saved theme before the first paint (avoids a white flash in dark mode). */
-(function(){try{var s=JSON.parse(localStorage.getItem("travelOfficeHisab")||"{}");var t=s&&s.settings&&s.settings.theme;var d=(!t)||t==="dark"||t==="oled";if(d)document.body.classList.add("dark");if((!t)||t==="oled")document.body.classList.add("oled");}catch(e){}})();
+(function(){try{var t=localStorage.getItem("ab_theme");if(!t){var s=JSON.parse(localStorage.getItem("travelOfficeHisab")||"{}");t=s&&s.settings&&s.settings.theme;}var d=(!t)||t==="dark"||t==="oled";if(d)document.body.classList.add("dark");if((!t)||t==="oled")document.body.classList.add("oled");}catch(e){}})();
 </script>
 <header>
   <button id="menuBtn" aria-label="Menu">☰</button>
   <div class="brand">
     <img src="logo.png" alt="AB Travels" decoding="async" onerror="this.style.display='none'">
     <div style="min-width:0;">
-      <h1>AB Travels <span class="ver" id="verBadge">v3.28</span></h1>
+      <h1>AB Travels <span class="ver" id="verBadge">v3.29</span></h1>
       <div class="tag">Ahmed Brothers Hajj &amp; Umra Services (Pvt) Ltd</div>
     </div>
     <button id="brandFares" class="brand-fares" type="button" title="Flights — Price Lookup / Tracker / Booking alerts" aria-label="Flights menu" aria-haspopup="menu">✈</button>
@@ -869,7 +869,7 @@
 <script>
 /* ================= DATA ================= */
 var KEY = "travelOfficeHisab";
-var APP_VER = "3.28";
+var APP_VER = "3.29";
 var MONTH_NAMES = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
 /* Cloudflare Worker — Ignav flight prices proxy (free plan, no credit card) */
 var IGNAV_WORKER_CODE = "// AB Travels - Ignav flight prices proxy (Cloudflare Worker)\n// Ignav API key SERVER par rehti hai - app/browser mein kabhi nahi aati.\n//\n// SETUP (ek dafa, ~5 min, free):\n// 1) ignav.com/signup -> free account -> dashboard se API key\n// 2) cloudflare.com -> free account -> Workers & Pages -> Create Worker -> yeh code paste -> Deploy\n// 3) Worker -> Settings -> Variables and Secrets -> secret add karein:\n//      IGNAV_API_KEY = (aap ki Ignav key)\n// 4) Worker URL (https://xxx.workers.dev) app -> Settings -> Flight prices -> paste -> Save & test\n\nexport default {\n  async fetch(request, env) {\n    const cors = {\n      'Access-Control-Allow-Origin': env.ALLOWED_ORIGIN || '*',\n      'Access-Control-Allow-Methods': 'GET,POST,OPTIONS',\n      'Access-Control-Allow-Headers': 'Content-Type',\n      'Access-Control-Max-Age': '86400'\n    };\n    const url = new URL(request.url);\n    if (request.method === 'OPTIONS') return new Response(null, { status: 204, headers: cors });\n    if (!env.IGNAV_API_KEY) {\n      return new Response(JSON.stringify({ error: { code: 'no_key', message: 'IGNAV_API_KEY secret is not set in the Worker.' } }), { status: 500, headers: Object.assign({ 'Content-Type': 'application/json' }, cors) });\n    }\n    const base = 'https://ignav.com/api';\n    let target = '';\n    let init = { method: 'GET', headers: { 'X-Api-Key': env.IGNAV_API_KEY } };\n    if (url.pathname === '/health') {\n      target = base + '/health';\n    } else if (url.pathname === '/fares') {\n      if (request.method !== 'POST') return new Response(JSON.stringify({ error: { message: 'POST only' } }), { status: 405, headers: cors });\n      const body = await request.text();\n      target = base + '/fares/one-way';\n      init = { method: 'POST', headers: { 'X-Api-Key': env.IGNAV_API_KEY, 'Content-Type': 'application/json' }, body };\n    } else if (url.pathname === '/search') {\n      if (request.method !== 'POST') return new Response(JSON.stringify({ error: { message: 'POST only' } }), { status: 405, headers: cors });\n      const body = await request.text();\n      target = base + '/fares/search';\n      init = { method: 'POST', headers: { 'X-Api-Key': env.IGNAV_API_KEY, 'Content-Type': 'application/json' }, body };\n    } else if (url.pathname === '/round-trip') {\n      if (request.method !== 'POST') return new Response(JSON.stringify({ error: { message: 'POST only' } }), { status: 405, headers: cors });\n      const body = await request.text();\n      target = base + '/fares/round-trip';\n      init = { method: 'POST', headers: { 'X-Api-Key': env.IGNAV_API_KEY, 'Content-Type': 'application/json' }, body };\n    } else if (url.pathname === '/booking-links') {\n      if (request.method !== 'POST') return new Response(JSON.stringify({ error: { message: 'POST only' } }), { status: 405, headers: cors });\n      const body = await request.text();\n      target = base + '/fares/booking-links';\n      init = { method: 'POST', headers: { 'X-Api-Key': env.IGNAV_API_KEY, 'Content-Type': 'application/json' }, body };\n    } else {\n      return new Response(JSON.stringify({ error: { message: 'not found' } }), { status: 404, headers: Object.assign({ 'Content-Type': 'application/json' }, cors) });\n    }\n    try {\n      const r = await fetch(target, init);\n      const text = await r.text();\n      return new Response(text, { status: r.status, headers: Object.assign({ 'Content-Type': 'application/json' }, cors) });\n    } catch (e) {\n      return new Response(JSON.stringify({ error: { message: String((e && e.message) || e) } }), { status: 502, headers: Object.assign({ 'Content-Type': 'application/json' }, cors) });\n    }\n  }\n};\n";
@@ -4588,10 +4588,23 @@ function applyAyat(){
   if(tr) tr.textContent = "\u201c" + a.tr + "\u201d \u2014 " + a.ref;
   if(ur) ur.textContent = a.ur || "";
 }
+/* Theme har device ka apna (v3.29) — mobile OLED, PC day. localStorage "ab_theme"
+   GitHub sync mein nahi jata. Pehli dafa purani synced setting default banti he. */
+var THEME_KEY = "ab_theme";
 function themeMode(){
-  var t = S.settings.theme;
+  var t = "";
+  try{ t = localStorage.getItem(THEME_KEY) || ""; }catch(e){}
   if(t === "dark" || t === "oled" || t === "light") return t;
-  return "oled"; // default theme
+  /* Pehli dafa: jo theme abhi dikh raha he wahi is device par pin — baad mein
+     doosre device ki synced setting is device ko nahi badlegi. */
+  t = S.settings.theme;
+  if(!(t === "dark" || t === "oled" || t === "light")) t = "oled"; // default theme
+  try{ localStorage.setItem(THEME_KEY, t); }catch(e){}
+  return t;
+}
+function themeSet(m){
+  try{ localStorage.setItem(THEME_KEY, m); }catch(e){}
+  applyTheme(); render();
 }
 function themeDark(){
   return themeMode() !== "light";
@@ -9479,7 +9492,7 @@ function viewSettings(){
         + '<button class="btn small'+(mode==="dark"?' primary':'')+'" id="thDark" style="margin-top:0;">🌙 Dark</button>'
         + '<button class="btn small'+(mode==="oled"?' primary':'')+'" id="thOled" style="margin-top:0;">⬛ OLED</button>'
         + '</div>';
-  html += '<div class="hint">Light = din ke liye. Dark = aankhon ke liye asaan. <b>OLED</b> = pure black background (sirf black pixels jalte hain — OLED screen par battery bachti hai aur raat ko sab se araam deh). Choice settings ke sath save hoti hai; top bar ka button teeno modes ke darmiyan badalta hai.</div>';
+  html += '<div class="hint">Light = din ke liye. Dark = aankhon ke liye asaan. <b>OLED</b> = pure black background (sirf black pixels jalte hain — OLED screen par battery bachti hai aur raat ko sab se araam deh). <b>Har device ka apna theme</b> — mobile par OLED aur PC par Light rakh sakte hain, ek badalne se doosra nahi badalta. Top bar ka button teeno modes ke darmiyan badalta hai.</div>';
   var isSleek = S.settings.btnStyle !== "classic";
   html += '<div class="row" style="margin-top:10px;">'
         + '<button class="btn small'+(isSleek?' primary':'')+'" id="btnStyleSleek" style="margin-top:0;">✨ Sleek (compact)</button>'
@@ -10309,15 +10322,10 @@ function fileOnPick(input){
   var pEl = document.getElementById("filePnr");
   if(cEl && !cEl.value && g.client) cEl.value = g.client;
   if(pEl && !pEl.value && g.pnr) pEl.value = g.pnr;
-  var names = [];
-  for(var i = 0; i < fs.length; i++) names.push(fs[i].name);
-  var st = document.getElementById("fileStatus");
-  if(st){
-    st.textContent = "✓ " + fs.length + " file(s) selected: " + names.join(", ") + " — ab “Upload” dabayein."
-      + (g.client || g.pnr ? " (auto-detected " + [g.client, g.pnr ? "PNR " + g.pnr : ""].filter(Boolean).join(" · ") + ")" : "");
-    st.style.color = "var(--green)";
-  }
+  /* v3.29: file chunte hi upload — alag "Upload" button nahi dabana parta. */
+  fileUploadAll();
 }
+var fileUploading = false;
 function fileUploadAll(){
   var input = document.getElementById("fileInput");
   var fs = input && input.files ? input.files : null;
@@ -10333,8 +10341,10 @@ function fileUploadAll(){
   };
   var arr = [];
   for(var i = 0; i < fs.length; i++) arr.push(fs[i]);
+  if(fileUploading){ fileSetFlash("Pichli upload chal rahi he — thora intezar karein.", true); return; }
+  fileUploading = true;
   var idx = 0, failed = 0, lastErr = "";
-  var btn = document.getElementById("fileUpload");
+  var btn = document.getElementById("filePick");
   if(btn){ btn.disabled = true; btn.textContent = "Uploading…"; }
   function setMsg(m){
     fileSetFlash(m);
@@ -10343,6 +10353,8 @@ function fileUploadAll(){
   }
   function next(){
     if(idx >= arr.length){
+      fileUploading = false;
+      try{ input.value = ""; }catch(e){}
       saveNow(function(){});
       var okCount = arr.length - failed;
       if(okCount > 0 && !meta.silent){
@@ -10433,15 +10445,14 @@ function viewFiles(){
         + '<div><label>Note (optional)</label><input id="fileNote" placeholder="e.g. Umrah package invoice"></div>'
         + '</div>'
         + '<div style="display:flex; gap:8px; margin-top:10px; flex-wrap:wrap; align-items:center;">'
-        + '<button class="btn primary" id="filePick">＋ Choose file(s)</button>'
-        + '<button class="btn" id="fileUpload">⬆ Upload</button>'
+        + '<button class="btn primary" id="filePick">⬆ Choose &amp; upload file(s)</button>'
         + '<button class="btn" id="fileRefresh">↻ Refresh</button>'
         + '<input type="file" id="fileInput" accept="application/pdf,image/*" multiple style="display:none;">'
         + '</div>'
         + '<div class="hint" id="fileStatus" style="margin-top:8px; font-weight:600;'
         + (fileFlash ? ' color:' + (fileFlash.bad ? 'var(--red)' : 'var(--green)') + ';' : '') + '">'
         + (fileFlash ? esc(fileFlash.msg) : '') + '</div>'
-        + '<div class="hint">PDF / JPG / PNG, max 20 MB per file. Phone par PDF share karne se WhatsApp mein file khud attach ho jati hai; PC par file download hoti hai aur WhatsApp Web khulta hai.</div>'
+        + '<div class="hint">File chunte (ya drag karte) hi upload shuru ho jati he — Client / PNR / Note pehle likh dein (khali hon to file ke naam se khud bhar jate hain). PDF / JPG / PNG, max 20 MB per file. Phone par PDF share karne se WhatsApp mein file khud attach ho jati hai; PC par file download hoti hai aur WhatsApp Web khulta hai.</div>'
         + '</div>';
   html += '<div class="card" id="pasteCard"><h2>🔗 Paste link / document</h2>'
         + '<div class="hint" style="margin-top:0;">Google Drive link, airline booking link, ya document ka text yahan paste karein. Ye entries Ticket Files mein sab ko dikhengi — lekin in par <b>koi notification nahi</b> jayegi.</div>'
@@ -10469,7 +10480,7 @@ function viewFiles(){
     files.forEach(function(f){ html += fileRow(f); });
     html += '</div>';
   } else {
-    html += '<div class="empty">Abhi koi file upload nahi hui. Upar se PDF choose kar ke Upload dabayein.</div>';
+    html += '<div class="empty">Abhi koi file upload nahi hui. Upar se PDF choose karein — chunte hi upload ho jati he.</div>';
   }
   if(fileSyncInfo.at){
     html += '<div class="hint" style="margin-top:4px;">Last GitHub check: '
@@ -10789,8 +10800,6 @@ function bindFilesTab(app){
       }catch(x){}
     };
   }
-  var up = document.getElementById("fileUpload");
-  if(up) up.onclick = fileUploadAll;
   var rf = document.getElementById("fileRefresh");
   if(rf) rf.onclick = function(){
     if(!githubSyncConfigured()){ fileSetFlash("GitHub sync off hai.", true); render(); return; }
@@ -11759,17 +11768,11 @@ function bind(){
   };
   // Appearance — light / dark
   var thl = document.getElementById("thLight");
-  if(thl) thl.onclick = function(){
-    S.settings.theme = "light"; save(); applyTheme(); render();
-  };
+  if(thl) thl.onclick = function(){ themeSet("light"); };
   var thd = document.getElementById("thDark");
-  if(thd) thd.onclick = function(){
-    S.settings.theme = "dark"; save(); applyTheme(); render();
-  };
+  if(thd) thd.onclick = function(){ themeSet("dark"); };
   var tho = document.getElementById("thOled");
-  if(tho) tho.onclick = function(){
-    S.settings.theme = "oled"; save(); applyTheme(); render();
-  };
+  if(tho) tho.onclick = function(){ themeSet("oled"); };
   var pinS = document.getElementById("pinSet");
   if(pinS) pinS.onclick = function(){
     if(totalsPinOk()){ alert("✓ Passcode set ho gaya."); render(); }
@@ -12791,8 +12794,7 @@ document.addEventListener("visibilitychange", function(){
 var themeB = document.getElementById("themeBtn");
 if(themeB) themeB.onclick = function(){
   var m = themeMode();
-  S.settings.theme = m === "light" ? "dark" : (m === "dark" ? "oled" : "light");
-  save(); applyTheme(); render();
+  themeSet(m === "light" ? "dark" : (m === "dark" ? "oled" : "light"));
 };
 </script>
 
