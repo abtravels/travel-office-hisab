@@ -20,6 +20,8 @@
     --blue:#2563eb; --blue-bg:#eff6ff; --gold:#d97706; --gold-bg:#fffbeb;
     --line:#e5e7eb; --radius:14px;
     --field:#ffffff; --line-soft:#eef1f6; --stat-a:#f8fafc; --stat-b:#f1f5f9;
+    /* Chart series — dataviz validator se pass (light, surface #ffffff) */
+    --trend-series:#2563eb;
     --header-h:58px;
   }
   *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
@@ -152,6 +154,10 @@
   .stat{border-radius:12px; padding:12px; background:var(--bg);}
   .stat .v{font-size:20px; font-weight:800; margin-top:2px;}
   .stat .t{font-size:12px; color:var(--muted); font-weight:600;}
+  /* Profit trend chart — SVG responsive, koi animation nahi (reduced-motion safe) */
+  .trend-wrap{margin:2px 0 10px;}
+  .trend-wrap svg{display:block; width:100%; height:auto; overflow:visible;}
+  .trend-note{font-size:11.5px; color:var(--muted); margin:0 0 8px;}
 .sum-btn{display:inline-flex; align-items:center; gap:6px; margin:2px 0 10px; background:var(--stat-a); border:1px dashed var(--line); color:var(--muted); border-radius:9px; padding:5px 11px; font-size:12px; font-weight:700; cursor:pointer; font-family:inherit;}
 .sum-btn:hover{border-color:#94a3b8; background:var(--stat-b);}
   .pos{color:var(--green);} .neg{color:var(--red);} .blu{color:var(--blue);} .gld{color:var(--gold);}
@@ -439,6 +445,8 @@
     --blue:#60a5fa; --blue-bg:#10233d; --gold:#fbbf24; --gold-bg:#2b2310;
     --line:#22304a; --field:#0d1727; --line-soft:#1c2941;
     --stat-a:#101a2a; --stat-b:#0c1626;
+    /* Dark surface #121c2c par validator pass — #60a5fa band se bahar tha */
+    --trend-series:#3b82f6;
     color-scheme:dark;
   }
   body.dark .card{box-shadow:0 1px 2px rgba(0,0,0,.45), 0 6px 18px rgba(0,0,0,.32);}
@@ -471,6 +479,8 @@
     --blue:#60a5fa; --blue-bg:#07162a; --gold:#fbbf24; --gold-bg:#1e1707;
     --line:#191920; --field:#07070a; --line-soft:#141419;
     --stat-a:#08080b; --stat-b:#050507;
+    /* OLED surface #0b0b0e par bhi validator pass */
+    --trend-series:#3b82f6;
     color-scheme:dark;
   }
   body.oled header{background:#000; box-shadow:0 1px 0 #151519;}
@@ -799,7 +809,7 @@
   <div class="brand">
     <img src="logo.png" alt="AB Travels" decoding="async" onerror="this.style.display='none'">
     <div style="min-width:0;">
-      <h1>AB Travels <span class="ver" id="verBadge">v3.29</span></h1>
+      <h1>AB Travels <span class="ver" id="verBadge">v3.30</span></h1>
       <div class="tag">Ahmed Brothers Hajj &amp; Umra Services (Pvt) Ltd</div>
     </div>
     <button id="brandFares" class="brand-fares" type="button" title="Flights — Price Lookup / Tracker / Booking alerts" aria-label="Flights menu" aria-haspopup="menu">✈</button>
@@ -869,7 +879,7 @@
 <script>
 /* ================= DATA ================= */
 var KEY = "travelOfficeHisab";
-var APP_VER = "3.29";
+var APP_VER = "3.30";
 var MONTH_NAMES = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
 /* Cloudflare Worker — Ignav flight prices proxy (free plan, no credit card) */
 var IGNAV_WORKER_CODE = "// AB Travels - Ignav flight prices proxy (Cloudflare Worker)\n// Ignav API key SERVER par rehti hai - app/browser mein kabhi nahi aati.\n//\n// SETUP (ek dafa, ~5 min, free):\n// 1) ignav.com/signup -> free account -> dashboard se API key\n// 2) cloudflare.com -> free account -> Workers & Pages -> Create Worker -> yeh code paste -> Deploy\n// 3) Worker -> Settings -> Variables and Secrets -> secret add karein:\n//      IGNAV_API_KEY = (aap ki Ignav key)\n// 4) Worker URL (https://xxx.workers.dev) app -> Settings -> Flight prices -> paste -> Save & test\n\nexport default {\n  async fetch(request, env) {\n    const cors = {\n      'Access-Control-Allow-Origin': env.ALLOWED_ORIGIN || '*',\n      'Access-Control-Allow-Methods': 'GET,POST,OPTIONS',\n      'Access-Control-Allow-Headers': 'Content-Type',\n      'Access-Control-Max-Age': '86400'\n    };\n    const url = new URL(request.url);\n    if (request.method === 'OPTIONS') return new Response(null, { status: 204, headers: cors });\n    if (!env.IGNAV_API_KEY) {\n      return new Response(JSON.stringify({ error: { code: 'no_key', message: 'IGNAV_API_KEY secret is not set in the Worker.' } }), { status: 500, headers: Object.assign({ 'Content-Type': 'application/json' }, cors) });\n    }\n    const base = 'https://ignav.com/api';\n    let target = '';\n    let init = { method: 'GET', headers: { 'X-Api-Key': env.IGNAV_API_KEY } };\n    if (url.pathname === '/health') {\n      target = base + '/health';\n    } else if (url.pathname === '/fares') {\n      if (request.method !== 'POST') return new Response(JSON.stringify({ error: { message: 'POST only' } }), { status: 405, headers: cors });\n      const body = await request.text();\n      target = base + '/fares/one-way';\n      init = { method: 'POST', headers: { 'X-Api-Key': env.IGNAV_API_KEY, 'Content-Type': 'application/json' }, body };\n    } else if (url.pathname === '/search') {\n      if (request.method !== 'POST') return new Response(JSON.stringify({ error: { message: 'POST only' } }), { status: 405, headers: cors });\n      const body = await request.text();\n      target = base + '/fares/search';\n      init = { method: 'POST', headers: { 'X-Api-Key': env.IGNAV_API_KEY, 'Content-Type': 'application/json' }, body };\n    } else if (url.pathname === '/round-trip') {\n      if (request.method !== 'POST') return new Response(JSON.stringify({ error: { message: 'POST only' } }), { status: 405, headers: cors });\n      const body = await request.text();\n      target = base + '/fares/round-trip';\n      init = { method: 'POST', headers: { 'X-Api-Key': env.IGNAV_API_KEY, 'Content-Type': 'application/json' }, body };\n    } else if (url.pathname === '/booking-links') {\n      if (request.method !== 'POST') return new Response(JSON.stringify({ error: { message: 'POST only' } }), { status: 405, headers: cors });\n      const body = await request.text();\n      target = base + '/fares/booking-links';\n      init = { method: 'POST', headers: { 'X-Api-Key': env.IGNAV_API_KEY, 'Content-Type': 'application/json' }, body };\n    } else {\n      return new Response(JSON.stringify({ error: { message: 'not found' } }), { status: 404, headers: Object.assign({ 'Content-Type': 'application/json' }, cors) });\n    }\n    try {\n      const r = await fetch(target, init);\n      const text = await r.text();\n      return new Response(text, { status: r.status, headers: Object.assign({ 'Content-Type': 'application/json' }, cors) });\n    } catch (e) {\n      return new Response(JSON.stringify({ error: { message: String((e && e.message) || e) } }), { status: 502, headers: Object.assign({ 'Content-Type': 'application/json' }, cors) });\n    }\n  }\n};\n";
@@ -1508,9 +1518,9 @@ function ghShowPasswordDialog(cfg){
   ov.innerHTML = '<div role="dialog" aria-modal="true" style="background:var(--card); color:var(--ink); border:1px solid var(--line); border-radius:16px; width:100%; max-width:460px; padding:18px; box-shadow:0 18px 48px rgba(0,0,0,.42); font-family:inherit;">'
     + '<div style="font-weight:800; font-size:17px; line-height:1.3;">' + esc(cfg.title || "Setup Password") + '</div>'
     + '<div style="font-size:13px; color:var(--muted); margin-top:5px; line-height:1.45;">' + esc(cfg.hint || "Enter the password for this setup link.") + '</div>'
-    + '<label style="display:block; margin-top:14px; margin-bottom:4px; font-size:13px; font-weight:700; color:var(--muted);">Password</label>'
+    + '<label for="ghSetupPass" style="display:block; margin-top:14px; margin-bottom:4px; font-size:13px; font-weight:700; color:var(--muted);">Password</label>'
     + '<input id="ghSetupPass" type="password" autocomplete="new-password" style="width:100%; box-sizing:border-box;">'
-    + (cfg.confirm ? '<label style="display:block; margin-top:10px; margin-bottom:4px; font-size:13px; font-weight:700; color:var(--muted);">Confirm password</label><input id="ghSetupPass2" type="password" autocomplete="new-password" style="width:100%; box-sizing:border-box;">' : '')
+    + (cfg.confirm ? '<label for="ghSetupPass2" style="display:block; margin-top:10px; margin-bottom:4px; font-size:13px; font-weight:700; color:var(--muted);">Confirm password</label><input id="ghSetupPass2" type="password" autocomplete="new-password" style="width:100%; box-sizing:border-box;">' : '')
     + '<div id="ghSetupErr" style="color:var(--red); font-size:12.5px; min-height:17px; margin-top:8px; line-height:1.35;"></div>'
     + '<div style="display:flex; gap:8px; justify-content:flex-end; margin-top:10px;">'
     +   '<button type="button" class="btn small" id="ghSetupCancel" style="margin-top:0;">Cancel</button>'
@@ -3558,10 +3568,10 @@ function viewExpenses(){
   var html = "";
   html += '<div class="card inv-form"><h2>Day-to-day Expenses</h2>';
   html += '<div class="hint" style="margin-top:0;">Rozana kharche yahan turant add karein — ye Monthly Accounts ke hisaab mein khud shamil ho jayenge.</div>';
-  html += '<div class="row" style="margin-top:8px;"><div><label>Month</label><select id="expTabSel">'+opts+'</select></div>'
-        + '<div><label>Date</label><input type="date" id="expTabDate" value="'+today()+'"></div></div>';
-  html += '<div class="row" style="margin-top:8px;"><div><label>Description</label><input id="expTabDesc" placeholder="e.g. Lunch, taxi, tea" autocomplete="off"></div>'
-        + '<div><label>Amount (Rs)</label><input type="number" id="expTabAmt" min="0" inputmode="decimal" placeholder="Amount"></div></div>';
+  html += '<div class="row" style="margin-top:8px;"><div><label for="expTabSel">Month</label><select id="expTabSel">'+opts+'</select></div>'
+        + '<div><label for="expTabDate">Date</label><input type="date" id="expTabDate" value="'+today()+'"></div></div>';
+  html += '<div class="row" style="margin-top:8px;"><div><label for="expTabDesc">Description</label><input id="expTabDesc" placeholder="e.g. Lunch, taxi, tea" autocomplete="off"></div>'
+        + '<div><label for="expTabAmt">Amount (Rs)</label><input type="number" id="expTabAmt" min="0" inputmode="decimal" placeholder="Amount"></div></div>';
   html += '<button class="btn primary" id="expTabAdd" style="margin-top:8px;">Add Expense</button>';
   html += '<div class="hint" id="expTabStatus" style="color:var(--green);"></div>';
   html += '</div>';
@@ -3589,87 +3599,87 @@ function viewInvoice(){
   var html = "";
   html += '<div class="card inv-form"><h2>Invoice / Ticket — for the client</h2>';
   html += '<div class="sec-head">Type &amp; airline</div>';
-  html += '<div class="row"><div><label>Invoice type</label><select id="invDoc"><option value="ticket">Ticket (flight)</option><option value="umrah">Umrah package</option></select></div>'
-        + '<div class="umrah-hide"><label>Trip type</label><select id="invTrip"><option value="one">One-way</option><option value="round">Round trip (return flight)</option></select></div>'
-        + '<div class="umrah-hide"><label>Airline</label><select id="invAir">'+airOpts+'</select></div></div>';
+  html += '<div class="row"><div><label for="invDoc">Invoice type</label><select id="invDoc"><option value="ticket">Ticket (flight)</option><option value="umrah">Umrah package</option></select></div>'
+        + '<div class="umrah-hide"><label for="invTrip">Trip type</label><select id="invTrip"><option value="one">One-way</option><option value="round">Round trip (return flight)</option></select></div>'
+        + '<div class="umrah-hide"><label for="invAir">Airline</label><select id="invAir">'+airOpts+'</select></div></div>';
   var saleOpts = '<option value="">— Not linked to any sale —</option>';
   (S.tickets||[]).slice().sort(function(a,b){ return String(b.date||"").localeCompare(String(a.date||"")); }).slice(0,300).forEach(function(t){
     saleOpts += '<option value="'+esc(t.id)+'"'+(t.id===invLinkId?' selected':'')+'>'+esc(dmy(t.date))+' — '+esc(t.client||"")+' — '+money(ticketNet(t))+(ticketAdj(t)?' (adj −'+esc(money(ticketAdj(t)))+')':'')+(t.kind?' ('+esc(t.kind)+')':'')+'</option>';
   });
-  html += '<div class="row" style="margin-top:8px;"><div><label>Link this invoice to a sale (optional)</label><select id="invLinkSale">'+saleOpts+'</select>'
+  html += '<div class="row" style="margin-top:8px;"><div><label for="invLinkSale">Link this invoice to a sale (optional)</label><select id="invLinkSale">'+saleOpts+'</select>'
         + '<div class="hint" id="invLinkStatus">'+(invLinkId?'This invoice will be saved with the selected sale.':'Not every client needs an invoice — leave this empty if not needed.')+'</div></div></div>';
   html += '<label style="display:flex; gap:8px; align-items:center; margin-top:8px;"><input type="checkbox" id="invSaveIt" style="width:auto" checked> Save this invoice (default) — uncheck karein to sirf generate hogi, save nahi hogi</label>';
   html += '<div id="invUmrahWrap" style="display:none; border:1px dashed var(--line); border-radius:12px; padding:10px; margin-top:10px;">'
         + '<div style="font-weight:800; font-size:13px; margin-bottom:6px;">🕋 Umrah package details</div>'
-        + '<div class="row"><div><label>Bed type</label><select id="invBed"><option>Single</option><option>Double</option><option>Triple</option><option>Quad</option><option>Sharing</option></select></div>'
-        + '<div><label>Beds (quantity)</label><input type="number" id="invBeds" min="0" value="1" inputmode="numeric"></div>'
-        + '<div><label>Flight</label><select id="invFlightType"><option>Direct</option><option>Connecting</option></select></div></div>'
-        + '<div class="row" style="margin-top:8px;"><div><label>Hotel (optional)</label><input id="invHotel" placeholder="Hotel name, Makkah/Madinah" autocomplete="off"></div>'
-        + '<div><label>Nights (optional)</label><input type="number" id="invNights" min="0" inputmode="numeric" placeholder="e.g. 14"></div></div>'
-        + '<div class="row" style="margin-top:8px;"><div><label>Makkah hotel distance (meters)</label><input type="number" id="invMakkahDist" min="0" inputmode="numeric" placeholder="e.g. 300"></div>'
-        + '<div><label>Madinah hotel distance (meters)</label><input type="number" id="invMadinahDist" min="0" inputmode="numeric" placeholder="e.g. 500"></div></div>'
+        + '<div class="row"><div><label for="invBed">Bed type</label><select id="invBed"><option>Single</option><option>Double</option><option>Triple</option><option>Quad</option><option>Sharing</option></select></div>'
+        + '<div><label for="invBeds">Beds (quantity)</label><input type="number" id="invBeds" min="0" value="1" inputmode="numeric"></div>'
+        + '<div><label for="invFlightType">Flight</label><select id="invFlightType"><option>Direct</option><option>Connecting</option></select></div></div>'
+        + '<div class="row" style="margin-top:8px;"><div><label for="invHotel">Hotel (optional)</label><input id="invHotel" placeholder="Hotel name, Makkah/Madinah" autocomplete="off"></div>'
+        + '<div><label for="invNights">Nights (optional)</label><input type="number" id="invNights" min="0" inputmode="numeric" placeholder="e.g. 14"></div></div>'
+        + '<div class="row" style="margin-top:8px;"><div><label for="invMakkahDist">Makkah hotel distance (meters)</label><input type="number" id="invMakkahDist" min="0" inputmode="numeric" placeholder="e.g. 300"></div>'
+        + '<div><label for="invMadinahDist">Madinah hotel distance (meters)</label><input type="number" id="invMadinahDist" min="0" inputmode="numeric" placeholder="e.g. 500"></div></div>'
         + '<div class="row" style="margin-top:8px; align-items:center;">'
         + '<label style="display:flex; gap:8px; align-items:center; margin:0;"><input type="checkbox" id="invShuttle" style="width:auto"> Shuttle service (hide hotel distance)</label>'
         + '<label style="display:flex; gap:8px; align-items:center; margin:0;"><input type="checkbox" id="invZiyarat" style="width:auto"> Makkah &amp; Madinah Ziyarat included</label>'
         + '</div>'
         + '<label style="margin-top:8px; display:flex; gap:8px; align-items:center;"><input type="checkbox" id="invChild" style="width:auto"> Child without bed (alag price ke saath)</label>'
-        + '<div class="row" id="invChildPriceRow" style="margin-top:8px; display:none;"><div><label>Child without bed — price (Rs)</label><input type="number" id="invChildPrice" min="0" inputmode="decimal" placeholder="e.g. 75000"></div></div>'
-        + '<div class="row" style="margin-top:8px;"><div><label>Price per person (Rs)</label><input type="number" id="invPkg" min="0" inputmode="decimal" placeholder="e.g. 250000"></div>'
-        + '<div><label>Advance paid (Rs)</label><input type="number" id="invPaid" min="0" inputmode="decimal" placeholder="e.g. 100000"></div></div>'
+        + '<div class="row" id="invChildPriceRow" style="margin-top:8px; display:none;"><div><label for="invChildPrice">Child without bed — price (Rs)</label><input type="number" id="invChildPrice" min="0" inputmode="decimal" placeholder="e.g. 75000"></div></div>'
+        + '<div class="row" style="margin-top:8px;"><div><label for="invPkg">Price per person (Rs)</label><input type="number" id="invPkg" min="0" inputmode="decimal" placeholder="e.g. 250000"></div>'
+        + '<div><label for="invPaid">Advance paid (Rs)</label><input type="number" id="invPaid" min="0" inputmode="decimal" placeholder="e.g. 100000"></div></div>'
         + '<div class="hint">Total and remaining are calculated from the number of passengers.</div>'
         + '</div>';
   html += '<div class="sec-head">Passengers</div>';
-  html += '<div class="row" style="margin-top:8px;"><div class="umrah-hide"><label>PNR / Booking ref</label><input id="invPnr" maxlength="8" placeholder="ABC123" autocomplete="off" style="text-transform:uppercase; letter-spacing:2px; font-weight:700;"></div>'
-        + '<div><label>Number of passengers</label><input type="number" id="invPax" min="1" value="'+invPaxCount+'" inputmode="numeric"></div></div>';
-  html += '<div class="row" style="margin-top:8px;'+(invPaxCount>1?' display:none;':'')+'" id="invTkRow"><div><label id="invClientLabel">Client name</label><input id="invClient" placeholder="Passenger name" autocomplete="off" style="text-transform:uppercase;"></div>'
-        + '<div class="umrah-hide"><label>Ticket number</label><input id="invTk" placeholder="Ticket number" autocomplete="off" style="text-transform:uppercase;"></div></div>';
-  html += '<div class="row" style="margin-top:8px;'+(invPaxCount>1?' display:none;':'')+'" id="invNicRow"><div><label>NIC / Passport</label><input id="invNic1" placeholder="NIC or Passport number" autocomplete="off" style="text-transform:uppercase;"></div>'
-        + '<div class="umrah-hide"><label>Outbound seat (optional)</label><input id="invSeat1" placeholder="e.g. 12A" autocomplete="off" style="text-transform:uppercase;"></div></div>';
+  html += '<div class="row" style="margin-top:8px;"><div class="umrah-hide"><label for="invPnr">PNR / Booking ref</label><input id="invPnr" maxlength="8" placeholder="ABC123" autocomplete="off" style="text-transform:uppercase; letter-spacing:2px; font-weight:700;"></div>'
+        + '<div><label for="invPax">Number of passengers</label><input type="number" id="invPax" min="1" value="'+invPaxCount+'" inputmode="numeric"></div></div>';
+  html += '<div class="row" style="margin-top:8px;'+(invPaxCount>1?' display:none;':'')+'" id="invTkRow"><div><label for="invClient" id="invClientLabel">Client name</label><input id="invClient" placeholder="Passenger name" autocomplete="off" style="text-transform:uppercase;"></div>'
+        + '<div class="umrah-hide"><label for="invTk">Ticket number</label><input id="invTk" placeholder="Ticket number" autocomplete="off" style="text-transform:uppercase;"></div></div>';
+  html += '<div class="row" style="margin-top:8px;'+(invPaxCount>1?' display:none;':'')+'" id="invNicRow"><div><label for="invNic1">NIC / Passport</label><input id="invNic1" placeholder="NIC or Passport number" autocomplete="off" style="text-transform:uppercase;"></div>'
+        + '<div class="umrah-hide"><label for="invSeat1">Outbound seat (optional)</label><input id="invSeat1" placeholder="e.g. 12A" autocomplete="off" style="text-transform:uppercase;"></div></div>';
   if(invPaxCount <= 1){
-    html += '<div class="row retseat" style="margin-top:8px; display:none;"><div><label>Return seat (optional)</label><input id="invRetSeat1" placeholder="e.g. 14C" autocomplete="off" style="text-transform:uppercase;"></div></div>';
+    html += '<div class="row retseat" style="margin-top:8px; display:none;"><div><label for="invRetSeat1">Return seat (optional)</label><input id="invRetSeat1" placeholder="e.g. 14C" autocomplete="off" style="text-transform:uppercase;"></div></div>';
   }
   html += '<div class="grid2" id="invPaxListRow" style="margin-top:8px;'+(invPaxCount>1?'':' display:none;')+'">'
-        + '<div><label>Passengers (one name per line — press Enter)</label><textarea id="invPaxNames" rows="'+Math.max(3, invPaxCount)+'" placeholder="Ali Khan&#10;Sana Khan&#10;Bilal Ahmed" style="text-transform:uppercase;"></textarea></div>'
-        + '<div><label>NIC / Passport (same order — one per line)</label><textarea id="invNicMulti" rows="'+Math.max(3, invPaxCount)+'" placeholder="42101-1234567-1&#10;AB1234567&#10;42201-7654321-9" style="text-transform:uppercase;"></textarea></div>'
-        + '<div class="umrah-hide" style="grid-column:1/-1;"><label>Outbound seats (optional — same order, one per line)</label><textarea id="invSeats" rows="'+Math.max(2, invPaxCount)+'" placeholder="12A&#10;12B&#10;14C" style="text-transform:uppercase;"></textarea></div>'
-        + '<div class="retseat" style="grid-column:1/-1; display:none;"><label>Return seats (optional — same order, one per line)</label><textarea id="invRetSeats" rows="'+Math.max(2, invPaxCount)+'" placeholder="14C&#10;14D&#10;16A" style="text-transform:uppercase;"></textarea></div>'
+        + '<div><label for="invPaxNames">Passengers (one name per line — press Enter)</label><textarea id="invPaxNames" rows="'+Math.max(3, invPaxCount)+'" placeholder="Ali Khan&#10;Sana Khan&#10;Bilal Ahmed" style="text-transform:uppercase;"></textarea></div>'
+        + '<div><label for="invNicMulti">NIC / Passport (same order — one per line)</label><textarea id="invNicMulti" rows="'+Math.max(3, invPaxCount)+'" placeholder="42101-1234567-1&#10;AB1234567&#10;42201-7654321-9" style="text-transform:uppercase;"></textarea></div>'
+        + '<div class="umrah-hide" style="grid-column:1/-1;"><label for="invSeats">Outbound seats (optional — same order, one per line)</label><textarea id="invSeats" rows="'+Math.max(2, invPaxCount)+'" placeholder="12A&#10;12B&#10;14C" style="text-transform:uppercase;"></textarea></div>'
+        + '<div class="retseat" style="grid-column:1/-1; display:none;"><label for="invRetSeats">Return seats (optional — same order, one per line)</label><textarea id="invRetSeats" rows="'+Math.max(2, invPaxCount)+'" placeholder="14C&#10;14D&#10;16A" style="text-transform:uppercase;"></textarea></div>'
         + '<div style="grid-column:1/-1;"><div class="hint">Names, NIC/Passport and seats match line by line (first line = first passenger). Press Enter for a new line. Any seat left empty is hidden on the invoice.</div></div></div>';
   html += '<div class="sec-head umrah-hide">Flight details</div>';
   html += '<div id="invFlightWrap">';
-  html += '<div class="row" style="margin-top:8px; align-items:flex-start;"><div><label>From (airport)</label><input id="invFrom" placeholder="Country / city / code (KHI ya Karachi)" style="text-transform:uppercase;" autocomplete="off"><div class="hint airport-info" style="margin-top:2px;"></div></div>'
+  html += '<div class="row" style="margin-top:8px; align-items:flex-start;"><div><label for="invFrom">From (airport)</label><input id="invFrom" placeholder="Country / city / code (KHI ya Karachi)" style="text-transform:uppercase;" autocomplete="off"><div class="hint airport-info" style="margin-top:2px;"></div></div>'
         + '<div class="inv-arrow" style="flex:0 0 auto; text-align:center; color:var(--muted);">→</div>'
-        + '<div><label>To (airport)</label><input id="invTo" placeholder="Country / city / code (DXB ya Dubai)" style="text-transform:uppercase;" autocomplete="off"><div class="hint airport-info" style="margin-top:2px;"></div></div></div>';
-  html += '<div class="row dt-row" style="margin-top:8px; align-items:flex-start;"><div><label>Departure date</label><input type="date" id="invDate" value="'+today()+'"><div class="hint"></div></div>'
-        + '<div><label>Departure time</label><input type="time" id="invTime"><div class="hint"></div></div>'
-        + '<div><label>Arrival time (optional)</label><input type="time" id="invArr"><div class="hint">Local time at destination — leave empty to hide.</div></div></div>';
+        + '<div><label for="invTo">To (airport)</label><input id="invTo" placeholder="Country / city / code (DXB ya Dubai)" style="text-transform:uppercase;" autocomplete="off"><div class="hint airport-info" style="margin-top:2px;"></div></div></div>';
+  html += '<div class="row dt-row" style="margin-top:8px; align-items:flex-start;"><div><label for="invDate">Departure date</label><input type="date" id="invDate" value="'+today()+'"><div class="hint"></div></div>'
+        + '<div><label for="invTime">Departure time</label><input type="time" id="invTime"><div class="hint"></div></div>'
+        + '<div><label for="invArr">Arrival time (optional)</label><input type="time" id="invArr"><div class="hint">Local time at destination — leave empty to hide.</div></div></div>';
   html += '<div style="margin-top:8px;"><button type="button" class="btn small" id="invCxToggle">＋ Add connection / layover (optional)</button>'
         + '<div id="invCxWrap" class="inv-sub" style="display:none; border:1px dashed var(--line); border-radius:10px; padding:9px; margin-top:6px;">'
-        + '<div class="row" style="margin-top:0; align-items:flex-end;"><div><label>Connecting from (airport)</label><input id="invCxFrom" placeholder="e.g. DXB — where you change planes" style="text-transform:uppercase;" autocomplete="off"><div class="hint airport-info" style="margin-top:2px;"></div></div></div>'
-        + '<div class="row dt-row" style="margin-top:8px; align-items:flex-start;"><div><label>Connection date</label><input type="date" id="invCxDate"><div class="hint">Follows the departure date — change only if next day.</div></div>'
-        + '<div><label>First flight arrival (at connection)</label><input type="time" id="invCxArr1"><div class="hint">Layover is calculated from this.</div></div>'
-        + '<div><label>Connection departure time</label><input type="time" id="invCxTime"><div class="hint"></div></div></div>'
+        + '<div class="row" style="margin-top:0; align-items:flex-end;"><div><label for="invCxFrom">Connecting from (airport)</label><input id="invCxFrom" placeholder="e.g. DXB — where you change planes" style="text-transform:uppercase;" autocomplete="off"><div class="hint airport-info" style="margin-top:2px;"></div></div></div>'
+        + '<div class="row dt-row" style="margin-top:8px; align-items:flex-start;"><div><label for="invCxDate">Connection date</label><input type="date" id="invCxDate"><div class="hint">Follows the departure date — change only if next day.</div></div>'
+        + '<div><label for="invCxArr1">First flight arrival (at connection)</label><input type="time" id="invCxArr1"><div class="hint">Layover is calculated from this.</div></div>'
+        + '<div><label for="invCxTime">Connection departure time</label><input type="time" id="invCxTime"><div class="hint"></div></div></div>'
         + '<div class="hint">Second leg flies from the connection airport to the main destination — its arrival time is the main arrival. Both legs and the layover print like a real airline itinerary.</div>'
         + '</div></div>';
   html += '</div>';
   html += '<div id="invRetWrap" class="inv-sub" style="display:none; border:1px dashed var(--line); border-radius:12px; padding:10px; margin-top:10px;">'
         + '<div style="font-weight:800; font-size:13px; margin-bottom:6px;">🔁 Return flight</div>'
-        + '<div class="row"><div><label>From (airport)</label><input id="invRetFrom" placeholder="Country / city / code" style="text-transform:uppercase;" autocomplete="off"><div class="hint airport-info" style="margin-top:2px;"></div></div>'
+        + '<div class="row"><div><label for="invRetFrom">From (airport)</label><input id="invRetFrom" placeholder="Country / city / code" style="text-transform:uppercase;" autocomplete="off"><div class="hint airport-info" style="margin-top:2px;"></div></div>'
         + '<div class="inv-arrow" style="flex:0 0 auto; text-align:center; color:var(--muted);">→</div>'
-        + '<div><label>To (airport)</label><input id="invRetTo" placeholder="Country / city / code" style="text-transform:uppercase;" autocomplete="off"><div class="hint airport-info" style="margin-top:2px;"></div></div></div>'
-        + '<div class="row dt-row" style="margin-top:8px; align-items:flex-start;"><div><label>Return date</label><input type="date" id="invRetDate"><div class="hint"></div></div>'
-        + '<div><label>Return time</label><input type="time" id="invRetTime"><div class="hint"></div></div>'
-        + '<div><label>Arrival time (optional)</label><input type="time" id="invRetArr"><div class="hint">Local time at destination — leave empty to hide.</div></div></div>'
+        + '<div><label for="invRetTo">To (airport)</label><input id="invRetTo" placeholder="Country / city / code" style="text-transform:uppercase;" autocomplete="off"><div class="hint airport-info" style="margin-top:2px;"></div></div></div>'
+        + '<div class="row dt-row" style="margin-top:8px; align-items:flex-start;"><div><label for="invRetDate">Return date</label><input type="date" id="invRetDate"><div class="hint"></div></div>'
+        + '<div><label for="invRetTime">Return time</label><input type="time" id="invRetTime"><div class="hint"></div></div>'
+        + '<div><label for="invRetArr">Arrival time (optional)</label><input type="time" id="invRetArr"><div class="hint">Local time at destination — leave empty to hide.</div></div></div>'
         + '<div style="margin-top:8px;"><button type="button" class="btn small" id="invRetCxToggle">＋ Add return connection / layover (optional)</button>'
         + '<div id="invRetCxWrap" class="inv-sub" style="display:none; border:1px dashed var(--line); border-radius:10px; padding:9px; margin-top:6px;">'
-        + '<div class="row" style="margin-top:0; align-items:flex-end;"><div><label>Connecting from (airport)</label><input id="invRetCxFrom" placeholder="e.g. DXB — where you change planes" style="text-transform:uppercase;" autocomplete="off"><div class="hint airport-info" style="margin-top:2px;"></div></div></div>'
-        + '<div class="row dt-row" style="margin-top:8px; align-items:flex-start;"><div><label>Connection date</label><input type="date" id="invRetCxDate"><div class="hint">Follows the return date — change only if next day.</div></div>'
-        + '<div><label>First flight arrival (at connection)</label><input type="time" id="invRetCxArr1"><div class="hint">Layover is calculated from this.</div></div>'
-        + '<div><label>Connection departure time</label><input type="time" id="invRetCxTime"><div class="hint"></div></div></div>'
+        + '<div class="row" style="margin-top:0; align-items:flex-end;"><div><label for="invRetCxFrom">Connecting from (airport)</label><input id="invRetCxFrom" placeholder="e.g. DXB — where you change planes" style="text-transform:uppercase;" autocomplete="off"><div class="hint airport-info" style="margin-top:2px;"></div></div></div>'
+        + '<div class="row dt-row" style="margin-top:8px; align-items:flex-start;"><div><label for="invRetCxDate">Connection date</label><input type="date" id="invRetCxDate"><div class="hint">Follows the return date — change only if next day.</div></div>'
+        + '<div><label for="invRetCxArr1">First flight arrival (at connection)</label><input type="time" id="invRetCxArr1"><div class="hint">Layover is calculated from this.</div></div>'
+        + '<div><label for="invRetCxTime">Connection departure time</label><input type="time" id="invRetCxTime"><div class="hint"></div></div></div>'
         + '<div class="hint">Second leg flies from the connection airport to the main destination — its arrival time is the return arrival. Both legs and the layover print like a real airline itinerary.</div>'
         + '</div></div></div>';
   html += '<div class="sec-head umrah-hide">Baggage &amp; options</div>';
-  html += '<div class="row umrah-hide" style="margin-top:8px;"><div><label>Hand carry (kg)</label><input type="number" id="invHand" min="0" value="7" inputmode="decimal"></div>'
-        + '<div><label>Checked-in bag - going (kg)</label><input type="number" id="invBag" min="0" value="0" inputmode="decimal"><div class="hint">0 = NIL (no checked bag)</div></div><div class="retbag umrah-hide" style="display:none;"><label>Checked-in bag - return (kg)</label><input type="number" id="invBagRet" min="0" inputmode="decimal"><div class="hint">Empty = same as going / 0 = NIL. Different weights print under each flight.</div></div></div>';
+  html += '<div class="row umrah-hide" style="margin-top:8px;"><div><label for="invHand">Hand carry (kg)</label><input type="number" id="invHand" min="0" value="7" inputmode="decimal"></div>'
+        + '<div><label for="invBag">Checked-in bag - going (kg)</label><input type="number" id="invBag" min="0" value="0" inputmode="decimal"><div class="hint">0 = NIL (no checked bag)</div></div><div class="retbag umrah-hide" style="display:none;"><label for="invBagRet">Checked-in bag - return (kg)</label><input type="number" id="invBagRet" min="0" inputmode="decimal"><div class="hint">Empty = same as going / 0 = NIL. Different weights print under each flight.</div></div></div>';
   html += '<div class="row umrah-hide" style="margin-top:8px; align-items:center;">'
         + '<label style="display:flex; gap:8px; align-items:center; margin:0;"><input type="checkbox" id="invNR" style="width:auto"'+(st.invNR?' checked':'')+'> Non-refundable (adds the NON-REFUNDABLE stamp)</label>'
         + '<label style="display:flex; gap:8px; align-items:center; margin:0;"><input type="checkbox" id="invMeal" style="width:auto"> Meal included (show on invoice)</label>'
@@ -3731,15 +3741,15 @@ function viewAirIds(){
   if(!S.settings.airPw){
     return '<div class="card" style="max-width:560px; margin:0 auto;"><h2>🔐 Airline IDs — set a password</h2>'
       + '<div class="hint">Save your airline login IDs and passwords here. Set a password now — it will be asked every time this section is opened. The data is saved with your backup and Google Sheet like the rest of the app.</div>'
-      + '<label>New password</label><input type="password" id="airPw1" autocomplete="new-password">'
-      + '<label style="margin-top:8px;">Confirm password</label><input type="password" id="airPw2" autocomplete="new-password">'
+      + '<label for="airPw1">New password</label><input type="password" id="airPw1" autocomplete="new-password">'
+      + '<label for="airPw2" style="margin-top:8px;">Confirm password</label><input type="password" id="airPw2" autocomplete="new-password">'
       + '<button class="btn primary" id="airPwSave" style="margin-top:10px; width:100%;">Save password</button>'
       + '</div>';
   }
   if(!airUnlocked){
     return '<div class="card" style="max-width:560px; margin:0 auto;"><h2>🔐 Airline IDs — locked</h2>'
       + '<div class="hint">Enter the password to open your airline IDs.</div>'
-      + '<label>Password</label><input type="password" id="airPwIn" autocomplete="current-password">'
+      + '<label for="airPwIn">Password</label><input type="password" id="airPwIn" autocomplete="current-password">'
       + '<button class="btn primary" id="airPwGo" style="margin-top:10px; width:100%;">Unlock</button>'
       + '<div class="hint" id="airPwMsg" style="color:var(--red);"></div>'
       + '<button class="btn small" id="airPwForgot" style="margin-top:12px; background:var(--red); color:#fff;">Forgot password</button>'
@@ -3749,11 +3759,11 @@ function viewAirIds(){
   var list = S.airlineIds || [];
   var html = '<div class="card"><h2>🔐 Airline IDs &amp; passwords</h2>';
   html += '<div class="hint">Office use only. This section locks again as soon as you switch to another tab.</div>';
-  html += '<div class="row" style="margin-top:8px;"><div><label>Airline</label><select id="airName">'+airNameOpts()+'</select></div>'
-        + '<div><label>Login / ID</label><input id="airLogin" placeholder="Agent ID / email" autocomplete="off"></div></div>';
-  html += '<div class="row" style="margin-top:8px;"><div><label>Password</label><input id="airPass" placeholder="Password" autocomplete="off"></div>'
-        + '<div><label>Note (optional)</label><input id="airNote" placeholder="e.g. agent account" autocomplete="off"></div></div>';
-  html += '<div class="row" style="margin-top:8px;"><div><label>Login page link (optional — you add it yourself)</label><input id="airLink" placeholder="https://www.airline.com/login" autocomplete="off"></div></div>';
+  html += '<div class="row" style="margin-top:8px;"><div><label for="airName">Airline</label><select id="airName">'+airNameOpts()+'</select></div>'
+        + '<div><label for="airLogin">Login / ID</label><input id="airLogin" placeholder="Agent ID / email" autocomplete="off"></div></div>';
+  html += '<div class="row" style="margin-top:8px;"><div><label for="airPass">Password</label><input id="airPass" placeholder="Password" autocomplete="off"></div>'
+        + '<div><label for="airNote">Note (optional)</label><input id="airNote" placeholder="e.g. agent account" autocomplete="off"></div></div>';
+  html += '<div class="row" style="margin-top:8px;"><div><label for="airLink">Login page link (optional — you add it yourself)</label><input id="airLink" placeholder="https://www.airline.com/login" autocomplete="off"></div></div>';
   html += '<button class="btn green" id="airAdd">Add airline ID</button>';
   html += '</div>';
   if(list.length){
@@ -4630,6 +4640,90 @@ function ayatCard(){
     + (a.ur ? '<div class="ur" dir="rtl" lang="ur">'+esc(a.ur)+'</div>' : '')
     + '</div>';
 }
+/* ---------- Monthly profit trend (v3.30) ----------
+   dataviz method ka order follow kiya: pehle FORM (trend over time ->
+   single-series line), phir COLOR job (ek hue), phir palette VALIDATE
+   (skill ka validate_palette.js teeno themes par ALL CHECKS PASS).
+   Specs: line 2px round, end-dot r4.5 + 2px surface ring, gridlines
+   hairline solid, area wash ~10%, labels sirf endpoint aur extreme par.
+   Single series he is liye legend box nahi — title hi bata deta he.
+   Neeche wali table barqarar he: wahi accessible data source he. */
+function trendShortMoney(v){
+  var a = Math.abs(Number(v)||0), s = (Number(v)||0) < 0 ? "\u2212" : "";
+  if(a >= 10000000) return s + (a/10000000).toFixed(a % 10000000 ? 1 : 0) + "cr";
+  if(a >= 100000)   return s + (a/100000).toFixed(a % 100000 ? 1 : 0) + "L";
+  if(a >= 1000)     return s + Math.round(a/1000) + "k";
+  return s + Math.round(a);
+}
+function profitTrendSVG(mids){
+  if(!mids || mids.length < 2) return "";
+  var pts = mids.map(function(mid){ return { mid:mid, label:monthLabel(mid), v:monthCalc(mid).net }; });
+  var W = 640, H = 190, L = 48, R = 20, T = 16, B = 30;
+  var iw = W - L - R, ih = H - T - B;
+  var vals = pts.map(function(p){ return p.v; });
+  var hi = Math.max.apply(null, vals.concat([0]));
+  var lo = Math.min.apply(null, vals.concat([0]));
+  if(hi === lo){ hi += 1; lo -= 1; }
+  /* nice round bounds taake axis labels saaf parhein */
+  var span = hi - lo;
+  var step = Math.pow(10, Math.floor(Math.log(span)/Math.LN10));
+  if(span/step < 2) step /= 5; else if(span/step < 5) step /= 2;
+  lo = Math.floor(lo/step)*step;
+  hi = Math.ceil(hi/step)*step;
+  if(hi === lo) hi = lo + step;
+  var X = function(i){ return L + iw * i / (pts.length - 1); };
+  var Y = function(v){ return T + ih * (hi - v) / (hi - lo); };
+  var zeroY = Y(0);
+
+  var g = [];
+  /* gridlines: hairline, solid, recessive — zero line bhi isi family ki */
+  for(var t = lo; t <= hi + step/2; t += step){
+    var gy = Y(t);
+    g.push('<line x1="'+L+'" y1="'+gy.toFixed(1)+'" x2="'+(W-R)+'" y2="'+gy.toFixed(1)+'" stroke="var(--line)" stroke-width="1"/>');
+    g.push('<text x="'+(L-8)+'" y="'+(gy+3.5).toFixed(1)+'" text-anchor="end" font-size="10" fill="var(--muted)">'+esc(trendShortMoney(t))+'</text>');
+  }
+  /* area wash — series hue ~10% */
+  var area = "M " + X(0).toFixed(1) + " " + zeroY.toFixed(1);
+  pts.forEach(function(p,i){ area += " L " + X(i).toFixed(1) + " " + Y(p.v).toFixed(1); });
+  area += " L " + X(pts.length-1).toFixed(1) + " " + zeroY.toFixed(1) + " Z";
+  g.push('<path d="'+area+'" fill="var(--trend-series)" opacity="0.10"/>');
+  /* line */
+  var d = pts.map(function(p,i){ return (i?"L":"M") + " " + X(i).toFixed(1) + " " + Y(p.v).toFixed(1); }).join(" ");
+  g.push('<path d="'+d+'" fill="none" stroke="var(--trend-series)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>');
+  /* dots: surface ring 2px, chhote months par sab, warna sirf ahem */
+  var last = pts.length - 1;
+  var maxI = vals.indexOf(Math.max.apply(null, vals));
+  var minI = vals.indexOf(Math.min.apply(null, vals));
+  pts.forEach(function(p,i){
+    var show = pts.length <= 14 || i === last || i === maxI || i === minI;
+    if(!show) return;
+    g.push('<circle cx="'+X(i).toFixed(1)+'" cy="'+Y(p.v).toFixed(1)+'" r="4.5" fill="var(--trend-series)" stroke="var(--card)" stroke-width="2"><title>'+esc(p.label)+": "+esc(money(p.v))+'</title></circle>');
+  });
+  /* direct labels: sirf endpoint + extreme (har point par number nahi) */
+  function lab(i, dy){
+    var p = pts[i], anchor = i === last ? "end" : (i === 0 ? "start" : "middle");
+    var lx = i === last ? X(i) - 2 : (i === 0 ? X(i) + 2 : X(i));
+    return '<text x="'+lx.toFixed(1)+'" y="'+(Y(p.v)+dy).toFixed(1)+'" text-anchor="'+anchor+'" font-size="10.5" font-weight="700" fill="var(--ink)">'+esc(trendShortMoney(p.v))+'</text>';
+  }
+  g.push(lab(last, pts[last].v >= 0 ? -9 : 15));
+  if(maxI !== last) g.push(lab(maxI, -9));
+  if(minI !== last && minI !== maxI) g.push(lab(minI, 15));
+  /* x labels — bheed ho to har nth; "Nov 26" jaisa chhota roop */
+  var every = Math.ceil(pts.length / 8);
+  pts.forEach(function(p,i){
+    if(i % every !== 0 && i !== last) return;
+    var anchor = i === 0 ? "start" : (i === last ? "end" : "middle");
+    var parts = String(p.label).split(" ");
+    var short = (parts[0]||"").slice(0,3) + " " + String(parts[1]||"").slice(-2);
+    g.push('<text x="'+X(i).toFixed(1)+'" y="'+(H-8)+'" text-anchor="'+anchor+'" font-size="10" fill="var(--muted)">'+esc(short)+'</text>');
+  });
+  var first = pts[0], end = pts[last];
+  var desc = "Net profit " + first.label + " " + money(first.v) + " se " + end.label + " " + money(end.v) + " tak.";
+  return '<div class="trend-wrap">'
+    + '<svg viewBox="0 0 '+W+' '+H+'" width="100%" height="auto" role="img" aria-label="'+esc(desc)+'" preserveAspectRatio="xMidYMid meet">'
+    + '<title>Net profit per month</title><desc>'+esc(desc)+'</desc>'
+    + g.join("") + '</svg></div>';
+}
 function viewDash(){
   var pb = partnerBalances(), t = totals(), st = S.settings;
   var mf = monthFilterCard("DASH", "View the overall summary or a single month. <b>All months</b> shows everything.");
@@ -4693,7 +4787,14 @@ function viewDash(){
   var mids = Object.keys(S.months).sort();
   var showMids = (mf.cur === "all") ? mids : mids.filter(function(m){ return m === mf.cur; });
   if(showMids.length){
-    html += '<div class="card"><h2>'+esc(T("pmah"))+'</h2><table><tr><th>'+esc(T("thm"))+'</th><th>'+esc(T("thk"))+'</th><th>'+esc(T("thkh"))+'</th><th>'+esc(T("ths"))+'</th></tr>';
+    html += '<div class="card"><h2>'+esc(T("pmah"))+'</h2>';
+    /* Trend pehle (ek nazar mein), tafseel neeche table mein */
+    var trend = profitTrendSVG(showMids);
+    if(trend){
+      html += '<div class="trend-note">Net profit per month — zero line se neeche = loss.</div>';
+      html += trend;
+    }
+    html += '<table><tr><th>'+esc(T("thm"))+'</th><th>'+esc(T("thk"))+'</th><th>'+esc(T("thkh"))+'</th><th>'+esc(T("ths"))+'</th></tr>';
     showMids.forEach(function(mid){
       var c = monthCalc(mid);
       html += '<tr><td><b>'+monthLabel(mid)+'</b></td><td class="pos">'+money(c.income)+'</td><td class="neg">'+money(c.expenses)+'</td>'
@@ -4709,8 +4810,8 @@ function viewDash(){
   if(mf.cur !== "all") chL = chL.filter(function(x){ return String(x.date||"").slice(0,7) === mf.cur; });
   chL.sort(function(a,b){ return (b.date||"").localeCompare(a.date||""); });
   html += '<div class="card"><h2>'+esc(T("chled"))+(mf.cur==="all"?"":' — '+esc(monthLabel(mf.cur)))+'</h2>';
-  html += '<div class="row"><input id="chAmt" type="number" min="0" inputmode="decimal" placeholder="'+esc(T("raqamph"))+'"><input id="chDate" type="date" value="'+today()+'" style="max-width:160px;"></div>';
-  html += '<input id="chNote" placeholder="'+esc(T("thw"))+'" style="margin-top:8px;">';
+  html += '<div class="row"><input id="chAmt" type="number" min="0" inputmode="decimal" aria-label="Charity amount (Rs)" placeholder="'+esc(T("raqamph"))+'"><input id="chDate" type="date" aria-label="Charity date" value="'+today()+'" style="max-width:160px;"></div>';
+  html += '<input id="chNote" aria-label="Charity note" placeholder="'+esc(T("thw"))+'" style="margin-top:8px;">';
   html += '<button class="btn small primary" id="addCh" style="width:100%;">'+esc(T("savek"))+'</button>';
   if(chL.length){
     html += '<table style="margin-top:8px;"><tr><th>'+esc(T("thdate"))+'</th><th>'+esc(T("thw"))+'</th><th>'+esc(T("raqamh"))+'</th><th></th></tr>';
@@ -4743,7 +4844,7 @@ function viewMonth(){
   var opts = monthOptions();            // pehle selected month tay karein
   var mid = selectedMonth, m = S.months[mid] || {incomes:[], expenses:[]}, c = monthCalc(mid), st = S.settings;
   var html = "";
-  html += '<div class="card"><div class="monthbar"><select id="monthSel">'+opts+'</select>'
+  html += '<div class="card"><div class="monthbar"><select id="monthSel" aria-label="Month">'+opts+'</select>'
         + '<button class="btn small primary" id="addMonth">'+esc(T("newmonth"))+'</button>'
         + '<button class="btn btn-del" id="delMonth">Delete month</button></div>';
   html += '<div class="grid2">'
@@ -4754,7 +4855,7 @@ function viewMonth(){
 
   html += '<div class="card"><h2>'+esc(T("kamai"))+'</h2>';
   html += '<div class="hint" style="margin-top:0;">'+esc(T("incomehint"))+'</div>';
-  html += '<div class="row"><input id="inDesc" placeholder="'+esc(T("indesc"))+'"><input id="inAmt" type="number" min="0" inputmode="decimal" placeholder="Amount"><button class="btn small green" id="addIncome" style="flex:0 0 auto; margin-top:0;">'+esc(T("jamak"))+'</button></div>';
+  html += '<div class="row"><input id="inDesc" aria-label="Income description" placeholder="'+esc(T("indesc"))+'"><input id="inAmt" type="number" min="0" inputmode="decimal" aria-label="Income amount (Rs)" placeholder="Amount"><button class="btn small green" id="addIncome" style="flex:0 0 auto; margin-top:0;">'+esc(T("jamak"))+'</button></div>';
   if((m.incomes||[]).length){
     html += '<table><tr><th>Description</th><th>Amount</th><th></th></tr>';
     m.incomes.forEach(function(x,i){
@@ -4765,7 +4866,7 @@ function viewMonth(){
   html += '</div>';
 
   html += '<div class="card"><h2>'+esc(T("kharcha"))+'</h2><button class="btn small primary" id="fixBtn" style="width:100%; margin-top:2px;">'+esc(T("fixbtn"))+'</button>';
-  html += '<div class="row"><input id="exDesc" placeholder="'+esc(T("exdesc"))+'"><input id="exAmt" type="number" min="0" inputmode="decimal" placeholder="Amount"><button class="btn small" id="addExpense" style="flex:0 0 auto; margin-top:0; background:var(--red); color:#fff;">'+esc(T("jamak"))+'</button></div>';
+  html += '<div class="row"><input id="exDesc" aria-label="Expense description" placeholder="'+esc(T("exdesc"))+'"><input id="exAmt" type="number" min="0" inputmode="decimal" aria-label="Expense amount (Rs)" placeholder="Amount"><button class="btn small" id="addExpense" style="flex:0 0 auto; margin-top:0; background:var(--red); color:#fff;">'+esc(T("jamak"))+'</button></div>';
   if((m.expenses||[]).length){
     html += '<table><tr><th>Description</th><th>Amount</th><th></th></tr>';
     m.expenses.forEach(function(x,i){
@@ -4798,8 +4899,8 @@ function viewMonth(){
   // Is mahine ke nisab (%) — per-month override
   html += '<div class="card"><h2>This month&rsquo;s rates (split %)</h2>';
   html += '<div class="hint" style="margin-top:0;">Leave blank to use the rates from Settings (charity '+st.charityRate+'%, loan '+st.loanRate+'%). If some months use a different split (e.g. <b>50% loan, 25%-25% partners</b>), enter <b>Charity %</b> and <b>Loan %</b> here — whatever remains is split equally between the partners.</div>';
-  html += '<div class="row"><div><label>Charity %</label><input id="mCharity" type="number" min="0" max="100" step="0.5" inputmode="decimal" placeholder="'+esc(st.charityRate)+'" value="'+(m.charityRate===undefined||m.charityRate===null?"":esc(m.charityRate))+'"></div>'
-        + '<div><label>Loan %</label><input id="mLoan" type="number" min="0" max="100" step="1" inputmode="decimal" placeholder="'+esc(st.loanRate)+'" value="'+(m.loanRate===undefined||m.loanRate===null?"":esc(m.loanRate))+'"></div></div>';
+  html += '<div class="row"><div><label for="mCharity">Charity %</label><input id="mCharity" type="number" min="0" max="100" step="0.5" inputmode="decimal" placeholder="'+esc(st.charityRate)+'" value="'+(m.charityRate===undefined||m.charityRate===null?"":esc(m.charityRate))+'"></div>'
+        + '<div><label for="mLoan">Loan %</label><input id="mLoan" type="number" min="0" max="100" step="1" inputmode="decimal" placeholder="'+esc(st.loanRate)+'" value="'+(m.loanRate===undefined||m.loanRate===null?"":esc(m.loanRate))+'"></div></div>';
   html += '<button class="btn small primary" id="saveMRates" style="margin-top:8px; width:100%;">Save this month&rsquo;s rates</button>';
   if(c.applied){
     html += '<button class="btn small" id="reapplyMonthBtn" style="margin-top:8px; width:100%; background:var(--gold); color:#fff;">Re-apply split with new rates</button>';
@@ -4822,8 +4923,8 @@ function viewMonth(){
   });
   html += '</table>';
   html += '<div class="row" style="margin-top:8px;">'
-        + '<select id="expFrom">'+allMids.map(function(x){ return '<option value="'+x+'"'+(x===mid?" selected":"")+'>'+monthLabel(x)+' — from</option>'; }).join("")+'</select>'
-        + '<select id="expTo">'+allMids.map(function(x){ return '<option value="'+x+'">'+monthLabel(x)+' — to</option>'; }).join("")+'</select>'
+        + '<select id="expFrom" aria-label="Move expenses from month">'+allMids.map(function(x){ return '<option value="'+x+'"'+(x===mid?" selected":"")+'>'+monthLabel(x)+' — from</option>'; }).join("")+'</select>'
+        + '<select id="expTo" aria-label="Move expenses to month">'+allMids.map(function(x){ return '<option value="'+x+'">'+monthLabel(x)+' — to</option>'; }).join("")+'</select>'
         + '</div>';
   html += '<button class="btn small" id="expShift" style="width:100%;">Move all expenses</button>';
   html += '</div>';
@@ -4871,8 +4972,8 @@ function viewTickets(){
   });
   html += '<div class="card sheet-bar">'
         + '<div class="sheet-bar-row">'
-        + '<div class="sb-month"><label>Month</label><select id="tkMonthFilter">'+opts+'</select></div>'
-        + '<div class="sb-search"><label>Search</label><input id="tkSearch" placeholder="Client ka naam likhein…" autocomplete="off"></div>'
+        + '<div class="sb-month"><label for="tkMonthFilter">Month</label><select id="tkMonthFilter">'+opts+'</select></div>'
+        + '<div class="sb-search"><label for="tkSearch">Search</label><input id="tkSearch" placeholder="Client ka naam likhein…" autocomplete="off"></div>'
         + '</div>'
         + '<div class="hint" id="tkSearchCount" style="margin-top:6px;"></div>'
         + '</div>';
@@ -4969,43 +5070,43 @@ function viewTickets(){
 
   /* ---- Naya sale: form (sales mojood hon to band) ---- */
   html += '<div class="card" data-collapse="tknew" data-open="'+(all.length ? "0" : "1")+'"><h2>'+esc(T("newtk"))+'</h2>';
-  html += '<label>'+esc(T("tareekh"))+'</label><input id="tkDate" type="date" value="'+today()+'">';
-  html += '<div class="row" style="margin-top:8px;"><div><label>Sale type</label><select id="tkKind"><option>Ticket</option><option>Change</option><option>Umrah</option><option>Hajj</option></select></div></div>';
+  html += '<label for="tkDate">'+esc(T("tareekh"))+'</label><input id="tkDate" type="date" value="'+today()+'">';
+  html += '<div class="row" style="margin-top:8px;"><div><label for="tkKind">Sale type</label><select id="tkKind"><option>Ticket</option><option>Change</option><option>Umrah</option><option>Hajj</option></select></div></div>';
   html += '<div class="row" style="margin-top:8px;">'
-        + '<div><label>Client name</label><input id="tkClient" placeholder="Full name"></div>'
-        + '<div><label>Contact number</label><input id="tkPhone" type="tel" inputmode="tel" placeholder="For payment reminders"></div>'
+        + '<div><label for="tkClient">Client name</label><input id="tkClient" placeholder="Full name"></div>'
+        + '<div><label for="tkPhone">Contact number</label><input id="tkPhone" type="tel" inputmode="tel" placeholder="For payment reminders"></div>'
         + '</div>';
-  html += '<label style="margin-top:8px;">Detail — route / PNR / note</label><input id="tkDetail" placeholder="e.g. KHI-DXB EK601">';
+  html += '<label for="tkDetail" style="margin-top:8px;">Detail — route / PNR / note</label><input id="tkDetail" placeholder="e.g. KHI-DXB EK601">';
   html += '<div class="row" style="margin-top:8px;">'
-        + '<div><label>Cost price (Rs)</label><input id="tkCost" type="number" min="0" inputmode="decimal" placeholder="0"></div>'
-        + '<div><label>Sale price (Rs)</label><input id="tkSale" type="number" min="0" inputmode="decimal" placeholder="0"></div>'
+        + '<div><label for="tkCost">Cost price (Rs)</label><input id="tkCost" type="number" min="0" inputmode="decimal" placeholder="0"></div>'
+        + '<div><label for="tkSale">Sale price (Rs)</label><input id="tkSale" type="number" min="0" inputmode="decimal" placeholder="0"></div>'
         + '</div>';
   /* Change sale — purani ticket ka refund credit client ki price se minus (v3.12) */
   html += '<div id="tkChangeBox" style="display:none; margin-top:8px; padding:10px; border:1px dashed var(--line); border-radius:12px;">'
         + '<div style="font-size:12.5px; font-weight:700; margin-bottom:6px;">⇄ Ticket change — purani ticket ka adj</div>'
         + '<div class="row" style="margin-top:0;">'
-        + '<div><label>Previous ticket (PNR / sale)</label><select id="tkPrev"><option value="">— purani sale chunein —</option></select>'
+        + '<div><label for="tkPrev">Previous ticket (PNR / sale)</label><select id="tkPrev"><option value="">— purani sale chunein —</option></select>'
         + '<div class="hint" style="margin-top:2px;">Purani sale chunein to us ka baqi amount neeche total mein jud jayega.</div></div>'
         + '</div>'
         + '<div class="row" style="margin-top:8px;">'
-        + '<div><label>Previous Ticket Adj (Rs)</label><input id="tkAdj" type="number" min="0" inputmode="decimal" placeholder="0">'
+        + '<div><label for="tkAdj">Previous Ticket Adj (Rs)</label><input id="tkAdj" type="number" min="0" inputmode="decimal" placeholder="0">'
         + '<div class="hint" style="margin-top:2px;">Purani ticket chunein to ye khud bhar jata he — badal sakte hain.</div></div>'
-        + '<div><label>Purani ticket ka PNR (agar list mein na ho)</label><input id="tkPrevRef" placeholder="e.g. EK601 · PNR 6XK2" autocomplete="off"></div>'
+        + '<div><label for="tkPrevRef">Purani ticket ka PNR (agar list mein na ho)</label><input id="tkPrevRef" placeholder="e.g. EK601 · PNR 6XK2" autocomplete="off"></div>'
         + '</div>'
         + '<div class="hint" id="tkChangeHint" style="margin-top:6px;"></div>'
         + '<div class="hint" style="margin-top:4px; font-size:11.5px;">Cost price mein supplier ka poora price likhein — adj app khud sale aur cost dono se minus karti he, is liye profit sahi rehta he.</div>'
         + '</div>';
-  html += '<div class="row" style="margin-top:8px;"><div style="flex:0 0 170px;"><label>Number of persons</label><input id="tkPersons" type="number" min="1" max="99" step="1" inputmode="numeric" value="1"></div><div style="flex:1; display:flex; align-items:flex-end;"><div class="hint" style="margin:0 0 10px;">Only a count — cost and sale stay as entered and do not multiply.</div></div></div>';
+  html += '<div class="row" style="margin-top:8px;"><div style="flex:0 0 170px;"><label for="tkPersons">Number of persons</label><input id="tkPersons" type="number" min="1" max="99" step="1" inputmode="numeric" value="1"></div><div style="flex:1; display:flex; align-items:flex-end;"><div class="hint" style="margin:0 0 10px;">Only a count — cost and sale stay as entered and do not multiply.</div></div></div>';
   html += '<div class="hint" id="tkProfitHint">'+esc(T("profit"))+'<b>—</b> <span style="color:var(--muted);">(cost aur sale dono likhein)</span></div>';
   html += '<div class="row" style="margin-top:8px;"><label style="width:100%;">'+esc(T("payment"))+'</label>'
-    + '<div><label>Status</label><select id="tkPaid"><option value="paid">'+esc(T("paidopt"))+'</option><option value="unpaid">'+esc(T("unpaidopt"))+'</option></select></div>'
-    + '<div><label>Method</label><select id="tkPayMethod"><option>Cash</option><option>Online</option></select></div>'
-    + '<div><label>'+esc(T("commph"))+'</label><input id="tkComm" type="number" min="0" inputmode="decimal" placeholder="0" value="0"></div></div>';
+    + '<div><label for="tkPaid">Status</label><select id="tkPaid"><option value="paid">'+esc(T("paidopt"))+'</option><option value="unpaid">'+esc(T("unpaidopt"))+'</option></select></div>'
+    + '<div><label for="tkPayMethod">Method</label><select id="tkPayMethod"><option>Cash</option><option>Online</option></select></div>'
+    + '<div><label for="tkComm">'+esc(T("commph"))+'</label><input id="tkComm" type="number" min="0" inputmode="decimal" placeholder="0" value="0"></div></div>';
   /* Advance / abhi mila hua — baqi khud Pending Payments mein (v3.24) */
   html += '<div class="row" style="margin-top:8px;">'
-    + '<div><label>Advance received now (Rs)</label><input id="tkAdv" type="number" min="0" inputmode="decimal" placeholder="0">'
+    + '<div><label for="tkAdv">Advance received now (Rs)</label><input id="tkAdv" type="number" min="0" inputmode="decimal" placeholder="0">'
     + '<div class="hint" style="margin-top:2px;">Client ne abhi kitne diye — baqi raqam khud Pending Payments mein chali jayegi.</div></div>'
-    + '<div><label>Advance date</label><input id="tkAdvDate" type="date" value="'+today()+'"></div>'
+    + '<div><label for="tkAdvDate">Advance date</label><input id="tkAdvDate" type="date" value="'+today()+'"></div>'
     + '</div>';
   html += '<div class="hint" id="tkAdvHint">Advance likhein to baqi amount yahan nazar aayega.</div>';
   html += '<button class="btn green" id="addTicket">'+esc(T("savetk"))+'</button>';
@@ -5055,7 +5156,7 @@ function monthFilterCard(key, hint){
     opts += '<option value="'+m+'"'+(m===cur?" selected":"")+'>'+esc(monthLabel(m))+'</option>';
   });
   return { cur:cur, months:months,
-    html: '<div class="card" style="padding-bottom:10px;"><label>Month filter</label><select id="'+key+'MonthFilter">'+opts+'</select>'
+    html: '<div class="card" style="padding-bottom:10px;"><label for="'+key+'MonthFilter">Month filter</label><select id="'+key+'MonthFilter">'+opts+'</select>'
         + '<div class="hint">'+hint+'</div></div>' };
 }
 function viewPartner(which){
@@ -6015,8 +6116,8 @@ async function pwBuildExactDocx(result){
 function viewPdfToWord(){
   var html = '<div class="card"><h2>📄 PDF to Word — iLovePDF style</h2>';
   html += '<div class="hint">PDF upload karein — andar likha hua text ho to bilkul sahi nikaalegi (structure, tables, images, header/footer sab PDF jaisa, editable Word mein). Scanned/tasveer wali PDF ho to har page OCR hoga. Kuch bhi save nahi hota — sab kuch aapke device par. <b>Behtar scanned result ke liye Settings me free AI OCR key (OCR.space) dalein.</b> Pehli dafa engine internet se download hota he.</div>';
-  html += '<div class="row" style="margin-top:8px;"><div><label>Convert mode</label><select id="pwMode"><option value="structured">iLovePDF style — layout + tables + images + header/footer</option><option value="exact">Exact look — image background + editable text (PDF jaisa)</option><option value="text">Simple text only</option></select></div>'
-        + '<div><label>OCR ki zubaan (sirf scanned PDF ke liye)</label><select id="pwLang"><option value="eng">English</option><option value="eng+urd">English + Urdu (dheema, bara download)</option></select></div></div>';
+  html += '<div class="row" style="margin-top:8px;"><div><label for="pwMode">Convert mode</label><select id="pwMode"><option value="structured">iLovePDF style — layout + tables + images + header/footer</option><option value="exact">Exact look — image background + editable text (PDF jaisa)</option><option value="text">Simple text only</option></select></div>'
+        + '<div><label for="pwLang">OCR ki zubaan (sirf scanned PDF ke liye)</label><select id="pwLang"><option value="eng">English</option><option value="eng+urd">English + Urdu (dheema, bara download)</option></select></div></div>';
   html += '<div style="display:flex; gap:8px; margin-top:8px; align-items:center;"><button class="btn primary small" id="pwPickBtn">📄 PDF chunein</button><input type="file" id="pwFile" accept="application/pdf,.pdf" style="display:none;"></div>';
   html += '<div class="hint" id="pwStatus" style="font-weight:600;"></div>';
   html += '<div id="pwBarWrap" style="height:8px; background:var(--line-soft); border-radius:99px; overflow:hidden; margin-top:8px; display:none;"><div id="pwBar" style="height:100%; width:0%; background:var(--blue);"></div></div>';
@@ -6544,21 +6645,21 @@ function viewTracker(){
   html += '<div class="trk-form">';
   html += '<div style="font-weight:800; font-size:13.5px; margin-bottom:6px;">' + (trkEditId ? "✏ Tracker edit" : "＋ Naya tracker") + '</div>';
   html += '<div class="row" style="align-items:flex-start;">'
-        + '<div><label>From *</label><input id="trkFrom" value="' + esc(f.origin || "") + '" placeholder="KHI" autocomplete="off" style="text-transform:uppercase; font-weight:700; letter-spacing:.1em;"><div class="hint airport-info" style="margin-top:2px;"></div></div>'
-        + '<div><label>To *</label><input id="trkTo" value="' + esc(f.destination || "") + '" placeholder="UET" autocomplete="off" style="text-transform:uppercase; font-weight:700; letter-spacing:.1em;"><div class="hint airport-info" style="margin-top:2px;"></div></div>'
+        + '<div><label for="trkFrom">From *</label><input id="trkFrom" value="' + esc(f.origin || "") + '" placeholder="KHI" autocomplete="off" style="text-transform:uppercase; font-weight:700; letter-spacing:.1em;"><div class="hint airport-info" style="margin-top:2px;"></div></div>'
+        + '<div><label for="trkTo">To *</label><input id="trkTo" value="' + esc(f.destination || "") + '" placeholder="UET" autocomplete="off" style="text-transform:uppercase; font-weight:700; letter-spacing:.1em;"><div class="hint airport-info" style="margin-top:2px;"></div></div>'
         + '</div>';
   html += '<div class="row" style="margin-top:8px; align-items:flex-start;">'
-        + '<div><label>Departure *</label><input type="date" id="trkDate" value="' + esc(f.departure || today()) + '"></div>'
-        + '<div><label>Trip</label><select id="trkTrip"><option value="oneway"' + ((f.trip_type || "oneway") === "oneway" ? " selected" : "") + '>One way</option><option value="round"' + (f.trip_type === "round" ? " selected" : "") + '>Round trip</option></select></div>'
-        + '<div><label>Return</label><input type="date" id="trkRet" value="' + esc(f.return_date || "") + '"></div>'
+        + '<div><label for="trkDate">Departure *</label><input type="date" id="trkDate" value="' + esc(f.departure || today()) + '"></div>'
+        + '<div><label for="trkTrip">Trip</label><select id="trkTrip"><option value="oneway"' + ((f.trip_type || "oneway") === "oneway" ? " selected" : "") + '>One way</option><option value="round"' + (f.trip_type === "round" ? " selected" : "") + '>Round trip</option></select></div>'
+        + '<div><label for="trkRet">Return</label><input type="date" id="trkRet" value="' + esc(f.return_date || "") + '"></div>'
         + '</div>';
   html += '<div class="row" style="margin-top:8px; align-items:flex-start;">'
-        + '<div><label>Flight (optional)</label><input id="trkFlight" value="' + esc(f.flight || "") + '" placeholder="e.g. PA401" autocomplete="off" style="text-transform:uppercase;"><div class="hint" style="margin-top:2px;">Khali = poore route ka sab se sasta.</div></div>'
-        + '<div><label>Target price (Rs)</label><input id="trkTarget" type="number" min="0" inputmode="numeric" value="' + esc(f.target ? String(f.target) : "") + '" placeholder="0"><div class="hint" style="margin-top:2px;">Target poora hone par foran alert.</div></div>'
+        + '<div><label for="trkFlight">Flight (optional)</label><input id="trkFlight" value="' + esc(f.flight || "") + '" placeholder="e.g. PA401" autocomplete="off" style="text-transform:uppercase;"><div class="hint" style="margin-top:2px;">Khali = poore route ka sab se sasta.</div></div>'
+        + '<div><label for="trkTarget">Target price (Rs)</label><input id="trkTarget" type="number" min="0" inputmode="numeric" value="' + esc(f.target ? String(f.target) : "") + '" placeholder="0"><div class="hint" style="margin-top:2px;">Target poora hone par foran alert.</div></div>'
         + '</div>';
   html += '<div class="row" style="margin-top:8px; align-items:flex-start;">'
-        + '<div><label>Adults</label><input id="trkAdults" type="number" min="1" max="10" value="' + esc(String(f.adults || 1)) + '"></div>'
-        + '<div><label>Cabin</label><select id="trkCabin">'
+        + '<div><label for="trkAdults">Adults</label><input id="trkAdults" type="number" min="1" max="10" value="' + esc(String(f.adults || 1)) + '"></div>'
+        + '<div><label for="trkCabin">Cabin</label><select id="trkCabin">'
         + [["economy","Economy"],["premium_economy","Premium Economy"],["business","Business"],["first","First"]].map(function(c){
             return '<option value="' + c[0] + '"' + ((f.cabin_class || "economy") === c[0] ? " selected" : "") + '>' + c[1] + '</option>';
           }).join("")
@@ -6569,12 +6670,12 @@ function viewTracker(){
   html += '<div class="trk-sec">⏱ Kitni dafa check karein aur kab tak?</div>';
   html += '<div id="trkPane1">';
   html += '<div class="row" style="margin-top:6px; align-items:flex-start;">'
-        + '<div><label>Check every</label><select id="trkEvery">'
+        + '<div><label for="trkEvery">Check every</label><select id="trkEvery">'
         + [[5,"5 min"],[10,"10 min"],[15,"15 min"],[30,"30 min"],[60,"1 ghanta"],[120,"2 ghante"],[180,"3 ghante"],[300,"5 ghante"]].map(function(o){
             return '<option value="' + o[0] + '"' + (Number(f.every || TRK.def) === o[0] ? " selected" : "") + '>' + o[1] + '</option>';
           }).join("")
         + '</select></div>'
-        + '<div><label>Kab tak track karein?</label><select id="trkUntil">'
+        + '<div><label for="trkUntil">Kab tak track karein?</label><select id="trkUntil">'
         + '<option value=""' + (up === "" ? " selected" : "") + '>Jab tak main band na karun</option>'
         + '<option value="tonight"' + (up === "tonight" ? " selected" : "") + '>Aaj raat 11 baje tak</option>'
         + '<option value="1"' + (up === "1" ? " selected" : "") + '>1 din ke liye</option>'
@@ -6582,7 +6683,7 @@ function viewTracker(){
         + '<option value="7"' + (up === "7" ? " selected" : "") + '>7 din ke liye</option>'
         + '<option value="date"' + (up === "date" ? " selected" : "") + '>Kisi din tak…</option>'
         + '</select><div class="hint" style="margin-top:2px;">Waqt guzarne ke baad tracking khud band ho jati he (60 din se zyada nahi ho sakta).</div></div>'
-        + '<div id="trkUntilDateWrap"' + (up === "date" ? '' : ' style="display:none;"') + '><label>Is din tak</label><input type="date" id="trkUntilDate" value="' + esc(f.until_date || "") + '"><div class="hint" style="margin-top:2px;">Us din raat 11 baje tak.</div></div>'
+        + '<div id="trkUntilDateWrap"' + (up === "date" ? '' : ' style="display:none;"') + '><label for="trkUntilDate">Is din tak</label><input type="date" id="trkUntilDate" value="' + esc(f.until_date || "") + '"><div class="hint" style="margin-top:2px;">Us din raat 11 baje tak.</div></div>'
         + '</div>';
   html += '<div class="hint" id="trkPlanHint"></div>';
   html += '</div>';
@@ -6845,36 +6946,36 @@ function viewFares(){
         + 'Prices <b>indicative</b> hain; Ignav ki pehli 1,000 requests one-time free, uske baad $2/1,000.'
         + '</div></details>';
   html += '<div class="row" style="margin-top:8px; align-items:flex-start;">'
-        + '<div><label>From</label><input id="faFrom" value="'+esc(last.from || "")+'" placeholder="KHI / Karachi" autocomplete="off" style="text-transform:uppercase; font-size:18px; font-weight:700; letter-spacing:.12em;"><div class="hint airport-info" style="margin-top:2px;"></div></div>'
+        + '<div><label for="faFrom">From</label><input id="faFrom" value="'+esc(last.from || "")+'" placeholder="KHI / Karachi" autocomplete="off" style="text-transform:uppercase; font-size:18px; font-weight:700; letter-spacing:.12em;"><div class="hint airport-info" style="margin-top:2px;"></div></div>'
         + '<div class="fa-arrow" style="flex:0 0 26px; min-width:0; align-self:stretch; display:flex; align-items:center; justify-content:center; font-size:20px;">→</div>'
-        + '<div><label>To</label><input id="faTo" value="'+esc(last.to || "")+'" placeholder="DXB / Dubai" autocomplete="off" style="text-transform:uppercase; font-size:18px; font-weight:700; letter-spacing:.12em;"><div class="hint airport-info" style="margin-top:2px;"></div></div>'
+        + '<div><label for="faTo">To</label><input id="faTo" value="'+esc(last.to || "")+'" placeholder="DXB / Dubai" autocomplete="off" style="text-transform:uppercase; font-size:18px; font-weight:700; letter-spacing:.12em;"><div class="hint airport-info" style="margin-top:2px;"></div></div>'
         + '</div>';
   html += '<div style="display:flex; justify-content:flex-end; margin-top:4px;"><button type="button" class="btn small" id="faSwap" title="From aur To badal dein" style="margin:0; padding:4px 10px; font-size:12px;">⇄ Swap</button></div>';
   html += '<div id="faLeg2Wrap" style="display:none; border:1px dashed var(--line); border-radius:12px; padding:10px; margin-top:8px;">'
         + '<div style="font-weight:800; font-size:13px; margin-bottom:2px;">Second leg — multi-city</div>'
         + '<div class="hint" style="margin-top:0;">Leg 1 ke baad leg 2 ki alag route/date — dono legs ek hi itinerary mein search hongi.</div>'
         + '<div class="row" style="margin-top:8px; align-items:flex-start;">'
-        + '<div><label>From (leg 2)</label><input id="faFrom2" placeholder="DXB / Dubai" autocomplete="off" style="text-transform:uppercase; font-weight:700;"><div class="hint airport-info" style="margin-top:2px;"></div></div>'
+        + '<div><label for="faFrom2">From (leg 2)</label><input id="faFrom2" placeholder="DXB / Dubai" autocomplete="off" style="text-transform:uppercase; font-weight:700;"><div class="hint airport-info" style="margin-top:2px;"></div></div>'
         + '<div class="fa-arrow" style="flex:0 0 26px; min-width:0; align-self:stretch; display:flex; align-items:center; justify-content:center; font-size:20px;">→</div>'
-        + '<div><label>To (leg 2)</label><input id="faTo2" placeholder="LHR / London" autocomplete="off" style="text-transform:uppercase; font-weight:700;"><div class="hint airport-info" style="margin-top:2px;"></div></div>'
+        + '<div><label for="faTo2">To (leg 2)</label><input id="faTo2" placeholder="LHR / London" autocomplete="off" style="text-transform:uppercase; font-weight:700;"><div class="hint airport-info" style="margin-top:2px;"></div></div>'
         + '</div>'
-        + '<div class="row" style="margin-top:8px;"><div><label>Leg 2 departure date</label><input id="faDate2" type="date" value="'+today()+'"></div></div>'
+        + '<div class="row" style="margin-top:8px;"><div><label for="faDate2">Leg 2 departure date</label><input id="faDate2" type="date" value="'+today()+'"></div></div>'
         + '</div>';
   html += '<div class="row" style="margin-top:8px;">'
-        + '<div><label>Departure date</label><input id="faDate" type="date" value="'+lastDate+'"></div>'
-        + '<div><label>Return date</label><input id="faRet" type="date" value="'+today()+'" disabled></div>'
+        + '<div><label for="faDate">Departure date</label><input id="faDate" type="date" value="'+lastDate+'"></div>'
+        + '<div><label for="faRet">Return date</label><input id="faRet" type="date" value="'+today()+'" disabled></div>'
         + '</div>';
   /* Trip / class / poore passengers ek hi summary line mein — default band, tap par
      khulti he. Isi se form chhota lagta he (v2.98). */
   html += '<details class="fa-more" id="faMore"><summary><span id="faMoreText">One-way · Any class · 1 adult</span>'
         + '<span class="fa-more-edit">change</span></summary><div class="fa-more-body">'
         + '<div class="row fa-compact">'
-        + '<div><label>Trip</label><select id="faTrip" class="fa-sm"><option value="one">One-way</option><option value="round">Round trip</option><option value="multi">Multi-city</option></select></div>'
-        + '<div><label>Class</label><select id="faClass" class="fa-sm"><option value="">Any</option><option value="economy">Economy</option><option value="premium_economy">Premium economy</option><option value="business">Business</option><option value="first">First</option></select></div>'
-        + '<div><label>Adults</label><select id="faAdults" class="fa-sm">'+[1,2,3,4,5,6,7,8,9,10].map(function(n){ return '<option value="'+n+'">'+n+'</option>'; }).join('')+'</select></div>'
-        + '<div><label>Children</label><select id="faChildren" class="fa-sm">'+[0,1,2,3,4,5,6,7,8,9,10].map(function(n){ return '<option value="'+n+'">'+n+'</option>'; }).join('')+'</select></div>'
-        + '<div><label>Infants lap</label><select id="faInfantsLap" class="fa-sm">'+[0,1,2,3,4,5,6,7,8,9,10].map(function(n){ return '<option value="'+n+'">'+n+'</option>'; }).join('')+'</select></div>'
-        + '<div><label>Infants seat</label><select id="faInfantsSeat" class="fa-sm">'+[0,1,2,3,4,5,6,7,8,9,10].map(function(n){ return '<option value="'+n+'">'+n+'</option>'; }).join('')+'</select></div>'
+        + '<div><label for="faTrip">Trip</label><select id="faTrip" class="fa-sm"><option value="one">One-way</option><option value="round">Round trip</option><option value="multi">Multi-city</option></select></div>'
+        + '<div><label for="faClass">Class</label><select id="faClass" class="fa-sm"><option value="">Any</option><option value="economy">Economy</option><option value="premium_economy">Premium economy</option><option value="business">Business</option><option value="first">First</option></select></div>'
+        + '<div><label for="faAdults">Adults</label><select id="faAdults" class="fa-sm">'+[1,2,3,4,5,6,7,8,9,10].map(function(n){ return '<option value="'+n+'">'+n+'</option>'; }).join('')+'</select></div>'
+        + '<div><label for="faChildren">Children</label><select id="faChildren" class="fa-sm">'+[0,1,2,3,4,5,6,7,8,9,10].map(function(n){ return '<option value="'+n+'">'+n+'</option>'; }).join('')+'</select></div>'
+        + '<div><label for="faInfantsLap">Infants lap</label><select id="faInfantsLap" class="fa-sm">'+[0,1,2,3,4,5,6,7,8,9,10].map(function(n){ return '<option value="'+n+'">'+n+'</option>'; }).join('')+'</select></div>'
+        + '<div><label for="faInfantsSeat">Infants seat</label><select id="faInfantsSeat" class="fa-sm">'+[0,1,2,3,4,5,6,7,8,9,10].map(function(n){ return '<option value="'+n+'">'+n+'</option>'; }).join('')+'</select></div>'
         + '</div></div></details>';
   html += '<label class="fa-nonstop"><input type="checkbox" id="faNonStop" style="width:auto;"> Non-stop only</label>';
   /* Tax (pehle "commission") — price mein hi shamil, aur arrow se minimise (v3.05) */
@@ -9025,11 +9126,11 @@ function viewClients(){
   var html = "";
   // Add / Edit form
   html += '<div class="card"><h2>'+(clEditId ? "✏ Edit client" : "＋ New client")+'</h2>'
-        + '<div class="row"><div><label>Name *</label><input id="clName" placeholder="Client / passenger name" autocomplete="off"></div>'
-        + '<div><label>Phone / WhatsApp</label><input id="clPhone" inputmode="tel" placeholder="0300-1234567"></div></div>';
-  html += '<div class="row" style="margin-top:8px;"><div><label>NIC / Passport no</label><input id="clNic" style="text-transform:uppercase;" placeholder="42101-1234567-1 / AB1234567"></div>'
-        + '<div><label>Passport / NIC expiry</label><input type="date" id="clPassExp"><div class="hint" style="margin-top:2px;">6 mahine se kam baqi ho to warning milegi.</div></div></div>';
-  html += '<div class="row" style="margin-top:8px;"><div><label>Note</label><input id="clNote" placeholder="e.g. office client, sirf Umrah"></div></div>';
+        + '<div class="row"><div><label for="clName">Name *</label><input id="clName" placeholder="Client / passenger name" autocomplete="off"></div>'
+        + '<div><label for="clPhone">Phone / WhatsApp</label><input id="clPhone" inputmode="tel" placeholder="0300-1234567"></div></div>';
+  html += '<div class="row" style="margin-top:8px;"><div><label for="clNic">NIC / Passport no</label><input id="clNic" style="text-transform:uppercase;" placeholder="42101-1234567-1 / AB1234567"></div>'
+        + '<div><label for="clPassExp">Passport / NIC expiry</label><input type="date" id="clPassExp"><div class="hint" style="margin-top:2px;">6 mahine se kam baqi ho to warning milegi.</div></div></div>';
+  html += '<div class="row" style="margin-top:8px;"><div><label for="clNote">Note</label><input id="clNote" placeholder="e.g. office client, sirf Umrah"></div></div>';
   html += '<div style="margin-top:10px; padding:8px 10px; border:1px dashed var(--line); border-radius:10px;">'
         + '<div style="font-size:12.5px;"><b>📷 NIC / Passport scan</b> — tasveer sirf parhne ke liye he, save nahi hoti. Passport ki MRZ lines (neeche wali 2 lines) se naam + passport number + expiry, aur NIC se naam + NIC number + expiry khud bhar jata he. Passport ke andar likha CNIC number use nahi hota — passport number hi aata he.</div>'
         + '<div style="display:flex; gap:8px; margin-top:6px; align-items:center;">'
@@ -9189,10 +9290,10 @@ function viewBakaya(){
   var html = mf.html;
   var htmlX = "";
   htmlX += '<div class="card"><h2>'+esc(T("newcl"))+'</h2>';
-  htmlX += '<label>'+esc(T("cliname"))+'</label><input id="rvClient" placeholder="Name">';
-  htmlX += '<div class="row" style="margin-top:8px;"><label style="width:100%;">'+esc(T("tafseel"))+'</label><input id="rvNote" placeholder="e.g. Umrah package booking"></div>';
-  htmlX += '<div class="row" style="margin-top:8px;"><label style="width:100%;">Contact number (for reminders)</label><input id="rvPhone" type="tel" inputmode="tel" placeholder="03xx-xxxxxxx"></div>';
-  htmlX += '<div class="row" style="margin-top:8px;"><label style="width:100%;">'+esc(T("kulraqam"))+'</label><input id="rvTotal" type="number" min="0" inputmode="decimal" placeholder="Rs"><input id="rvDate" type="date" value="'+today()+'" style="max-width:160px;"></div>';
+  htmlX += '<label for="rvClient">'+esc(T("cliname"))+'</label><input id="rvClient" placeholder="Name">';
+  htmlX += '<div class="row" style="margin-top:8px;"><label for="rvNote" style="width:100%;">'+esc(T("tafseel"))+'</label><input id="rvNote" placeholder="e.g. Umrah package booking"></div>';
+  htmlX += '<div class="row" style="margin-top:8px;"><label for="rvPhone" style="width:100%;">Contact number (for reminders)</label><input id="rvPhone" type="tel" inputmode="tel" placeholder="03xx-xxxxxxx"></div>';
+  htmlX += '<div class="row" style="margin-top:8px;"><label for="rvTotal" style="width:100%;">'+esc(T("kulraqam"))+'</label><input id="rvTotal" type="number" min="0" inputmode="decimal" placeholder="Rs"><input id="rvDate" type="date" aria-label="Entry date" value="'+today()+'" style="max-width:160px;"></div>';
   htmlX += '<button class="btn small primary" id="addRv" style="width:100%;">'+esc(T("addk"))+'</button>';
   htmlX += '</div>';
   html += htmlX;
@@ -9286,7 +9387,7 @@ function viewSettings(){
   var st = S.settings;
   var html = "";
   // Settings bahut lambi hai — search box se sirf matching cards dikhein
-  html += '<div class="card" style="padding-bottom:10px;"><label>Search settings</label>';
+  html += '<div class="card" style="padding-bottom:10px;"><label for="setSearch">Search settings</label>';
   html += '<input id="setSearch" placeholder="e.g. telegram, github, backup, invoice" autocomplete="off">';
   html += '<div class="hint" id="setSearchHint">Ye page lamba hai — type karein to sirf milte julte cards nazar aayenge.</div></div>';
   // Naya version — check for updates
@@ -9296,13 +9397,13 @@ function viewSettings(){
   html += '<div class="hint" id="updStatus"></div></div>';
 
   html += '<div class="card"><h2>'+esc(T("seth"))+'</h2>';
-  html += '<label>'+esc(st.partnerA)+'</label><input id="setA" value="'+esc(st.partnerA)+'">';
-  html += '<label style="margin-top:8px;">'+esc(st.partnerB)+'</label><input id="setB" value="'+esc(st.partnerB)+'">';
+  html += '<label for="setA">'+esc(st.partnerA)+'</label><input id="setA" value="'+esc(st.partnerA)+'">';
+  html += '<label for="setB" style="margin-top:8px;">'+esc(st.partnerB)+'</label><input id="setB" value="'+esc(st.partnerB)+'">';
   html += '<div class="grid2" style="margin-top:8px;">'
-        + '<div><label>'+esc(T("sadqa"))+'</label><input id="setCharity" type="number" min="0" max="50" step="0.5" value="'+esc(st.charityRate)+'"></div>'
-        + '<div><label>'+esc(T("qarzap"))+'</label><input id="setLoan" type="number" min="0" max="100" step="1" value="'+esc(st.loanRate)+'"></div>'
+        + '<div><label for="setCharity">'+esc(T("sadqa"))+'</label><input id="setCharity" type="number" min="0" max="50" step="0.5" value="'+esc(st.charityRate)+'"></div>'
+        + '<div><label for="setLoan">'+esc(T("qarzap"))+'</label><input id="setLoan" type="number" min="0" max="100" step="1" value="'+esc(st.loanRate)+'"></div>'
         + '</div>';
-  html += '<label style="margin-top:8px;">'+esc(T("loanbal"))+'</label><input id="setLoanBal" type="number" inputmode="decimal" value="'+esc(st.loanBalance)+'">';
+  html += '<label for="setLoanBal" style="margin-top:8px;">'+esc(T("loanbal"))+'</label><input id="setLoanBal" type="number" inputmode="decimal" value="'+esc(st.loanBalance)+'">';
   html += '<button class="btn primary" id="saveSettings">'+esc(T("saveset"))+'</button>';
   html += '<div class="hint">Default: charity 2%, loan 40%. Set or correct the loan balance here.</div>';
   html += '</div>';
@@ -9310,8 +9411,8 @@ function viewSettings(){
   html += '<div class="card"><h2>'+esc(T("fixkh"))+'</h2>';
   (S.settings.fixes||[]).forEach(function(f){
     html += '<div class="row" style="margin-top:8px; align-items:center;">'
-          + '<input class="f-label" data-f-id="'+esc(f.id)+'" value="'+esc(f.label)+'" placeholder="Name">'
-          + '<input class="f-amt" data-f-id="'+esc(f.id)+'" type="number" min="0" inputmode="decimal" value="'+esc(f.amount)+'" placeholder="Amount">'
+          + '<input class="f-label" data-f-id="'+esc(f.id)+'" aria-label="Fixed expense name — '+esc(f.label)+'" value="'+esc(f.label)+'" placeholder="Name">'
+          + '<input class="f-amt" data-f-id="'+esc(f.id)+'" type="number" min="0" inputmode="decimal" aria-label="Monthly amount (Rs) — '+esc(f.label)+'" value="'+esc(f.amount)+'" placeholder="Amount">'
           + '<label style="flex:0 0 auto; display:flex; align-items:center; gap:4px;"><input type="checkbox" class="f-on" data-f-id="'+esc(f.id)+'"'+(f.on?' checked':'')+'> Add</label>'
           + '</div>';
   });
@@ -9321,7 +9422,7 @@ function viewSettings(){
 
   html += '<div class="card"><h2>👔 Staff portal link</h2>'
         + '<div class="hint" style="margin-top:0;">Waseem jaise staff ke liye alag password-protected portal. Link yahan save karein — Copy link se WhatsApp par bhej dein. Portal ka password yahan nahi rakha jata (wo Cloudflare Worker ke secret me hai).</div>'
-        + '<label>Staff portal URL (workers.dev link)</label>'
+        + '<label for="setStaffUrl">Staff portal URL (workers.dev link)</label>'
         + '<input id="setStaffUrl" value="'+esc(st.staffPortalUrl||"")+'" placeholder="https://staff-abtravels.xxx.workers.dev" autocomplete="off" style="font-family:monospace;">'
         + '<div class="row" style="margin-top:8px; align-items:center;">'
         +   '<button class="btn small green" id="saveStaffUrl" style="flex:1.2; margin-top:0;">💾 Save link</button>'
@@ -9334,13 +9435,13 @@ function viewSettings(){
 
   html += '<div class="card"><h2>🤖 Team notifications (Telegram)</h2>'
         + '<div class="hint" style="margin-top:0;">Naya ticket, file ya invoice save hone par team ke sab phones par <b>Telegram</b> notification aayega — koi extra app, battery setting ya ntfy nahi.</div>'
-        + '<label>Notification relay (Worker URL)</label>'
+        + '<label for="setTgRelay">Notification relay (Worker URL)</label>'
         + '<input id="setTgRelay" value="'+esc(st.tgRelay||"")+'" placeholder="https://ab-travels-ignav.umair5075.workers.dev" autocomplete="off" style="font-family:monospace;">'
         + '<div class="hint">Message pehle isi Worker ko jata he, phir Worker Telegram par bhejta he — is liye jo network <code>api.telegram.org</code> block karta he us par bhi notification chalti he. Khali chhorein to default Worker use hoga.</div>'
-        + '<label style="margin-top:8px;">Chat IDs (comma se alag)</label>'
+        + '<label for="setTgChats" style="margin-top:8px;">Chat IDs (comma se alag)</label>'
         + '<input id="setTgChats" value="'+esc(st.tgChatIds||"")+'" placeholder="123456789, 987654321" autocomplete="off" style="font-family:monospace;">'
         + '<div class="hint">Price bot par <code>/id</code> bhej kar chat ID lein. Owner <code>/share ID</code> se member add kare. Khali chhorne par bot ki poori team ko notification jayegi.</div>'
-        + '<label style="margin-top:8px;">Bot token (optional)</label>'
+        + '<label for="setTgToken" style="margin-top:8px;">Bot token (optional)</label>'
         + '<input type="password" id="setTgToken" value="'+esc(st.tgBotToken||"")+'" placeholder="123456:ABC-DEF…" autocomplete="off" style="font-family:monospace;">'
         + '<div class="hint">v2.42+ relay origin check se verify karta hai — token ki zaroorat nahi. Purane devices ke liye save reh sakta hai; khali chhor dein.</div>'
         + '<div class="row" style="margin-top:8px; align-items:center;">'
@@ -9354,10 +9455,10 @@ function viewSettings(){
 
   html += '<div class="card"><h2>🐙 GitHub Sync — replaces Google Sheet sync</h2>'
         + '<div class="hint" style="margin-top:0;">Aapka main app data ab aapke private repo ke <code>HisabData.json</code> mein sync hota hai. Token aur repo backup wale same hain; backup snapshots alag <code>backups/</code> folder mein safe rahtay hain. Google Sheet ab sirf monthly imports ke liye reh gayi hai.</div>'
-        + '<label>GitHub Token (PAT)</label>'
+        + '<label for="setGhPat">GitHub Token (PAT)</label>'
         + '<input type="password" id="setGhPat" value="'+esc(st.githubPat||"")+'" placeholder="ghp_… ya github_pat_…" autocomplete="off" style="font-family:monospace;">'
         + ghConnBadgeHTML(st)
-        + '<div class="row" style="margin-top:8px;"><div><label>Repo</label><input id="setGhRepo" value="'+esc(st.githubRepo||"travel-office-hisab-backup")+'" placeholder="travel-office-hisab-backup"></div></div>'
+        + '<div class="row" style="margin-top:8px;"><div><label for="setGhRepo">Repo</label><input id="setGhRepo" value="'+esc(st.githubRepo||"travel-office-hisab-backup")+'" placeholder="travel-office-hisab-backup"></div></div>'
         + '<div class="row" style="margin-top:8px; align-items:center; gap:8px;">'
         +   '<button class="btn small primary" id="ghSave" style="flex:1.35; margin-top:0;">Save token &amp; sync</button>'
         +   '<button class="btn small" id="ghSyncNow" style="flex:1; margin-top:0;">Push now</button>'
@@ -9367,7 +9468,7 @@ function viewSettings(){
         + '<div class="hint">Naya device: app khol kar same token aur repo paste karein, phir &ldquo;Save token &amp; sync&rdquo; — data khud load ho jayega. Token kisi ko bhi mat bhejein; backup file mein token kabhi nahi jata.</div>'
         + '<button class="btn small" id="ghSetupLink" style="margin-top:6px; width:100%;">🔐 Create password-protected token setup link</button>'
         + '<div id="ghSetupOut" style="display:none; margin-top:8px;">'
-        +   '<label>Setup link — send via WhatsApp / SMS</label>'
+        +   '<label for="ghSetupUrl">Setup link — send via WhatsApp / SMS</label>'
         +   '<textarea id="ghSetupUrl" readonly rows="3"></textarea>'
         +   '<button class="btn small primary" id="ghSetupCopy" style="margin-top:6px; width:100%;">Copy setup link</button>'
         +   '<div class="hint">Password alag bhejein (call/SMS), link ke saath kabhi nahi. Link mein encrypted token hota hai — jiske paas link + password dono hon, wo token use kar sakta hai.</div>'
@@ -9375,18 +9476,18 @@ function viewSettings(){
         + '</div>';
 
   html += '<div class="card"><h2>Google Sheets — only monthly imports</h2>';
-  html += '<label>Google link (import + auto GitHub setup — trusted people only)</label><input id="setSyncUrl" value="'+esc(st.syncUrl||"")+'" placeholder="https://script.google.com/.../exec">';
-  html += '<label style="margin-top:8px;">🤖 AI OCR key — OCR.space (free, behtar scanned reading)</label><input id="setOcrKey" value="'+esc(st.ocrApiKey||"")+'" placeholder="K h… (ocr.space/ocrapi se free key lein)" autocomplete="off">';
+  html += '<label for="setSyncUrl">Google link (import + auto GitHub setup — trusted people only)</label><input id="setSyncUrl" value="'+esc(st.syncUrl||"")+'" placeholder="https://script.google.com/.../exec">';
+  html += '<label for="setOcrKey" style="margin-top:8px;">🤖 AI OCR key — OCR.space (free, behtar scanned reading)</label><input id="setOcrKey" value="'+esc(st.ocrApiKey||"")+'" placeholder="K h… (ocr.space/ocrapi se free key lein)" autocomplete="off">';
   html += '<div class="row" style="margin-top:6px; align-items:center;"><button class="btn small green" id="saveOcrKey" style="flex:0 0 auto; margin-top:0;">💾 Save key</button><span class="hint" id="ocrKeyStatus" style="flex:2; margin-top:0;"></span></div>';
   html += '<div class="hint">Ye free key NIC/Passport scan aur scanned PDF ke pages ko AI engine se parhne deti he — offline Tesseract se kafi behtar (Urdu bhi). Free key: <b>ocr.space/ocrapi</b> par email se register karein. Khaali chhorein to offline Tesseract hi chalega.</div>';
-  html += '<label style="margin-top:8px;">Sheet File ID (monthly imports yahan se aate hain)</label><input id="setImportId" value="'+esc(st.importId||"")+'" placeholder="Enter the File ID of the file for each month">';
+  html += '<label for="setImportId" style="margin-top:8px;">Sheet File ID (monthly imports yahan se aate hain)</label><input id="setImportId" value="'+esc(st.importId||"")+'" placeholder="Enter the File ID of the file for each month">';
   html += '<div class="hint">File ID = the long part of the file URL between /d/ and /edit. Enter the <b>January</b> file ID and save, and imports will read from the January file. Main data sync GitHub par hota hai; Google link sirf monthly Google Sheets se ticket/expense/loan import ke liye hai.</div>';
   html += '<div class="row" style="margin-top:8px; align-items:center;">'
         + '<button class="btn small" id="testSync" style="flex:0 0 auto; margin-top:0; background:var(--gold); color:#fff;">Test import</button>'
         + '<span class="hint hint-status" id="importStatus" style="flex:2; margin-top:0;"></span>'
         + '</div>';
   html += '<button class="btn small green" id="importSheet" style="margin-top:10px; width:100%;">Import old Google Sheet data (tickets + expenses + loan)</button>';
-  html += '<textarea id="batchIds" rows="3" placeholder="Optional: paste File IDs, one per line (leave empty to use the list saved in the app)" style="margin-top:8px; width:100%; font-size:11px; font-family:monospace; border:1px solid var(--line); border-radius:10px; padding:8px;"></textarea>';
+  html += '<textarea id="batchIds" rows="3" aria-label="Sheet File IDs, one per line" placeholder="Optional: paste File IDs, one per line (leave empty to use the list saved in the app)" style="margin-top:8px; width:100%; font-size:11px; font-family:monospace; border:1px solid var(--line); border-radius:10px; padding:8px;"></textarea>';
   html += '<button class="btn small green" id="importAll" style="margin-top:8px; width:100%;">Re-import all files (one click — old rows skipped, new duplicates marked)</button>';
   html += '<button class="btn small primary" id="copyShare" style="margin-top:8px; width:100%;">Copy sync link (trusted people only)</button>';
   html += '<div class="hint" style="font-weight:600;">Warning: this link grants automatic import + auto GitHub setup on the device that opens it. Share ONLY with people you fully trust — anyone with the link and your Apps Script URL can get the GitHub token and all app data.</div>';
@@ -9396,7 +9497,7 @@ function viewSettings(){
 
   html += '<div class="card"><h2>'+esc(T("gascard"))+'</h2>';
   html += '<div class="hint">Main app sync GitHub par hota hai — Google script ab monthly imports ke saath private GitHub credentials bhi trusted devices ko bhejta hai.<br>1) Open the Google Sheet → <b>Extensions → Apps Script</b><br>2) Paste the new code below<br>3) Apps Script → <b>Project Settings → Script Properties</b> → add <b>GITHUB_TOKEN</b> = fine-grained PAT (Contents → Read and write); optional <b>GITHUB_REPO</b><br>4) <b>Deploy → Manage deployments → Edit → New version</b> (same …/exec URL), or <b>New deployment</b> with Execute as: Me, Who has access: Anyone<br>5) Trusted device opens the copied link → GitHub token/repo are saved automatically and latest data loads<br><br><b>WARNING:</b> Anyone who has this URL can call the script and receive the GitHub token. Share the link ONLY with people you fully trust.</div>';
-  html += '<textarea id="gasCode" readonly style="width:100%; height:150px; font-size:11px; font-family:monospace; border:1px solid var(--line); border-radius:10px; padding:8px; margin-top:8px;">'+esc(GAS_CODE)+'</textarea>';
+  html += '<textarea id="gasCode" readonly aria-label="Google Apps Script code" style="width:100%; height:150px; font-size:11px; font-family:monospace; border:1px solid var(--line); border-radius:10px; padding:8px; margin-top:8px;">'+esc(GAS_CODE)+'</textarea>';
   html += '<button class="btn small primary" id="copyGas" style="margin-top:8px;">Copy code</button>';
   html += '</div>';
 
@@ -9409,15 +9510,15 @@ function viewSettings(){
         + '4) Worker URL (<code>https://xxx.workers.dev</code>) neeche paste karein → <b>Save &amp; test connection</b><br><br>'
         + '<b>Kyun proxy?</b> Ignav ki API browser se direct call manta nahi (safer hai) — is liye key server (Worker) par rehti hai aur app sirf proxy se baat karti hai. Key app/backup mein kabhi nahi aati.<br>'
         + '<b>Free:</b> first 1,000 successful requests are a one-time allowance (not monthly); after that $2 per 1,000. Failed requests are not billed.</div>';
-  html += '<textarea id="ignavWorkerCode" readonly style="width:100%; height:150px; font-size:11px; font-family:monospace; border:1px solid var(--line); border-radius:10px; padding:8px; margin-top:8px;">'+esc(IGNAV_WORKER_CODE)+'</textarea>';
+  html += '<textarea id="ignavWorkerCode" readonly aria-label="Cloudflare Worker code" style="width:100%; height:150px; font-size:11px; font-family:monospace; border:1px solid var(--line); border-radius:10px; padding:8px; margin-top:8px;">'+esc(IGNAV_WORKER_CODE)+'</textarea>';
   html += '<button class="btn small primary" id="copyIgnavCode" style="margin-top:8px;">Copy worker code</button>';
-  html += '<label style="margin-top:12px;">Worker URL (proxy)</label>';
+  html += '<label for="setIgnavProxy" style="margin-top:12px;">Worker URL (proxy)</label>';
   html += '<input id="setIgnavProxy" value="'+esc(st.ignavProxy||"")+'" placeholder="https://xxx.workers.dev" autocomplete="off" style="font-family:monospace;">';
   html += '<div class="hint">Worker URL private GitHub data ke saath sync hota hai — naye device par Price Lookup khud kaam karegi. Ignav API key Worker par rehti hai, app mein nahi.</div>';
-  html += '<label style="margin-top:8px;">Ignav API key (optional — sirf tab jab proxy use na karein)</label>';
+  html += '<label for="setIgnavKey" style="margin-top:8px;">Ignav API key (optional — sirf tab jab proxy use na karein)</label>';
   html += '<input type="password" id="setIgnavKey" value="'+esc(st.ignavKey||"")+'" placeholder="Your Ignav key" autocomplete="off" style="font-family:monospace;">';
   html += ignavBadgeHTML(st);
-  html += '<div class="row" style="margin-top:8px;"><div><label>Pricing market (currency)</label><select id="setIgnavMarket">'
+  html += '<div class="row" style="margin-top:8px;"><div><label for="setIgnavMarket">Pricing market (currency)</label><select id="setIgnavMarket">'
         + ['PK|Pakistan (PKR)','AE|UAE (AED)','SA|Saudi (SAR)','GB|UK (GBP)','US|USA (USD)','IN|India (INR)','QA|Qatar (QAR)'].map(function(o){
             var p = o.split("|");
             return '<option value="'+p[0]+'"'+((st.ignavMarket||"PK")===p[0]?" selected":"")+'>'+esc(p[1])+'</option>';
@@ -9448,14 +9549,14 @@ function viewSettings(){
 
   html += '<div class="card"><h2>'+esc(T("backuph"))+'</h2>';
   html += '<button class="btn green" id="exportData">'+esc(T("exbtn"))+'</button>';
-  html += '<label style="margin-top:14px;">Report month</label>';
+  html += '<label for="repMonth" style="margin-top:14px;">Report month</label>';
   html += '<select id="repMonth"><option value="all">All months (one file)</option>';
   reportMonthList().forEach(function(m){ html += '<option value="'+m+'">'+esc(monthLabel(m))+'</option>'; });
   html += '</select>';
   html += '<button class="btn small primary" id="repBtn" style="margin-top:8px; width:100%;">Download Excel report (selected month)</button>';
   html += '<button class="btn small" id="repAllBtn" style="margin-top:8px; width:100%; background:var(--green); color:#fff;">Download each month separately (one file per month)</button>';
   html += '<div class="hint">Report ab organized ledger ki shakal mein hai: shuru mein Profit &amp; Loss summary, phir har mahine ke alag sections (Income, Expenses, Ticket/Umrah Sales, Withdrawals) sab totals ke saath — tax lawyer ko direct bhejne ke liye tayyar.</div>';
-  html += '<label style="margin-top:14px;">'+esc(T("imlbl"))+'</label><input type="file" id="importData" accept=".json">';
+  html += '<label for="importData" style="margin-top:14px;">'+esc(T("imlbl"))+'</label><input type="file" id="importData" accept=".json">';
   html += '<div class="hint">Data is saved on this device, synced to GitHub, and snapshot backups are available. Take a backup every month.</div>';
   html += '</div>';
 
@@ -9516,9 +9617,9 @@ function viewSettings(){
   html += '</div>';
 
   html += '<div class="card"><h2>Invoice / Ticket settings</h2>';
-  html += '<label>Company name (printed on the invoice)</label><input id="setInvCompany" maxlength="40" value="'+esc(st.invCompany||"AB Travels")+'">';
-  html += '<div class="row" style="margin-top:8px;"><div><label>Phone 1</label><input id="setInvPhone1" value="'+esc(st.invPhone1||"0310-3311199")+'" inputmode="tel"></div>'
-        + '<div><label>Phone 2</label><input id="setInvPhone2" value="'+esc(st.invPhone2||"0314-3178560")+'" inputmode="tel"></div></div>';
+  html += '<label for="setInvCompany">Company name (printed on the invoice)</label><input id="setInvCompany" maxlength="40" value="'+esc(st.invCompany||"AB Travels")+'">';
+  html += '<div class="row" style="margin-top:8px;"><div><label for="setInvPhone1">Phone 1</label><input id="setInvPhone1" value="'+esc(st.invPhone1||"0310-3311199")+'" inputmode="tel"></div>'
+        + '<div><label for="setInvPhone2">Phone 2</label><input id="setInvPhone2" value="'+esc(st.invPhone2||"0314-3178560")+'" inputmode="tel"></div></div>';
   html += '<label style="margin-top:8px; display:flex; gap:8px; align-items:center;"><input type="checkbox" id="setInvNR" style="width:auto"'+(st.invNR?' checked':'')+'> NON-REFUNDABLE stamp default on</label>';
   html += '<label style="margin-top:8px; display:flex; gap:8px; align-items:center;"><input type="checkbox" id="setInvBW" style="width:auto"'+(st.invBW?' checked':'')+'> Black &amp; White printer style (B&amp;W printer ke liye — sirf print par)</label>';
   html += '<button class="btn primary" id="saveInvSet">Save invoice settings</button>';
@@ -10020,8 +10121,8 @@ function bkExpCard(){
 
   html += '<div class="trk-form">';
   html += '<div class="row" style="align-items:flex-start;">'
-        + '<div><label>Client *</label><input id="bkExpClient" list="bkExpClients" placeholder="Usama" autocomplete="off"></div>'
-        + '<div><label>PNR / route</label><input id="bkExpRef" placeholder="KHI-DXB EK601 · PNR AB12CD" autocomplete="off"></div>'
+        + '<div><label for="bkExpClient">Client *</label><input id="bkExpClient" list="bkExpClients" placeholder="Usama" autocomplete="off"></div>'
+        + '<div><label for="bkExpRef">PNR / route</label><input id="bkExpRef" placeholder="KHI-DXB EK601 · PNR AB12CD" autocomplete="off"></div>'
         + '</div>'
         + '<div class="hint" style="margin-top:2px;">Reminder message mein naam aur PNR/route dono aate hain.</div>';
   html += '<div class="tk-exp-quick">'
@@ -10033,11 +10134,11 @@ function bkExpCard(){
         + '<button type="button" class="btn small tk-exp-q" data-exp-min="1440">+1 din</button>'
         + '</div>';
   html += '<div class="row" style="margin-top:8px; align-items:flex-start;">'
-        + '<div><label>Expire kab *</label><input type="datetime-local" id="bkExpAt"></div>'
+        + '<div><label for="bkExpAt">Expire kab *</label><input type="datetime-local" id="bkExpAt"></div>'
         + '</div>';
   /* Kitna pehle — jitne chahein chunein (v3.28: 5/10/15 min bhi). Hidden input
      baqi code ke liye wohi "60,30" jaisi CSV rakhta he. */
-  html += '<label style="margin-top:8px;">Kitna pehle remind <span style="font-weight:600; color:var(--muted);">(jitne chahein chunein)</span></label>'
+  html += '<label for="bkExpLead" style="margin-top:8px;">Kitna pehle remind <span style="font-weight:600; color:var(--muted);">(jitne chahein chunein)</span></label>'
         + '<input type="hidden" id="bkExpLead" value="60,30">'
         + '<div class="tk-exp-quick" id="bkExpLeads">'
         + BK_LEADS.map(function(o){
@@ -10436,13 +10537,13 @@ function viewFiles(){
   html += '<div class="card" id="fileDrop"><h2>📁 Ticket files — all devices</h2>'
         + '<div class="hint">Ticket ki PDF/tasveer yahan upload karein (ya PC se drag kar ke chhorein). File private GitHub repo mein save hoti hai aur aapke mobile, Sarmad aur staff — sab ko list mein khud nazar aati hai. Jis ka client ho wo WhatsApp se bhej de.</div>'
         + '<div class="row" style="margin-top:10px;">'
-        + '<div><label>Client / passenger</label><input id="fileClient" list="fileClientNames" placeholder="Client name" autocomplete="off"><datalist id="fileClientNames">'
+        + '<div><label for="fileClient">Client / passenger</label><input id="fileClient" list="fileClientNames" placeholder="Client name" autocomplete="off"><datalist id="fileClientNames">'
         + cs.map(function(c){ return '<option value="' + esc(c.name) + '">'; }).join("")
         + '</datalist></div>'
-        + '<div><label>PNR (optional)</label><input id="filePnr" placeholder="ABC123" style="text-transform:uppercase;" autocomplete="off"></div>'
+        + '<div><label for="filePnr">PNR (optional)</label><input id="filePnr" placeholder="ABC123" style="text-transform:uppercase;" autocomplete="off"></div>'
         + '</div>'
         + '<div class="row" style="margin-top:8px;">'
-        + '<div><label>Note (optional)</label><input id="fileNote" placeholder="e.g. Umrah package invoice"></div>'
+        + '<div><label for="fileNote">Note (optional)</label><input id="fileNote" placeholder="e.g. Umrah package invoice"></div>'
         + '</div>'
         + '<div style="display:flex; gap:8px; margin-top:10px; flex-wrap:wrap; align-items:center;">'
         + '<button class="btn primary" id="filePick">⬆ Choose &amp; upload file(s)</button>'
@@ -10457,15 +10558,15 @@ function viewFiles(){
   html += '<div class="card" id="pasteCard"><h2>🔗 Paste link / document</h2>'
         + '<div class="hint" style="margin-top:0;">Google Drive link, airline booking link, ya document ka text yahan paste karein. Ye entries Ticket Files mein sab ko dikhengi — lekin in par <b>koi notification nahi</b> jayegi.</div>'
         + '<div class="row" style="margin-top:10px;">'
-        + '<div><label>Type</label><select id="pasteKind"><option value="link">Link</option><option value="note">Note / document text</option></select></div>'
-        + '<div><label>Title</label><input id="pasteTitle" placeholder="e.g. Dubai ticket — Google Drive" autocomplete="off"></div>'
+        + '<div><label for="pasteKind">Type</label><select id="pasteKind"><option value="link">Link</option><option value="note">Note / document text</option></select></div>'
+        + '<div><label for="pasteTitle">Title</label><input id="pasteTitle" placeholder="e.g. Dubai ticket — Google Drive" autocomplete="off"></div>'
         + '</div>'
         + '<div class="row" style="margin-top:8px;">'
-        + '<div><label>Client (optional)</label><input id="pasteClient" list="fileClientNames" placeholder="Client name" autocomplete="off"></div>'
-        + '<div><label>PNR (optional)</label><input id="pastePnr" placeholder="ABC123" style="text-transform:uppercase;" autocomplete="off"></div>'
+        + '<div><label for="pasteClient">Client (optional)</label><input id="pasteClient" list="fileClientNames" placeholder="Client name" autocomplete="off"></div>'
+        + '<div><label for="pastePnr">PNR (optional)</label><input id="pastePnr" placeholder="ABC123" style="text-transform:uppercase;" autocomplete="off"></div>'
         + '</div>'
-        + '<div id="pasteLinkWrap" style="margin-top:8px;"><label>Link (URL)</label><input id="pasteUrl" placeholder="https://drive.google.com/..." inputmode="url" autocomplete="off"></div>'
-        + '<div id="pasteTextWrap" style="display:none; margin-top:8px;"><label>Document text / note</label><textarea id="pasteText" rows="4" placeholder="Yahan document ka text paste karein (max 4000 characters)…" style="width:100%; min-height:90px;"></textarea></div>'
+        + '<div id="pasteLinkWrap" style="margin-top:8px;"><label for="pasteUrl">Link (URL)</label><input id="pasteUrl" placeholder="https://drive.google.com/..." inputmode="url" autocomplete="off"></div>'
+        + '<div id="pasteTextWrap" style="display:none; margin-top:8px;"><label for="pasteText">Document text / note</label><textarea id="pasteText" rows="4" placeholder="Yahan document ka text paste karein (max 4000 characters)…" style="width:100%; min-height:90px;"></textarea></div>'
         + '<div style="display:flex; gap:8px; margin-top:10px; flex-wrap:wrap;">'
         + '<button class="btn primary" id="pasteSave">＋ Add to Ticket Files</button>'
         + '<button class="btn" id="pasteClip">📋 Paste from clipboard</button>'
@@ -12892,14 +12993,14 @@ if(themeB) themeB.onclick = function(){
     h += portalsCard();
     h += '<div class="card"><h2>PNR / Booking Lookup</h2>';
     h += '<div class="hint" style="margin-top:0;">Choose the airline, then enter the PNR and last name. Pressing the button opens the airline page and copies the PNR + name to the clipboard — just paste it there.</div>';
-    h += '<label>Airline</label><select id="lkAir"><option value="">— Choose airline —</option>';
+    h += '<label for="lkAir">Airline</label><select id="lkAir"><option value="">— Choose airline —</option>';
     AIRLINES.forEach(function(a){
       h += '<option value="'+esc(a.c)+'"'+(a.c===last.code?" selected":"")+'>'+esc(a.n)+' ('+esc(a.c)+')</option>';
     });
     h += '</select>';
     h += '<div class="row" style="margin-top:8px;">'
-       + '<div><label>PNR / Booking reference</label><input id="lkPnr" maxlength="8" placeholder="ABC123" autocomplete="off" style="text-transform:uppercase;" value="'+esc(last.pnr)+'"></div>'
-       + '<div><label>Last name</label><input id="lkName" placeholder="KHAN" autocomplete="off" style="text-transform:uppercase;" value="'+esc(last.name)+'"></div>'
+       + '<div><label for="lkPnr">PNR / Booking reference</label><input id="lkPnr" maxlength="8" placeholder="ABC123" autocomplete="off" style="text-transform:uppercase;" value="'+esc(last.pnr)+'"></div>'
+       + '<div><label for="lkName">Last name</label><input id="lkName" placeholder="KHAN" autocomplete="off" style="text-transform:uppercase;" value="'+esc(last.name)+'"></div>'
        + '</div>';
     h += '<button class="btn primary" id="lkGo">Open Manage Booking</button>';
     h += '<button class="btn small green" id="lkSt" style="margin-top:8px; width:100%;">Open Flight Status</button>';

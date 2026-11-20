@@ -1,5 +1,22 @@
 # Travel Office Hisab - AB Travels
 
+## Summary mein profit trend + har control ka naam (v3.30)
+- **Kyun:** Summary par sirf numbers aur table thi — "profit mahine-ba-mahine upar ja raha he ya neeche" ek nazar mein nahi pata chalta tha. Aur screen reader ko form ke controls ke naam nahi milte the.
+- **Naya: Net profit per month line chart** (Recent months card mein, table ke upar).
+  - **Zero line** — us se neeche ka point = loss month. Misal: May −12k saaf neeche dikhta he.
+  - **Ek hi rang** (single series), area sirf halka wash — koi rainbow nahi.
+  - **Labels sirf ahem jagah**: aakhri mahina + sab se ooncha + sab se neecha. Har point par number nahi.
+  - **Table neeche barqarar** — wahi asli data he, chart sirf tasveer he.
+  - **2 mahine se kam** ho to chart nahi banta (ek mahine ka number stat tile pehle se dikhata he).
+  - Koi library nahi, koi animation nahi — inline SVG, `viewBox` se har width par fit.
+- **Rang validator se pass karwaya, andaze se nahi:** light `#2563eb` (surface `#ffffff`), dark aur OLED `#3b82f6` (`#121c2c` / `#0b0b0e`). App ka apna `--blue #60a5fa` dark mode ke lightness band se **bahar** tha, is liye chart ka alag token `--trend-series` rakha.
+- **Accessibility: har form control ka naam.** Pehle 150+ controls ke `<label>` visually mojood the magar `for=` nahi tha — screen reader unhe pehchan nahi pata tha.
+  - Sab static labels ab `for="id"` se juray hue.
+  - Jin controls ka koi visible label nahi (placeholder-only, ya dynamic rows) unhe `aria-label` mila — misal income/expense amount, charity, fixed expense rows, month selects.
+  - Lighthouse accessibility **90 → 100**.
+- **Kuch nahi toota:** cost/sale/profit, advance, pending payments, expiry reminders — sab waise hi. Sirf ek chart aur labels ka izafa.
+- Sirf app ka change — Worker redeploy ki zaroorat nahi.
+
 ## Har device ka apna theme + file chunte hi upload (v3.29)
 - **Theme ab device ka apna:** mobile par OLED aur PC par Light — ek par badalne se doosra nahi badalta. Theme ab GitHub sync wale data (`S.settings`) mein nahi, sirf us device ke `localStorage` (`ab_theme`) mein save hota he. Pehli dafa naya version khulne par jo theme pehle se tha wahi us device par pin ho jata he.
 - **Ticket Files:** file chunte (ya PC par drag kar ke chhorte) hi upload shuru — alag **⬆ Upload** button hata diya. Button ka naam ab **⬆ Choose & upload file(s)**. Client / PNR / Note pehle likh dein; khali hon to file ke naam se khud bhar jate hain. Upload chal rahi ho to doosri dafa chunne par double upload nahi hoti.
@@ -814,7 +831,7 @@ Current version: **2.31** (Email share opens Gmail compose with recipient prompt
 - Default waisa hi hai, is liye purane users ka behaviour nahi badla.
 
 ## Version
-Current version: **3.29** (v3.29 theme per device (localStorage ab_theme, sync nahi hota); Ticket Files: chunte hi upload, Upload button hataya; v3.28 v3.28 booking reminder lead chips: 1 din / 3h / 2h / 1h / 30 / 15 / 10 / 5 min / waqt par, multi-select; reminder Telegram slow send; v3.27 v3.27 plane button menu: Price Lookup / Flight Tracker / Booking alerts; har girawat (Rs 1+) par foran alert, koi % ya cooldown nahi, alert mein "Rs X sasta"; v3.26 v3.26 tracker alerts: Telegram timeout 20s+30s, fail chat ko har minute dobara (5 dafa, bina search), 1% ya Rs 300 girawat par alert, naya low cooldown mein bhi, card par aakhri alert ka haal; v3.25 v3.25 profit sirf tab jab cost aur sale dono > 0 (register row —, totals, month, dashboard, report, CSV); Price Tracker laptop par 2 column, interval/kab tak hamesha saamne + live checks khulasa, low price chip, ending-soon highlight; booking reminders: PNR field, client suggestions, alarm ✓/⚠ retry, urgent laal, form-based edit, duplicate block, purane saaf; v3.24 v3.24 Sale form mein **Advance received now** + advance date — baqi raqam khud Pending Payments / dashboard bakaya mein; advance net par clamp, poora advance = paid, khali advance = purana Paid/Unpaid select; change sale par advance net (sale − adj) par)
+Current version: **3.30** (v3.30 Summary mein net-profit line chart — zero line, ek hue, endpoint/extreme labels, palette validator se pass; aur har form control ka accessible naam — Lighthouse accessibility 100)
 
 ## Price bot: KV list limit fix (v2.41)
 - Cloudflare KV free plan mein **1,000 list requests/day** hoti hain. Bot ka cron har minute `KV.list` chalata tha (1,440/day), is liye ~15 ghante mein 90% usage email aa jati thi.
