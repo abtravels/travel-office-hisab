@@ -122,9 +122,13 @@
 - **Test:** Tracker → **📨 Telegram test** ab dono ka nateeja dikhata he: "✓ Telegram 2 chat…" ya "✓ Discord par bhej diya (Telegram jawab nahi de raha)" ya dono ke errors.
 - **Mashwra:** Telegram ko primary rakhein (team ke paas already he), Discord ko **backup** — dono ek saath chalti hain, koi nuqsan nahi. Discord webhook ke liye bot/token ki zaroorat nahi, sirf ek URL.
 
-## Invoice par salam + logo (v3.32)
-- Invoice ke top par ab **salam line** aati he: *"Assalam-o-Alaikum, <client name> — aap ki booking ki tafseel neeche he."* (Umrah par "aap ke Umrah package ki tafseel neeche he."). Print/PDF mein bhi wahi.
-- Invoice header ka **logo**: pehle image load na ho to logo **gayab** ho jata tha (print/offline par header khaali). Ab uski jagah **AB monogram** (dark circle) aa jata he — header hamesha bhara hua lagta he.
+## Salam Air + invoice header (v3.33)
+- **Salam Air (OV)** ab app mein add he:
+  - Invoice / ticket form ke **airline dropdown** mein (OV — Salam Air), logo ke sath (`airlines/OV.png`).
+  - **PNR Lookup** tab ki airline list mein bhi.
+  - **Price Lookup → 🔗 Airline portals** card mein `https://www.salamair.com/`.
+- Invoice se **"Assalam-o-Alaikum" wali line hata di** (v3.32 mein galti se add hui thi — woh greeting nahi, airline maangi gayi thi).
+- Invoice header ka **logo** ab load na ho to **AB monogram** dikhta he (print/PDF mein header khaali nahi lagta).
 - Baqi invoice (PNR, passengers, flights, baggage, totals) waisa hi he.
 
 ## Tracker: Telegram ka asli nateeja + test button (v3.20)
@@ -836,7 +840,7 @@ Current version: **2.31** (Email share opens Gmail compose with recipient prompt
 - Default waisa hi hai, is liye purane users ka behaviour nahi badla.
 
 ## Version
-Current version: **3.32** — Invoice par salam line (client ke naam ke sath) aur logo ka AB-monogram fallback (logo load na ho to bhi header bhara lagta he).
+Current version: **3.33** — Salam Air (OV) invoice/Pnr/portal lists mein add (logo ke sath); invoice se Assalam-o-Alaikum line hatayi; header logo ka AB-monogram fallback.
 
 ## Price bot: KV list limit fix (v2.41)
 - Cloudflare KV free plan mein **1,000 list requests/day** hoti hain. Bot ka cron har minute `KV.list` chalata tha (1,440/day), is liye ~15 ghante mein 90% usage email aa jati thi.
