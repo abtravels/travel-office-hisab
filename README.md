@@ -1,5 +1,14 @@
 # Travel Office Hisab - AB Travels
 
+## Kamai kahan se + phone par bare buttons (v3.35)
+- **Summary → 💡 Kamai kahan se:** sales ki ginti, avg profit per sale, margin %, pending (unpaid), **har sale type ka profit** (Ticket / Umrah / Visa …) aur **sab se zyada profit dene wale 5 clients**. Neeche mashwaray: kitni sales ki cost/sale khali he, kitni par margin 2% se kam he, pending paisa. Sab numbers `Show totals` passcode ke peeche. Sirf wo sales gini jati hain jin ki cost aur sale dono likhi hon.
+- **Clients → dobara rabta:** jis client ne **60+ din** se kuch nahi liya us par `⏳ N din se koi sale nahi` aata he, upar ginti aur **Sirf ye dikhayein** filter. Har client (jis ka number ho) par **💬** — WhatsApp khulta he tayyar follow-up message ke sath (naam ke sath, koi raqam nahi).
+- **Sale type mein naye options:** Visa, Hotel, Insurance, Tour, Other (pehle sirf Ticket / Change / Umrah / Hajj) — taake har service ki kamai alag nazar aaye.
+- **Phone par bare buttons:** touch screen / 860px se chhoti screen par har button kam az kam 36px (bare 42px) — pehle 26px the aur ghalat button dab jata tha. Laptop par size wahi.
+- **Settings shortcuts:** search ke neeche chips (Telegram, GitHub sync, Backup, Theme, Invoice, Flight prices, Passcode, Staff, Update) — ek tap par sirf wahi cards.
+- 9 fields ko screen-reader naam diye (withdrawal / loan / payment dates, move-sales months, PDF text, backup list).
+- Sirf app ka change — Worker redeploy ki zaroorat nahi.
+
 ## Invoice: leg labels saaf + headings prominent (v3.34)
 - **Bug:** connecting leg par departure ki heading sirf `CONTINUING FLIGHT` thi (return par `RETURN — CONTINUING FLIGHT`), is liye round trip invoice par lagta tha ke wo leg kisi aur trip ki he.
 - Ab dono taraf ek jaisa: **`DEPARTURE — CONTINUING FLIGHT`** aur **`RETURN — CONTINUING FLIGHT`**.
@@ -846,7 +855,7 @@ Current version: **2.31** (Email share opens Gmail compose with recipient prompt
 - Default waisa hi hai, is liye purane users ka behaviour nahi badla.
 
 ## Version
-Current version: **3.33** — Salam Air (OV) invoice/Pnr/portal lists mein add (logo ke sath); invoice se Assalam-o-Alaikum line hatayi; header logo ka AB-monogram fallback.
+Current version: **3.35** — Summary mein "Kamai kahan se" (sale type / top clients / margin), Clients mein 60+ din follow-up + WhatsApp, naye sale types (Visa, Hotel, Insurance, Tour, Other), phone par bare buttons, Settings shortcuts. (v3.34: invoice leg labels.)
 
 ## Price bot: KV list limit fix (v2.41)
 - Cloudflare KV free plan mein **1,000 list requests/day** hoti hain. Bot ka cron har minute `KV.list` chalata tha (1,440/day), is liye ~15 ghante mein 90% usage email aa jati thi.

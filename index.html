@@ -146,6 +146,20 @@
   .btn.primary{background:var(--blue); color:#fff;}
   .btn.green{background:var(--green); color:#fff;}
   .btn.small{width:auto; padding:7px 12px; font-size:13px; margin-top:0;}
+  /* Phone / touch: ungli ke liye bare buttons (v3.35) — pehle 26px the, ghalat button dab jata tha.
+     Laptop par (mouse) size wahi rehta he. */
+  @media (max-width: 860px), (pointer: coarse){
+    .btn{min-height:42px;}
+    .btn.small{min-height:36px; padding-left:12px; padding-right:12px;}
+    .btn.btn-del{min-height:34px;}
+    .del{min-height:32px; min-width:32px;}
+    .card-head .collapse-arrow{width:36px; height:36px;}
+    .sheet-grid .ia-more{width:32px; height:27px;}
+    .set-chips .btn.small{min-height:34px;}
+  }
+  .set-chips{display:flex; flex-wrap:wrap; gap:6px; margin-top:8px;}
+  .set-chips .btn{margin-top:0; flex:0 0 auto;}
+  .set-chips .btn.on{background:var(--blue-bg); color:var(--blue); border-color:transparent; font-weight:800;}
   /* Destructive actions — chhota, baqi buttons se alag, ghalti se na dabay */
   body .btn.btn-del{width:auto; background:transparent; color:var(--red); border:1px solid var(--red); font-size:11.5px; font-weight:700; padding:4px 9px; border-radius:7px; margin-top:8px; opacity:.75;}
   body .btn.btn-del:hover{opacity:1; background:var(--red-bg);}
@@ -814,7 +828,7 @@
   <div class="brand">
     <img src="logo.png" alt="AB Travels" decoding="async" onerror="this.style.display='none'">
     <div style="min-width:0;">
-      <h1>AB Travels <span class="ver" id="verBadge">v3.34</span></h1>
+      <h1>AB Travels <span class="ver" id="verBadge">v3.35</span></h1>
       <div class="tag">Ahmed Brothers Hajj &amp; Umra Services (Pvt) Ltd</div>
     </div>
     <button id="brandFares" class="brand-fares" type="button" title="Flights — Price Lookup / Tracker / Booking alerts" aria-label="Flights menu" aria-haspopup="menu">✈</button>
@@ -884,7 +898,7 @@
 <script>
 /* ================= DATA ================= */
 var KEY = "travelOfficeHisab";
-var APP_VER = "3.34";
+var APP_VER = "3.35";
 var MONTH_NAMES = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
 /* Cloudflare Worker — Ignav flight prices proxy (free plan, no credit card) */
 var IGNAV_WORKER_CODE = "// AB Travels - Ignav flight prices proxy (Cloudflare Worker)\n// Ignav API key SERVER par rehti hai - app/browser mein kabhi nahi aati.\n//\n// SETUP (ek dafa, ~5 min, free):\n// 1) ignav.com/signup -> free account -> dashboard se API key\n// 2) cloudflare.com -> free account -> Workers & Pages -> Create Worker -> yeh code paste -> Deploy\n// 3) Worker -> Settings -> Variables and Secrets -> secret add karein:\n//      IGNAV_API_KEY = (aap ki Ignav key)\n// 4) Worker URL (https://xxx.workers.dev) app -> Settings -> Flight prices -> paste -> Save & test\n\nexport default {\n  async fetch(request, env) {\n    const cors = {\n      'Access-Control-Allow-Origin': env.ALLOWED_ORIGIN || '*',\n      'Access-Control-Allow-Methods': 'GET,POST,OPTIONS',\n      'Access-Control-Allow-Headers': 'Content-Type',\n      'Access-Control-Max-Age': '86400'\n    };\n    const url = new URL(request.url);\n    if (request.method === 'OPTIONS') return new Response(null, { status: 204, headers: cors });\n    if (!env.IGNAV_API_KEY) {\n      return new Response(JSON.stringify({ error: { code: 'no_key', message: 'IGNAV_API_KEY secret is not set in the Worker.' } }), { status: 500, headers: Object.assign({ 'Content-Type': 'application/json' }, cors) });\n    }\n    const base = 'https://ignav.com/api';\n    let target = '';\n    let init = { method: 'GET', headers: { 'X-Api-Key': env.IGNAV_API_KEY } };\n    if (url.pathname === '/health') {\n      target = base + '/health';\n    } else if (url.pathname === '/fares') {\n      if (request.method !== 'POST') return new Response(JSON.stringify({ error: { message: 'POST only' } }), { status: 405, headers: cors });\n      const body = await request.text();\n      target = base + '/fares/one-way';\n      init = { method: 'POST', headers: { 'X-Api-Key': env.IGNAV_API_KEY, 'Content-Type': 'application/json' }, body };\n    } else if (url.pathname === '/search') {\n      if (request.method !== 'POST') return new Response(JSON.stringify({ error: { message: 'POST only' } }), { status: 405, headers: cors });\n      const body = await request.text();\n      target = base + '/fares/search';\n      init = { method: 'POST', headers: { 'X-Api-Key': env.IGNAV_API_KEY, 'Content-Type': 'application/json' }, body };\n    } else if (url.pathname === '/round-trip') {\n      if (request.method !== 'POST') return new Response(JSON.stringify({ error: { message: 'POST only' } }), { status: 405, headers: cors });\n      const body = await request.text();\n      target = base + '/fares/round-trip';\n      init = { method: 'POST', headers: { 'X-Api-Key': env.IGNAV_API_KEY, 'Content-Type': 'application/json' }, body };\n    } else if (url.pathname === '/booking-links') {\n      if (request.method !== 'POST') return new Response(JSON.stringify({ error: { message: 'POST only' } }), { status: 405, headers: cors });\n      const body = await request.text();\n      target = base + '/fares/booking-links';\n      init = { method: 'POST', headers: { 'X-Api-Key': env.IGNAV_API_KEY, 'Content-Type': 'application/json' }, body };\n    } else {\n      return new Response(JSON.stringify({ error: { message: 'not found' } }), { status: 404, headers: Object.assign({ 'Content-Type': 'application/json' }, cors) });\n    }\n    try {\n      const r = await fetch(target, init);\n      const text = await r.text();\n      return new Response(text, { status: r.status, headers: Object.assign({ 'Content-Type': 'application/json' }, cors) });\n    } catch (e) {\n      return new Response(JSON.stringify({ error: { message: String((e && e.message) || e) } }), { status: 502, headers: Object.assign({ 'Content-Type': 'application/json' }, cors) });\n    }\n  }\n};\n";
@@ -4736,6 +4750,65 @@ function profitTrendSVG(mids){
     + '<title>Net profit per month</title><desc>'+esc(desc)+'</desc>'
     + g.join("") + '</svg></div>';
 }
+/* ---------- Kamai kahan se (v3.35) ----------
+   Sale type ke hisaab se profit, sab se achhe clients, aur wo sales jin par
+   profit nahi nikla — taake nazar aaye paisa kahan ban raha he aur kahan chhoot raha he.
+   Numbers .grid2/.stat mein hain, is liye "Show totals" passcode ke peeche rehte hain. */
+function revenueInsights(mid){
+  var list = (S.tickets || []).filter(function(t){ return mid === "all" || String(t.date || "").slice(0, 7) === mid; });
+  var byKind = {}, byClient = {}, noProfit = 0, lowMargin = 0, unpaid = 0, done = 0, profit = 0, sale = 0;
+  list.forEach(function(t){
+    var k = String(t.kind || "Ticket").trim() || "Ticket";
+    var b = byKind[k] || (byKind[k] = { kind:k, n:0, sale:0, profit:0 });
+    b.n++;
+    if(!ticketProfitReady(t)){ noProfit++; return; }
+    var p = ticketProfit(t), s = Number(t.sale) || 0;
+    b.sale += s; b.profit += p;
+    done++; profit += p; sale += s;
+    if(s > 0 && p / s < 0.02) lowMargin++;
+    var cn = String(t.client || "").trim();
+    if(cn){
+      var c = byClient[cn.toLowerCase()] || (byClient[cn.toLowerCase()] = { name:cn, n:0, profit:0 });
+      c.n++; c.profit += p;
+    }
+  });
+  list.forEach(function(t){ if(t.paid === false) unpaid += ticketRemaining(t); });
+  return {
+    count: list.length, done: done, profit: profit, sale: sale,
+    avg: done ? Math.round(profit / done) : 0,
+    margin: sale > 0 ? (profit / sale) * 100 : 0,
+    kinds: Object.keys(byKind).map(function(k){ return byKind[k]; }).sort(function(a, b){ return b.profit - a.profit; }),
+    clients: Object.keys(byClient).map(function(k){ return byClient[k]; }).sort(function(a, b){ return b.profit - a.profit; }).slice(0, 5),
+    noProfit: noProfit, lowMargin: lowMargin, unpaid: unpaid
+  };
+}
+function revenueCard(mid){
+  var r = revenueInsights(mid);
+  if(!r.count) return "";
+  var html = '<div class="card"><h2>💡 Kamai kahan se' + (mid === "all" ? "" : " — " + esc(monthLabel(mid))) + '</h2>';
+  html += '<div class="grid2">'
+        + '<div class="stat"><div class="t">Sales</div><div class="v">' + r.count + '</div></div>'
+        + '<div class="stat"><div class="t">Avg profit / sale</div><div class="v ' + (r.avg >= 0 ? "pos" : "neg") + '">' + money(r.avg) + '</div></div>'
+        + '<div class="stat"><div class="t">Margin</div><div class="v">' + r.margin.toFixed(1) + '%</div></div>'
+        + '<div class="stat"><div class="t">Pending (unpaid)</div><div class="v gld">' + money(r.unpaid) + '</div></div>';
+  r.kinds.forEach(function(k){
+    html += '<div class="stat"><div class="t">' + esc(k.kind) + ' · ' + k.n + '</div><div class="v ' + (k.profit >= 0 ? "pos" : "neg") + '">' + money(k.profit) + '</div></div>';
+  });
+  r.clients.forEach(function(c, i){
+    html += '<div class="stat"><div class="t">#' + (i + 1) + ' ' + esc(c.name) + ' · ' + c.n + '</div><div class="v pos">' + money(c.profit) + '</div></div>';
+  });
+  html += '</div>';
+  var tips = [];
+  if(r.noProfit) tips.push('<b>' + r.noProfit + '</b> sale(s) ki cost ya sale price khali he — profit gina nahi gaya. Sales register mein bhar dein.');
+  if(r.lowMargin) tips.push('<b>' + r.lowMargin + '</b> sale(s) par margin 2% se kam — in par service charge / markup dekhein.');
+  if(r.unpaid > 0) tips.push('Pending Payments mein paisa ruka hua he — reminder bhej kar wasool karein.');
+  var onlyTickets = r.kinds.length === 1 && /^(ticket|change)$/i.test(r.kinds[0].kind);
+  if(onlyTickets) tips.push('Saari kamai sirf tickets se he — Umrah, Visa, Hotel aur Insurance par margin zyada hota he. Sale type mein ye options maujood hain.');
+  if(tips.length) html += '<div class="hint" style="margin-top:8px;">' + tips.map(function(x){ return '• ' + x; }).join('<br>') + '</div>';
+  html += '<div class="hint">Upar ke numbers: pehle 4 khulasa, phir har sale type ka profit, phir sab se zyada profit dene wale clients. Passcode ke peeche hain.</div>';
+  html += '</div>';
+  return html;
+}
 function viewDash(){
   var pb = partnerBalances(), t = totals(), st = S.settings;
   var mf = monthFilterCard("DASH", "View the overall summary or a single month. <b>All months</b> shows everything.");
@@ -4795,6 +4868,8 @@ function viewDash(){
     html += '<div class="stat"><div class="t">Total withdrawn</div><div class="v">'+money(drawA+drawB+drawAbbu)+'</div></div>';
     html += '</div></div>';
   }
+
+  html += revenueCard(mf.cur);
 
   var mids = Object.keys(S.months).sort();
   var showMids = (mf.cur === "all") ? mids : mids.filter(function(m){ return m === mf.cur; });
@@ -5083,7 +5158,7 @@ function viewTickets(){
   /* ---- Naya sale: form (sales mojood hon to band) ---- */
   html += '<div class="card" data-collapse="tknew" data-open="'+(all.length ? "0" : "1")+'"><h2>'+esc(T("newtk"))+'</h2>';
   html += '<label for="tkDate">'+esc(T("tareekh"))+'</label><input id="tkDate" type="date" value="'+today()+'">';
-  html += '<div class="row" style="margin-top:8px;"><div><label for="tkKind">Sale type</label><select id="tkKind"><option>Ticket</option><option>Change</option><option>Umrah</option><option>Hajj</option></select></div></div>';
+  html += '<div class="row" style="margin-top:8px;"><div><label for="tkKind">Sale type</label><select id="tkKind"><option>Ticket</option><option>Change</option><option>Umrah</option><option>Hajj</option><option>Visa</option><option>Hotel</option><option>Insurance</option><option>Tour</option><option>Other</option></select></div></div>';
   html += '<div class="row" style="margin-top:8px;">'
         + '<div><label for="tkClient">Client name</label><input id="tkClient" placeholder="Full name"></div>'
         + '<div><label for="tkPhone">Contact number</label><input id="tkPhone" type="tel" inputmode="tel" placeholder="For payment reminders"></div>'
@@ -5129,8 +5204,8 @@ function viewTickets(){
     var shiftMids = Object.keys(S.months || {}).concat(months).filter(function(m,i,a){ return /^\d{4}-\d{2}$/.test(m) && a.indexOf(m) === i; }).sort();
     html += '<div class="card" data-collapse="tkmove" data-open="0"><h2>Move sales to another month</h2>';
     html += '<div class="hint" style="margin-top:0;">If an import brought sales with the wrong month, move all sales of one month to another month here (the day stays the same). To change a single sale&rsquo;s date, press 📅 in the table.</div>';
-    html += '<div class="row"><select id="tkFrom">'+shiftMids.map(function(m){ return '<option value="'+m+'"'+(m===ticketFilter?" selected":"")+'>'+monthLabel(m)+' — from</option>'; }).join("")+'</select>'
-          + '<select id="tkTo">'+shiftMids.map(function(m){ return '<option value="'+m+'">'+monthLabel(m)+' — to</option>'; }).join("")+'</select></div>';
+    html += '<div class="row"><select id="tkFrom" aria-label="Move sales — from month">'+shiftMids.map(function(m){ return '<option value="'+m+'"'+(m===ticketFilter?" selected":"")+'>'+monthLabel(m)+' — from</option>'; }).join("")+'</select>'
+          + '<select id="tkTo" aria-label="Move sales — to month">'+shiftMids.map(function(m){ return '<option value="'+m+'">'+monthLabel(m)+' — to</option>'; }).join("")+'</select></div>';
     html += '<button class="btn small" id="tkShift" style="width:100%;">Move sales</button>';
     html += '</div>';
   }
@@ -5227,7 +5302,7 @@ function viewPartner(which){
   html += '</div>';
 
   html += '<div class="card"><h2>'+esc(T("nikrec"))+'</h2>';
-  html += '<div class="row"><input id="drawAmt" type="number" min="0" inputmode="decimal" placeholder="'+esc(T("raqamph"))+'"><input id="drawDate" type="date" value="'+today()+'" style="max-width:160px;"></div>';
+  html += '<div class="row"><input id="drawAmt" type="number" min="0" inputmode="decimal" placeholder="'+esc(T("raqamph"))+'"><input id="drawDate" type="date" aria-label="Withdrawal date" value="'+today()+'" style="max-width:160px;"></div>';
   html += '<input id="drawNote" placeholder="'+esc(T("noteph"))+'" style="margin-top:8px;">';
   html += '<button class="btn primary" id="addDraw" data-p="'+key+'">'+esc(T("savek"))+'</button></div>';
 
@@ -5282,7 +5357,7 @@ function viewAbbu(){
   html += '</div>';
 
   html += '<div class="card"><h2>'+esc(T("abbunik"))+'</h2>';
-  html += '<div class="row"><input id="abbuAmt" type="number" min="0" inputmode="decimal" placeholder="Amount (Rs)"><input id="abbuDate" type="date" value="'+today()+'" style="max-width:160px;"></div>';
+  html += '<div class="row"><input id="abbuAmt" type="number" min="0" inputmode="decimal" placeholder="Amount (Rs)"><input id="abbuDate" type="date" aria-label="Withdrawal date" value="'+today()+'" style="max-width:160px;"></div>';
   html += '<input id="abbuNote" placeholder="Reason / note" style="margin-top:8px;">';
   html += '<button class="btn primary" id="addAbbu">Save</button></div>';
 
@@ -5355,7 +5430,7 @@ function viewWaseem(){
   html += '</div>';
 
   html += '<div class="card"><h2>'+esc(T("payrec"))+'</h2>';
-  html += '<div class="row"><select id="wsKind" style="max-width:200px;"><option value="commission">'+esc(T("kcomm"))+'</option><option value="salary">'+esc(T("ksal"))+'</option></select><input id="wsAmt" type="number" min="0" inputmode="decimal" placeholder="'+esc(T("raqamph"))+'"><input id="wsDate" type="date" value="'+today()+'" style="max-width:160px;"></div>';
+  html += '<div class="row"><select id="wsKind" aria-label="Payment type" style="max-width:200px;"><option value="commission">'+esc(T("kcomm"))+'</option><option value="salary">'+esc(T("ksal"))+'</option></select><input id="wsAmt" type="number" min="0" inputmode="decimal" placeholder="'+esc(T("raqamph"))+'"><input id="wsDate" type="date" aria-label="Payment date" value="'+today()+'" style="max-width:160px;"></div>';
   html += '<input id="wsNote" placeholder="'+esc(T("wsnote"))+'" style="margin-top:8px;">';
   html += '<button class="btn primary" id="addWs">'+esc(T("savek"))+'</button></div>';
 
@@ -5383,7 +5458,7 @@ function viewQarza(){
   html += '</div></div>';
 
   html += '<div class="card"><h2>'+esc(T("qzadd"))+'</h2>';
-  html += '<div class="row"><input id="qzAmt" type="number" min="0" inputmode="decimal" placeholder="'+esc(T("raqamph"))+'"><input id="qzDate" type="date" value="'+today()+'" style="max-width:160px;"></div>';
+  html += '<div class="row"><input id="qzAmt" type="number" min="0" inputmode="decimal" placeholder="'+esc(T("raqamph"))+'"><input id="qzDate" type="date" aria-label="Loan entry date" value="'+today()+'" style="max-width:160px;"></div>';
   html += '<input id="qzNote" placeholder="'+esc(T("qznote"))+'" style="margin-top:8px;">';
   html += '<button class="btn primary" id="addQz">'+esc(T("savek"))+'</button></div>';
 
@@ -6134,7 +6209,7 @@ function viewPdfToWord(){
   html += '<div class="hint" id="pwStatus" style="font-weight:600;"></div>';
   html += '<div id="pwBarWrap" style="height:8px; background:var(--line-soft); border-radius:99px; overflow:hidden; margin-top:8px; display:none;"><div id="pwBar" style="height:100%; width:0%; background:var(--blue);"></div></div>';
   html += '<div id="pwOutWrap" style="display:' + (pwText ? "block" : "none") + '; margin-top:10px;">'
-        + '<textarea id="pwOut" rows="12" spellcheck="false" style="font-size:13px; white-space:pre; overflow:auto;"></textarea>'
+        + '<textarea id="pwOut" aria-label="Converted text" rows="12" spellcheck="false" style="font-size:13px; white-space:pre; overflow:auto;"></textarea>'
         + '<div style="display:flex; gap:8px; margin-top:8px; flex-wrap:wrap;"><button class="btn green small" id="pwDocBtn">⬇ Download Word (.docx)</button><button class="btn small" id="pwCopyBtn">📋 Copy text</button></div>'
         + '</div>';
   html += '</div>';
@@ -8770,6 +8845,15 @@ function ignavSearch(){
 
 /* ================= CLIENTS (CUSTOMERS) ================= */
 var clEditId = null;
+var CL_IDLE_DAYS = 60;
+/* Purane client ko wapas bulane ka message — naam ke sath, bina kisi raqam ke. */
+function clFollowUpText(name){
+  var first = String(name || "").trim().split(/\s+/)[0] || "";
+  return "Assalam o Alaikum" + (first ? " " + first : "") + ",\n"
+    + "AB Travels (Ahmed Brothers Hajj & Umra Services) ki taraf se.\n"
+    + "Umrah, ticket, visa ya hotel ki koi bhi zaroorat ho to bata dein — behtareen rate ki koshish hogi.\n"
+    + "0314-3176560";
+}
 function clDaysLeft(dstr){
   var m = String(dstr||"").match(/^(\d{4})-(\d{2})-(\d{2})/);
   if(!m) return null;
@@ -9156,7 +9240,7 @@ function viewClients(){
         + (clEditId ? '<button class="btn" id="clCancel" style="flex:1;">Cancel</button>' : '');
   html += '</div></div>';
   // List
-  var totalBiz = 0, totalBak = 0;
+  var totalBiz = 0, totalBak = 0, idleCount = 0;
   var rowsHtml = "";
   cs.forEach(function(c){
     var st = clientStats(c.name);
@@ -9186,7 +9270,12 @@ function viewClients(){
       hist += '</div>';
     }
     if(!hist) hist = '<div class="empty" style="padding:8px;">Is client ki koi sale abhi nahi.</div>';
-    rowsHtml += '<div data-search="'+esc(String(c.name||"").toLowerCase()+' '+(c.phone||"")+' '+(c.nic||""))+'" style="border:1px solid var(--line); border-radius:12px; padding:12px; margin-bottom:10px;">'
+    /* Dobara rabta (v3.35): aakhri sale ko kitne din hue — 60+ din = wapas bulane ka mauqa */
+    var lastDate = tks.length ? String(tks[0].date || "") : "";
+    var idleDays = lastDate ? Math.floor((Date.parse(today()) - Date.parse(lastDate)) / 86400000) : -1;
+    var idle = idleDays >= CL_IDLE_DAYS;
+    if(idle) idleCount++;
+    rowsHtml += '<div data-search="'+esc(String(c.name||"").toLowerCase()+' '+(c.phone||"")+' '+(c.nic||""))+'" data-idle="'+(idle ? "1" : "0")+'" style="border:1px solid var(--line); border-radius:12px; padding:12px; margin-bottom:10px;">'
       + '<div style="display:flex; justify-content:space-between; align-items:center; gap:8px;">'
       + '<div style="min-width:0;"><b>'+esc(c.name)+'</b> '+clPassBadge(c)
       + '<div style="font-size:12.5px; color:var(--muted);">'
@@ -9197,8 +9286,10 @@ function viewClients(){
       + '</div>'
       + (st.bak ? '<div style="font-size:12.5px; color:var(--red); font-weight:700;">Bakaya: '+money(st.bak)+'</div>' : '')
       + (c.note ? '<div style="font-size:12px; color:var(--muted);">'+esc(c.note)+'</div>' : '')
+      + (idle ? '<div style="font-size:12px; color:var(--gold); font-weight:700;">⏳ '+idleDays+' din se koi sale nahi (aakhri '+esc(dmy(lastDate))+')</div>' : '')
       + '</div>'
-      + '<div style="display:flex; gap:6px; flex:0 0 auto; align-items:center;">'
+      + '<div style="display:flex; gap:6px; flex:0 0 auto; align-items:center; flex-wrap:wrap; justify-content:flex-end;">'
+      + (c.phone ? '<button class="btn small cl-wa" data-id="'+esc(c.id)+'" title="WhatsApp par message" style="background:var(--green-bg); color:var(--green);">💬</button>' : '')
       + '<button class="btn small cl-open" data-id="'+esc(c.id)+'">History</button>'
       + '<button class="btn small cl-edit" data-id="'+esc(c.id)+'">✏</button>'
       + '<button class="del cl-del" data-id="'+esc(c.id)+'">✕</button>'
@@ -9214,6 +9305,11 @@ function viewClients(){
           + '<div style="flex:1;"><b>'+money(totalBiz)+'</b><div style="font-size:11.5px; color:var(--muted);">total business (sales)</div></div>'
           + '<div style="flex:1;"><b>'+money(totalBak)+'</b><div style="font-size:11.5px; color:var(--muted);">bakaya (pending)</div></div>'
           + '<button class="btn small" id="clCsv">⬇ CSV</button></div>';
+    if(idleCount){
+      html += '<div class="sheet-note" style="display:flex; align-items:center; gap:8px; flex-wrap:wrap; border-radius:10px; margin-bottom:10px;">'
+            + '<span>⏳ <b>'+idleCount+'</b> client(s) ne '+CL_IDLE_DAYS+'+ din se kuch nahi liya — 💬 se ek message bhej kar wapas bulayein.</span>'
+            + '<button class="btn small" id="clIdleOnly" style="margin-top:0;">Sirf ye dikhayein</button></div>';
+    }
     html += '<div id="clList">'+rowsHtml+'</div>';
   } else {
     html += '<div class="empty">Abhi koi client nahi. Sales ya Invoice mein naam likhte hi khud add ho jayega.</div>';
@@ -9401,6 +9497,13 @@ function viewSettings(){
   // Settings bahut lambi hai — search box se sirf matching cards dikhein
   html += '<div class="card" style="padding-bottom:10px;"><label for="setSearch">Search settings</label>';
   html += '<input id="setSearch" placeholder="e.g. telegram, github, backup, invoice" autocomplete="off">';
+  /* Ek tap par seedha us hisse tak (v3.35) — lambi page scroll nahi karni parti */
+  html += '<div class="set-chips" id="setChips">'
+        + [["telegram","🤖 Telegram"],["github","🐙 GitHub sync"],["backup","💾 Backup"],["appearance","🎨 Theme"],
+           ["invoice","🧾 Invoice"],["flight","✈ Flight prices"],["passcode","🔒 Passcode"],["staff","👔 Staff"],["update","⬆ Update"]]
+            .map(function(c){ return '<button type="button" class="btn small" data-set-q="' + c[0] + '">' + c[1] + '</button>'; }).join("")
+        + '<button type="button" class="btn small" data-set-q="">Sab dikhayein</button>'
+        + '</div>';
   html += '<div class="hint" id="setSearchHint">Ye page lamba hai — type karein to sirf milte julte cards nazar aayenge.</div></div>';
   // Naya version — check for updates
   html += '<div class="card"><h2>App version (update)</h2>';
@@ -9578,7 +9681,7 @@ function viewSettings(){
         +   '<button class="btn small" id="ghBakNow" style="flex:1.15; background:var(--green); color:#fff; margin-top:0;">☁️ Save backup on GitHub now</button>'
         +   '<button class="btn small" id="ghBakShow" style="flex:1; margin-top:0;">Show backups…</button>'
         + '</div>'
-        + '<select id="ghBakList" style="margin-top:8px; width:100%; display:none;"></select>'
+        + '<select id="ghBakList" aria-label="GitHub backup snapshots" style="margin-top:8px; width:100%; display:none;"></select>'
         + '<button class="btn small" id="ghBakRestore" style="margin-top:8px; display:none; width:100%;">↩ Restore selected backup</button>'
         + '<div class="hint" id="ghStatus" style="margin-top:6px; font-weight:600;"></div>'
         + '<div class="hint">Token kaise banayein: GitHub → Settings → Developer settings → <b>Personal access tokens</b>. <b>Fine-grained</b> PAT — repository <code>travel-office-hisab-backup</code>, permission <b>Contents → Read and write</b>. (Ya classic token with <b>repo</b> scope.) Token is device par hi stored hai — backup/sync/report files mein koi nahi jata.</div>'
@@ -11035,7 +11138,17 @@ function bind(){
         ? "Ye page lamba hai — type karein to sirf milte julte cards nazar aayenge."
         : (shown ? shown + " card mila — box khali karein to sab wapas aa jayenge." : "Kuch nahi mila — doosra lafz try karein.");
     }
+    app.querySelectorAll("[data-set-q]").forEach(function(b){
+      b.classList.toggle("on", !!q && b.getAttribute("data-set-q") === q);
+    });
   };
+  app.querySelectorAll("[data-set-q]").forEach(function(b){
+    b.onclick = function(){
+      if(!setSearch) return;
+      setSearch.value = b.getAttribute("data-set-q");
+      setSearch.oninput();
+    };
+  });
 
   var sel = document.getElementById("monthSel");
   if(sel) sel.onchange = function(){ selectedMonth = sel.value; render(); };
@@ -12744,18 +12857,42 @@ function bind(){
       b.textContent = open ? "History" : "Hide";
     };
   });
-  var cSearch = document.getElementById("clSearch");
-  if(cSearch) cSearch.oninput = function(){
-    var q = this.value.trim().toLowerCase();
+  /* 💬 WhatsApp — client ko follow-up message (number mojood ho to) */
+  app.querySelectorAll(".cl-wa").forEach(function(b){
+    b.onclick = function(){
+      var c = (S.clients || []).filter(function(x){ return x.id === b.getAttribute("data-id"); })[0];
+      if(!c || !c.phone) return;
+      var digits = fileWaDigits(c.phone);
+      if(!digits){ appToast("Is client ka number theek nahi — Edit se sahi karein.", true); return; }
+      try{ window.open("https://wa.me/" + digits + "?text=" + encodeURIComponent(clFollowUpText(c.name)), "_blank", "noopener"); }catch(e){}
+    };
+  });
+  var clIdleBtn = document.getElementById("clIdleOnly");
+  var clIdleOn = false;
+  function clApplyFilter(){
+    var sEl = document.getElementById("clSearch");
+    var q = sEl ? sEl.value.trim().toLowerCase() : "";
     var cnt = document.getElementById("clSearchCount");
     var shown = 0;
     document.querySelectorAll("#clList [data-search]").forEach(function(r){
-      var ok = !q || (r.getAttribute("data-search")||"").indexOf(q) >= 0;
+      var ok = (!q || (r.getAttribute("data-search")||"").indexOf(q) >= 0)
+        && (!clIdleOn || r.getAttribute("data-idle") === "1");
       r.style.display = ok ? "" : "none";
       if(ok) shown++;
     });
-    if(cnt){ cnt.style.display = q ? "block" : "none"; cnt.textContent = q ? (shown + " result(s) for '" + this.value.trim() + "'") : ""; }
+    if(cnt){
+      cnt.style.display = (q || clIdleOn) ? "block" : "none";
+      cnt.textContent = (q || clIdleOn) ? (shown + " client(s)" + (q ? " for '" + sEl.value.trim() + "'" : "") + (clIdleOn ? " — " + CL_IDLE_DAYS + "+ din se khamosh" : "")) : "";
+    }
+  }
+  if(clIdleBtn) clIdleBtn.onclick = function(){
+    clIdleOn = !clIdleOn;
+    clIdleBtn.textContent = clIdleOn ? "Sab dikhayein" : "Sirf ye dikhayein";
+    clIdleBtn.classList.toggle("primary", clIdleOn);
+    clApplyFilter();
   };
+  var cSearch = document.getElementById("clSearch");
+  if(cSearch) cSearch.oninput = clApplyFilter;
   var cCsv = document.getElementById("clCsv");
   if(cCsv) cCsv.onclick = function(){
     var rows = [["Name","Phone","NIC/Passport","Passport expiry","Sales","Total sale","Unpaid","Bakaya","Note"]];
