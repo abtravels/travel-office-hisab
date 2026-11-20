@@ -1,5 +1,14 @@
 # Travel Office Hisab - AB Travels
 
+## Country search ab round trip aur multi-city mein bhi (v3.37)
+- Pehle **"To" mein country/city ka naam (UAE, Saudi Arabia, Dubai) sirf one-way** mein chalta tha; round trip / multi-city par app kehti thi "IATA code dalein".
+- Ab **teeno trip types** mein: har airport ke liye **wahi trip** search hoti he — round trip par us airport ka **return fare** (origin wapas), multi-city par leg 1 ka destination badal kar baqi legs waise hi.
+- Country list ka header ab trip bhi dikhata he (`Round trip · 8 airports`), aur kisi row par click karne ke baad ↻ / auto-refresh bhi **round trip / multi-city hi** dobara search karta he (pehle one-way ban jata tha).
+- **Speed:** round trip / multi ka har airport bhaari search he (10 pages, 40–70s), is liye wahan **5 airports** (one-way par 8). Watchdog ab har airport ke baad reset hota he, is liye lamba run beech mein "fail" nahi dikhata.
+- Budget: har airport **ek Meezab search** — 5 airports = 5 searches.
+- **v3.38:** country card ka header ab **tareekh aur party** bhi dikhata he — `Round trip · 10 Dec 2026 – 20 Dec 2026 · 2 adults · 5 airports`, aur multi-city par legs (`KHI→DXB 10 Dec · DXB→LHR 15 Dec`). Help line bhi update ke country search teeno trip types mein chalta he.
+- Sirf app ka change — Worker redeploy ki zaroorat nahi.
+
 ## Invoice form ab nahi urta + Meezab login 526 fix (v3.36)
 - **Invoice draft:** iPhone par (home screen wali app) invoice likhte hue WhatsApp dekhne ke liye app switch karein to iOS page dobara load kar deta he — pehle aadhi likhi invoice (naam, PNR, sab) ur jati thi. Ab form ka har harf isi device par mehfooz rehta he (`localStorage` `ab_inv_draft`, sync nahi hota):
   - Wapas aane par form wahin se milta he — passengers ki ginti aur linked sale samet.
@@ -865,7 +874,7 @@ Current version: **2.31** (Email share opens Gmail compose with recipient prompt
 - Default waisa hi hai, is liye purane users ka behaviour nahi badla.
 
 ## Version
-Current version: **3.36** — invoice form ka draft (iPhone par app switch se form nahi urta), Meezab API naye address par (login 526 fix), sale types wapas 4. (v3.35: Kamai kahan se, client follow-up, phone par bare buttons.)
+Current version: **3.38** — Country search round trip/multi-city ka header ab tareekh + party bhi dikhata he; help line update. (v3.36: invoice form ka draft (iPhone par app switch se form nahi urta), Meezab API naye address par (login 526 fix), sale types wapas 4. v3.35: Kamai kahan se, client follow-up, phone par bare buttons.)
 
 ## Price bot: KV list limit fix (v2.41)
 - Cloudflare KV free plan mein **1,000 list requests/day** hoti hain. Bot ka cron har minute `KV.list` chalata tha (1,440/day), is liye ~15 ghante mein 90% usage email aa jati thi.

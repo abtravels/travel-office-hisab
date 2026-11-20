@@ -828,7 +828,7 @@
   <div class="brand">
     <img src="logo.png" alt="AB Travels" decoding="async" onerror="this.style.display='none'">
     <div style="min-width:0;">
-      <h1>AB Travels <span class="ver" id="verBadge">v3.36</span></h1>
+      <h1>AB Travels <span class="ver" id="verBadge">v3.38</span></h1>
       <div class="tag">Ahmed Brothers Hajj &amp; Umra Services (Pvt) Ltd</div>
     </div>
     <button id="brandFares" class="brand-fares" type="button" title="Flights — Price Lookup / Tracker / Booking alerts" aria-label="Flights menu" aria-haspopup="menu">✈</button>
@@ -898,7 +898,7 @@
 <script>
 /* ================= DATA ================= */
 var KEY = "travelOfficeHisab";
-var APP_VER = "3.36";
+var APP_VER = "3.38";
 var MONTH_NAMES = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
 /* Cloudflare Worker — Ignav flight prices proxy (free plan, no credit card) */
 var IGNAV_WORKER_CODE = "// AB Travels - Ignav flight prices proxy (Cloudflare Worker)\n// Ignav API key SERVER par rehti hai - app/browser mein kabhi nahi aati.\n//\n// SETUP (ek dafa, ~5 min, free):\n// 1) ignav.com/signup -> free account -> dashboard se API key\n// 2) cloudflare.com -> free account -> Workers & Pages -> Create Worker -> yeh code paste -> Deploy\n// 3) Worker -> Settings -> Variables and Secrets -> secret add karein:\n//      IGNAV_API_KEY = (aap ki Ignav key)\n// 4) Worker URL (https://xxx.workers.dev) app -> Settings -> Flight prices -> paste -> Save & test\n\nexport default {\n  async fetch(request, env) {\n    const cors = {\n      'Access-Control-Allow-Origin': env.ALLOWED_ORIGIN || '*',\n      'Access-Control-Allow-Methods': 'GET,POST,OPTIONS',\n      'Access-Control-Allow-Headers': 'Content-Type',\n      'Access-Control-Max-Age': '86400'\n    };\n    const url = new URL(request.url);\n    if (request.method === 'OPTIONS') return new Response(null, { status: 204, headers: cors });\n    if (!env.IGNAV_API_KEY) {\n      return new Response(JSON.stringify({ error: { code: 'no_key', message: 'IGNAV_API_KEY secret is not set in the Worker.' } }), { status: 500, headers: Object.assign({ 'Content-Type': 'application/json' }, cors) });\n    }\n    const base = 'https://ignav.com/api';\n    let target = '';\n    let init = { method: 'GET', headers: { 'X-Api-Key': env.IGNAV_API_KEY } };\n    if (url.pathname === '/health') {\n      target = base + '/health';\n    } else if (url.pathname === '/fares') {\n      if (request.method !== 'POST') return new Response(JSON.stringify({ error: { message: 'POST only' } }), { status: 405, headers: cors });\n      const body = await request.text();\n      target = base + '/fares/one-way';\n      init = { method: 'POST', headers: { 'X-Api-Key': env.IGNAV_API_KEY, 'Content-Type': 'application/json' }, body };\n    } else if (url.pathname === '/search') {\n      if (request.method !== 'POST') return new Response(JSON.stringify({ error: { message: 'POST only' } }), { status: 405, headers: cors });\n      const body = await request.text();\n      target = base + '/fares/search';\n      init = { method: 'POST', headers: { 'X-Api-Key': env.IGNAV_API_KEY, 'Content-Type': 'application/json' }, body };\n    } else if (url.pathname === '/round-trip') {\n      if (request.method !== 'POST') return new Response(JSON.stringify({ error: { message: 'POST only' } }), { status: 405, headers: cors });\n      const body = await request.text();\n      target = base + '/fares/round-trip';\n      init = { method: 'POST', headers: { 'X-Api-Key': env.IGNAV_API_KEY, 'Content-Type': 'application/json' }, body };\n    } else if (url.pathname === '/booking-links') {\n      if (request.method !== 'POST') return new Response(JSON.stringify({ error: { message: 'POST only' } }), { status: 405, headers: cors });\n      const body = await request.text();\n      target = base + '/fares/booking-links';\n      init = { method: 'POST', headers: { 'X-Api-Key': env.IGNAV_API_KEY, 'Content-Type': 'application/json' }, body };\n    } else {\n      return new Response(JSON.stringify({ error: { message: 'not found' } }), { status: 404, headers: Object.assign({ 'Content-Type': 'application/json' }, cors) });\n    }\n    try {\n      const r = await fetch(target, init);\n      const text = await r.text();\n      return new Response(text, { status: r.status, headers: Object.assign({ 'Content-Type': 'application/json' }, cors) });\n    } catch (e) {\n      return new Response(JSON.stringify({ error: { message: String((e && e.message) || e) } }), { status: 502, headers: Object.assign({ 'Content-Type': 'application/json' }, cors) });\n    }\n  }\n};\n";
@@ -7113,7 +7113,7 @@ function viewFares(){
         + '<b>Meezab</b> = live PKR fares (Worker ka <code>/meezab/search</code>, wahi Worker jo Telegram bot chalata he) — '
         + 'one-way, round trip aur multi-city (2 legs), cabin Economy/Premium/Business/First. '
         + '<b>Ignav</b> ke liye Settings → “Flight prices — Ignav” mein Worker URL save karein. '
-        + 'Country search: “To” mein IATA code ki jagah country likhein (UAE, Saudi Arabia) — us country ke airports ke sab se saste fares aayenge (har airport ek search). '
+        + 'Country search: “To” mein IATA code ki jagah country likhein (UAE, Saudi Arabia) — one-way, round trip aur multi-city teeno mein chalta he; har airport par alag search hoti he. '
         + '<b>Meezab rozana budget:</b> 4000 search/din (country search har airport par ek leta he) — practically koi rukawat nahi. '
         + 'Jo airline API mein nahi (kuch LCCs) wo result mein nahi aati — har fare ke sath Sasta / Google Flights / Skyscanner / Kayak links bhi milte hain. '
         + 'Prices <b>indicative</b> hain; Ignav ki pehli 1,000 requests one-time free, uske baad $2/1,000.'
@@ -8477,15 +8477,27 @@ function mezPickDestination(code){
   if(!row || !row.fares || !row.fares.length) return;
   MEZ.fares = row.fares;
   /* Payload wohi shape rakhein jo asli search banati he — warna ↻ / auto-refresh
-     cabin (Business/First) aur non-stop filter chup-chaap kho deta tha (v3.01). */
-  MEZ.payload = { origin:c.origin, destination:row.destination, departure_date:c.date,
-    adults:(c.pax && c.pax.adults) || 1, children:(c.pax && c.pax.children) || 0,
-    infants_on_lap:(c.pax && c.pax.infants_on_lap) || 0, infants_in_seat:(c.pax && c.pax.infants_in_seat) || 0,
-    trip_type:"oneway", cabin_class:mezCabinClass(c.cabin || "economy") };
-  if(c.nonstop) MEZ.payload.max_stops = 0;
+     cabin (Business/First), non-stop, round trip ya multi-city chup-chaap kho deta tha. */
+  var baseC = c.base || null;
+  if(baseC){
+    var bp = Object.assign({}, baseC, { destination:row.destination });
+    if(Array.isArray(bp.legs) && bp.legs.length){
+      bp.legs = bp.legs.map(function(l, i){ return i === 0 ? Object.assign({}, l, { destination:row.destination }) : l; });
+    }
+    MEZ.payload = bp;
+  } else {
+    MEZ.payload = { origin:c.origin, destination:row.destination, departure_date:c.date,
+      adults:(c.pax && c.pax.adults) || 1, children:(c.pax && c.pax.children) || 0,
+      infants_on_lap:(c.pax && c.pax.infants_on_lap) || 0, infants_in_seat:(c.pax && c.pax.infants_in_seat) || 0,
+      trip_type:"oneway", cabin_class:mezCabinClass(c.cabin || "economy") };
+    if(c.nonstop) MEZ.payload.max_stops = 0;
+  }
+  var tripC = (MEZ.payload && MEZ.payload.trip_type) || "oneway";
   MEZ.info = { origin:c.origin, destination:row.destination, date:c.date, total:row.fares.length,
     complete:true, observed_at:c.observed_at || "", cached:!!row.cached, country:c.label, age:0,
-    trip:"oneway", cabin:mezCabinClass(c.cabin || MEZ.payload.cabin_class), ret:"", legs:null,
+    trip:tripC, cabin:mezCabinClass(c.cabin || MEZ.payload.cabin_class),
+    ret:(MEZ.payload && MEZ.payload.return_date) || "",
+    legs:(MEZ.payload && Array.isArray(MEZ.payload.legs)) ? MEZ.payload.legs : null,
     pax: c.pax || mezPaxFromPayload(MEZ.payload || {}) };
   MEZ.lastRunAt = Date.now();
   MEZ.page = 1; MEZ.airline = "";
@@ -8511,13 +8523,23 @@ function mezRenderCountry(){
   var c = MEZ.country;
   if(!c){ host.innerHTML = ""; return; }
   var rows = mezCountryRows();
+  /* Kis trip ka search hua — tareekh/legs aur party saaf dikhein (v3.38). */
+  var cWhen = mezDate(c.date);
+  if(c.trip === "round" && c.ret) cWhen = mezDate(c.date) + " – " + mezDate(c.ret);
+  else if(c.trip === "multi" && c.base && Array.isArray(c.base.legs) && c.base.legs.length > 1){
+    cWhen = c.base.legs.map(function(l){
+      return esc(l.origin || "") + "→" + esc(l.destination || "") + " " + mezDate(l.date);
+    }).join(" · ");
+  }
   var h = '<div class="card" id="mezCountryHead"><div style="display:flex; align-items:center; gap:8px;">'
     + '<h2 style="margin:0; flex:1;">🌍 ' + esc(c.label) + ' — sab se saste fares</h2>'
     + '<button class="del" id="mezCountryClose" title="Close country list" style="padding:4px 9px;">✕</button></div>'
-    + '<div class="hint" style="margin-top:2px;">' + c.codes.length + ' airport' + (c.codes.length === 1 ? '' : 's')
+    + '<div class="hint" style="margin-top:2px;">' + esc(mezTripLabel(c.trip || "oneway")) + ' · '
+    + cWhen + ' · ' + esc(mezPaxText(c.pax)) + ' · ' + c.codes.length + ' airport' + (c.codes.length === 1 ? '' : 's')
     + (c.total > c.codes.length ? ' (' + esc(String(c.total)) + ' mein se bade)' : '')
     + ' · price-wise · kisi bhi row par click karein to us airport ki poori fare list khul jayegi';
   if(c.busy) h += ' · <b>' + (c.done || 0) + '/' + c.codes.length + '</b> ho chuke';
+  if(c.trip && c.trip !== "oneway") h += ' · har airport par ' + esc(mezTripLabel(c.trip).toLowerCase()) + ' search (40–70 second)';
   h += '</div>';
   rows.forEach(function(r){
     if(r.state === "err"){
@@ -8565,7 +8587,8 @@ async function mezCountryRun(plan, base, picks){
   MEZ.country = { label:plan.label, code:plan.code || "", total:plan.total || picks.length,
     codes:picks.map(function(a){ return a.iata; }), rows:[], done:0, busy:true,
     origin:base.origin, date:base.departure_date, observed_at:"", cabin:base.cabin_class,
-    nonstop: base.max_stops === 0,
+    nonstop: base.max_stops === 0, base: Object.assign({}, base),
+    trip: base.trip_type || "oneway", ret: base.return_date || "",
     pax: mezPaxFromPayload(base) };
   if(hostR) hostR.innerHTML = "";
   MEZ.country.rows = picks.map(function(a){
@@ -8582,7 +8605,15 @@ async function mezCountryRun(plan, base, picks){
       row.state = "searching";
       mezRenderCountry();
       try{
-        var j = await mezFetchSearch(Object.assign({}, base, { destination:a.iata }));
+        /* Har airport ke liye wahi trip (one-way / round / multi) — sirf pehli leg
+           ka destination badalta he. */
+        var perPayload = Object.assign({}, base, { destination:a.iata });
+        if(Array.isArray(perPayload.legs) && perPayload.legs.length){
+          perPayload.legs = perPayload.legs.map(function(l, i){
+            return i === 0 ? Object.assign({}, l, { destination:a.iata }) : l;
+          });
+        }
+        var j = await mezFetchSearch(perPayload);
         var fares = Array.isArray(j.fares) ? j.fares : [];
         row.fares = fares;
         row.count = fares.length;
@@ -8595,6 +8626,9 @@ async function mezCountryRun(plan, base, picks){
           row.duration_min = cheapest.duration_min; row.departure = cheapest.departure;
         }
         if(j.observed_at) MEZ.country.observed_at = j.observed_at;
+        /* Watchdog har airport ke baad reset — poora country run 285s se lamba ho
+           jaye to bhi search beech mein "fail" na dikhe. */
+        MEZ.runStart = Date.now();
       }catch(e){
         row.state = "err";
         row.error = (e && e.message) || "search fail";
@@ -8667,43 +8701,24 @@ async function meezabLookup(){
     }
   }
   var toUp = toRaw.toUpperCase();
-  /* Round trip / multi-city portal par IATA codes se chalti he — country
-     search (kai airports) sirf one-way ke liye he. Ye check list load se
-     pehle, warna bewajah intezar hota he. "UAE"/"USA" jaise 3-letter alias
-     bhi country hi hain (airport code nahi). */
-  var aliasHit = /^[A-Z]{2,3}$/.test(toUp) ? AB_COUNTRY_ALIAS[toUp.toLowerCase()] : "";
-  if(trip !== "one" && (!/^[A-Z]{3}$/.test(toUp) || aliasHit)){
-    mezClearStage();
-    mezMsg("Round trip aur multi-city ke liye To mein IATA code dalein (misal DXB). Country search sirf one-way ke liye he."); return;
-  }
+  /* Country search ab teeno trip types mein — one-way, round trip aur multi-city.
+     "UAE"/"USA" jaise 3-letter alias bhi country hi hain (airport code nahi). */
   /* Country/city search ke liye airport list zaroori he — pehle load karwa lein. */
   mezSetStage("Airports ki list load ho rahi he…");
   host.innerHTML = mezPanelHtml();
   await mezAirportsReady();
   var plan = null;
-  if(trip === "one"){
-    /* "USA" / "KSA" / "UAE" airport codes bhi hain (Concord, Kassala) — lekin log in se
-       mulk chahte hain. Alias pehle, phir asli IATA airport. */
-    var aliasCc = /^[A-Z]{2,3}$/.test(toUp) ? AB_COUNTRY_ALIAS[toUp.toLowerCase()] : "";
-    if(aliasCc){
-      plan = mezLocateAirports(toRaw);
-    } else if(/^[A-Z]{3}$/.test(toUp)){
-      var known = airportFind(toUp);
-      if(known) plan = { kind:"iata", label:toUp, total:1, list:[known] };
-      else if(!airportList()) plan = { kind:"iata", label:toUp, total:1, list:[{ iata:toUp }] }; // list load nahi hui
-    }
-    if(!plan) plan = mezLocateAirports(toRaw);
-  } else {
-    /* Yahan IATA code pehle hi check ho chuka he (list load se pehle). Magar
-       koi country ka naam bhi 3 harf ka ho sakta he — usay airport list se
-       confirm karein, warna "Chad" ko IATA samajh liya jata. */
-    var toKnown = airportFind(toUp);
-    if(!toKnown && countryCandidates(toRaw, 1).length){
-      mezAbortStage();
-      mezMsg("Round trip aur multi-city ke liye To mein airport ka IATA code dalein (misal DXB). Country search sirf one-way ke liye he."); return;
-    }
-    plan = { kind:"iata", label:toUp, total:1, list:[ toKnown || { iata:toUp } ] };
+  /* "USA" / "KSA" / "UAE" airport codes bhi hain (Concord, Kassala) — lekin log in se
+     mulk chahte hain. Alias pehle, phir asli IATA airport, warna country/city naam. */
+  var aliasCc = /^[A-Z]{2,3}$/.test(toUp) ? AB_COUNTRY_ALIAS[toUp.toLowerCase()] : "";
+  if(aliasCc){
+    plan = mezLocateAirports(toRaw);
+  } else if(/^[A-Z]{3}$/.test(toUp)){
+    var known = airportFind(toUp);
+    if(known) plan = { kind:"iata", label:toUp, total:1, list:[known] };
+    else if(!airportList()) plan = { kind:"iata", label:toUp, total:1, list:[{ iata:toUp }] }; // list load nahi hui
   }
+  if(!plan) plan = mezLocateAirports(toRaw);
   if(!plan || !plan.list.length){
     mezAbortStage();
     mezMsg("To mein IATA code (DXB) ya country/city ka naam (UAE, Dubai) dalein."); return;
@@ -8722,8 +8737,11 @@ async function meezabLookup(){
   /* Form ka haal aur aakhri search dono yaad rakhein — country search bhi. */
   mezFormSave();
   mezLastSave(payload);
+  /* Round trip / multi-city ka har airport bhaari search he (10 pages, 40–70s) —
+     is liye wahan 5 airports, one-way par poori list (8). */
+  var pickCap = (trip === "one") ? MEZ_COUNTRY_MAX : Math.min(MEZ_COUNTRY_MAX, 5);
   var picks = plan.list.filter(function(a){ return a.iata && a.iata !== origin; })
-    .slice(0, MEZ_COUNTRY_MAX).map(function(a){
+    .slice(0, pickCap).map(function(a){
       return { iata:a.iata, city:a.city || "", name:a.name || "" };
     });
   if(!picks.length){ mezAbortStage(); mezMsg("Is naam se koi airport nahi mila."); return; }
