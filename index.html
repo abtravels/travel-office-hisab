@@ -814,7 +814,7 @@
   <div class="brand">
     <img src="logo.png" alt="AB Travels" decoding="async" onerror="this.style.display='none'">
     <div style="min-width:0;">
-      <h1>AB Travels <span class="ver" id="verBadge">v3.33</span></h1>
+      <h1>AB Travels <span class="ver" id="verBadge">v3.34</span></h1>
       <div class="tag">Ahmed Brothers Hajj &amp; Umra Services (Pvt) Ltd</div>
     </div>
     <button id="brandFares" class="brand-fares" type="button" title="Flights — Price Lookup / Tracker / Booking alerts" aria-label="Flights menu" aria-haspopup="menu">✈</button>
@@ -884,7 +884,7 @@
 <script>
 /* ================= DATA ================= */
 var KEY = "travelOfficeHisab";
-var APP_VER = "3.33";
+var APP_VER = "3.34";
 var MONTH_NAMES = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
 /* Cloudflare Worker — Ignav flight prices proxy (free plan, no credit card) */
 var IGNAV_WORKER_CODE = "// AB Travels - Ignav flight prices proxy (Cloudflare Worker)\n// Ignav API key SERVER par rehti hai - app/browser mein kabhi nahi aati.\n//\n// SETUP (ek dafa, ~5 min, free):\n// 1) ignav.com/signup -> free account -> dashboard se API key\n// 2) cloudflare.com -> free account -> Workers & Pages -> Create Worker -> yeh code paste -> Deploy\n// 3) Worker -> Settings -> Variables and Secrets -> secret add karein:\n//      IGNAV_API_KEY = (aap ki Ignav key)\n// 4) Worker URL (https://xxx.workers.dev) app -> Settings -> Flight prices -> paste -> Save & test\n\nexport default {\n  async fetch(request, env) {\n    const cors = {\n      'Access-Control-Allow-Origin': env.ALLOWED_ORIGIN || '*',\n      'Access-Control-Allow-Methods': 'GET,POST,OPTIONS',\n      'Access-Control-Allow-Headers': 'Content-Type',\n      'Access-Control-Max-Age': '86400'\n    };\n    const url = new URL(request.url);\n    if (request.method === 'OPTIONS') return new Response(null, { status: 204, headers: cors });\n    if (!env.IGNAV_API_KEY) {\n      return new Response(JSON.stringify({ error: { code: 'no_key', message: 'IGNAV_API_KEY secret is not set in the Worker.' } }), { status: 500, headers: Object.assign({ 'Content-Type': 'application/json' }, cors) });\n    }\n    const base = 'https://ignav.com/api';\n    let target = '';\n    let init = { method: 'GET', headers: { 'X-Api-Key': env.IGNAV_API_KEY } };\n    if (url.pathname === '/health') {\n      target = base + '/health';\n    } else if (url.pathname === '/fares') {\n      if (request.method !== 'POST') return new Response(JSON.stringify({ error: { message: 'POST only' } }), { status: 405, headers: cors });\n      const body = await request.text();\n      target = base + '/fares/one-way';\n      init = { method: 'POST', headers: { 'X-Api-Key': env.IGNAV_API_KEY, 'Content-Type': 'application/json' }, body };\n    } else if (url.pathname === '/search') {\n      if (request.method !== 'POST') return new Response(JSON.stringify({ error: { message: 'POST only' } }), { status: 405, headers: cors });\n      const body = await request.text();\n      target = base + '/fares/search';\n      init = { method: 'POST', headers: { 'X-Api-Key': env.IGNAV_API_KEY, 'Content-Type': 'application/json' }, body };\n    } else if (url.pathname === '/round-trip') {\n      if (request.method !== 'POST') return new Response(JSON.stringify({ error: { message: 'POST only' } }), { status: 405, headers: cors });\n      const body = await request.text();\n      target = base + '/fares/round-trip';\n      init = { method: 'POST', headers: { 'X-Api-Key': env.IGNAV_API_KEY, 'Content-Type': 'application/json' }, body };\n    } else if (url.pathname === '/booking-links') {\n      if (request.method !== 'POST') return new Response(JSON.stringify({ error: { message: 'POST only' } }), { status: 405, headers: cors });\n      const body = await request.text();\n      target = base + '/fares/booking-links';\n      init = { method: 'POST', headers: { 'X-Api-Key': env.IGNAV_API_KEY, 'Content-Type': 'application/json' }, body };\n    } else {\n      return new Response(JSON.stringify({ error: { message: 'not found' } }), { status: 404, headers: Object.assign({ 'Content-Type': 'application/json' }, cors) });\n    }\n    try {\n      const r = await fetch(target, init);\n      const text = await r.text();\n      return new Response(text, { status: r.status, headers: Object.assign({ 'Content-Type': 'application/json' }, cors) });\n    } catch (e) {\n      return new Response(JSON.stringify({ error: { message: String((e && e.message) || e) } }), { status: 502, headers: Object.assign({ 'Content-Type': 'application/json' }, cors) });\n    }\n  }\n};\n";
@@ -3354,9 +3354,14 @@ function invFlightBlock(leg, title, seats, bagKg){
       + '</tr></table>';
   }
   var h = '<div style="border:1px solid #e5e7eb; border-radius:12px; padding:11px 14px 12px; margin-top:12px; page-break-inside:avoid;">';
-  // Header: leg title on the left, airline logo + name on the right
+  // Header: leg title on the left (prominent, colour-coded), airline logo + name on the right
+  var _ret = /^RETURN/.test(String(title || ""));
+  var _accent = _ret ? "#0f766e" : "#1d4ed8";
+  var _accentBg = _ret ? "#f0fdfa" : "#eff6ff";
   h += '<div style="display:flex; align-items:center; gap:8px; margin-bottom:9px;">'
-     + '<div style="flex:1; min-width:0; font-size:10px; font-weight:800; letter-spacing:2px; color:#94a3b8;">'+esc(title)+'</div>';
+     + '<div style="flex:1; min-width:0;">'
+     +   '<span style="display:inline-block; font-size:11.5px; font-weight:800; letter-spacing:1.1px; color:'+_accent+'; background:'+_accentBg+'; border:1px solid '+_accent+'22; border-radius:6px; padding:3px 8px; text-transform:uppercase;">'+esc(title)+'</span>'
+     + '</div>';
   if(air){
     h += '<img src="'+invAirLogo(air.c)+'" alt="" onerror="if(this.getAttribute(\'data-fb\')!==\'1\'){this.setAttribute(\'data-fb\',\'1\');this.src=\'https://images.kiwi.com/airlines/64/'+encodeURIComponent(air.c)+'.png\';}else{this.style.display=\'none\';var s=this.nextElementSibling;if(s)s.style.display=\'flex\';}" style="width:26px; height:26px; object-fit:contain; border:1px solid #e5e7eb; border-radius:6px; background:#fff; flex:0 0 auto;">'
        + '<span style="display:none; width:26px; height:26px; border:1px solid #e5e7eb; border-radius:6px; background:#f8fafc; align-items:center; justify-content:center; font-size:9px; font-weight:800; color:#2563eb; flex:0 0 auto;">'+esc(air.c)+'</span>'
@@ -3416,7 +3421,7 @@ function invLegBlocks(d, seats, isRet){
   var leg2 = { from:cx.from, to:leg.to, date:cx.date, time:cx.time, arr:leg.arr, arrTxt:leg.arrTxt, dateTxt:cx.dateTxt, timeTxt:cx.timeTxt, meal:leg.meal, air:leg.air };
   return invFlightBlock(leg1, isRet ? "RETURN FLIGHT" : "DEPARTURE FLIGHT", seats, bagKg)
        + invLayoverHtml(leg1, cx)
-       + invFlightBlock(leg2, isRet ? "RETURN — CONTINUING FLIGHT" : "CONTINUING FLIGHT", null);
+       + invFlightBlock(leg2, isRet ? "RETURN — CONTINUING FLIGHT" : "DEPARTURE — CONTINUING FLIGHT", null);
 }
 function invHtml(d, bw){
   var logo = "";

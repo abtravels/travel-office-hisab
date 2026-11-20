@@ -1,5 +1,11 @@
 # Travel Office Hisab - AB Travels
 
+## Invoice: leg labels saaf + headings prominent (v3.34)
+- **Bug:** connecting leg par departure ki heading sirf `CONTINUING FLIGHT` thi (return par `RETURN — CONTINUING FLIGHT`), is liye round trip invoice par lagta tha ke wo leg kisi aur trip ki he.
+- Ab dono taraf ek jaisa: **`DEPARTURE — CONTINUING FLIGHT`** aur **`RETURN — CONTINUING FLIGHT`**.
+- **Headings prominent:** `DEPARTURE FLIGHT` / `RETURN FLIGHT` / continuing legs ab chhote halke grey text ki jagah **coloured pill** mein hain — departure legs **blue**, return legs **teal** — taake client ek nazar mein outbound aur return alag kar le. Pill halka background + border use karta he, is liye **B&W print** par bhi saaf rehta he.
+- Sirf invoice ka layout — data, fare ya print size par koi asar nahi. Worker redeploy ki zaroorat nahi.
+
 ## Summary mein profit trend + har control ka naam (v3.30)
 - **Kyun:** Summary par sirf numbers aur table thi — "profit mahine-ba-mahine upar ja raha he ya neeche" ek nazar mein nahi pata chalta tha. Aur screen reader ko form ke controls ke naam nahi milte the.
 - **Naya: Net profit per month line chart** (Recent months card mein, table ke upar).
