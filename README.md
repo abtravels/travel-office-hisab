@@ -1,9 +1,19 @@
 # Travel Office Hisab - AB Travels
 
+## Invoice form ab nahi urta + Meezab login 526 fix (v3.36)
+- **Invoice draft:** iPhone par (home screen wali app) invoice likhte hue WhatsApp dekhne ke liye app switch karein to iOS page dobara load kar deta he — pehle aadhi likhi invoice (naam, PNR, sab) ur jati thi. Ab form ka har harf isi device par mehfooz rehta he (`localStorage` `ab_inv_draft`, sync nahi hota):
+  - Wapas aane par form wahin se milta he — passengers ki ginti aur linked sale samet.
+  - Page dobara load ho jaye aur draft 15 minute ke andar ka ho to app Sales ki jagah seedha **Invoice** tab kholta he aur batata he *"Adhoori invoice wapas aa gayi"*.
+  - Wapas aane par sync ab Invoice tab ko dobara nahi banata (bani hui invoice / likha hua form waisa hi rehta he).
+  - **Generate** ya **Close invoice** par draft khatam. Naya **🧹 Form khali karein** button. 12 ghante purana draft nahi aata.
+- **Meezab `login: HTTP 526`:** Meezab ne 20 Nov ko apna API portal ke domain par le aaya (`b2b.meezabair.com.pk/b2b_api`); purana host `testb2bapi.meezabair.com.pk` ghalat SSL certificate dene laga. Worker ab naya address use karta he — Price Lookup aur Tracker dono isi se chalte hain.
+- **Sale type** wapas sirf Ticket / Change / Umrah / Hajj (v3.35 ke Visa, Hotel, Insurance, Tour, Other hata diye).
+- Worker + app dono badle.
+
 ## Kamai kahan se + phone par bare buttons (v3.35)
 - **Summary → 💡 Kamai kahan se:** sales ki ginti, avg profit per sale, margin %, pending (unpaid), **har sale type ka profit** (Ticket / Umrah / Visa …) aur **sab se zyada profit dene wale 5 clients**. Neeche mashwaray: kitni sales ki cost/sale khali he, kitni par margin 2% se kam he, pending paisa. Sab numbers `Show totals` passcode ke peeche. Sirf wo sales gini jati hain jin ki cost aur sale dono likhi hon.
 - **Clients → dobara rabta:** jis client ne **60+ din** se kuch nahi liya us par `⏳ N din se koi sale nahi` aata he, upar ginti aur **Sirf ye dikhayein** filter. Har client (jis ka number ho) par **💬** — WhatsApp khulta he tayyar follow-up message ke sath (naam ke sath, koi raqam nahi).
-- **Sale type mein naye options:** Visa, Hotel, Insurance, Tour, Other (pehle sirf Ticket / Change / Umrah / Hajj) — taake har service ki kamai alag nazar aaye.
+- (Sale type ke naye options v3.36 mein wapas hata diye gaye.)
 - **Phone par bare buttons:** touch screen / 860px se chhoti screen par har button kam az kam 36px (bare 42px) — pehle 26px the aur ghalat button dab jata tha. Laptop par size wahi.
 - **Settings shortcuts:** search ke neeche chips (Telegram, GitHub sync, Backup, Theme, Invoice, Flight prices, Passcode, Staff, Update) — ek tap par sirf wahi cards.
 - 9 fields ko screen-reader naam diye (withdrawal / loan / payment dates, move-sales months, PDF text, backup list).
@@ -855,7 +865,7 @@ Current version: **2.31** (Email share opens Gmail compose with recipient prompt
 - Default waisa hi hai, is liye purane users ka behaviour nahi badla.
 
 ## Version
-Current version: **3.35** — Summary mein "Kamai kahan se" (sale type / top clients / margin), Clients mein 60+ din follow-up + WhatsApp, naye sale types (Visa, Hotel, Insurance, Tour, Other), phone par bare buttons, Settings shortcuts. (v3.34: invoice leg labels.)
+Current version: **3.36** — invoice form ka draft (iPhone par app switch se form nahi urta), Meezab API naye address par (login 526 fix), sale types wapas 4. (v3.35: Kamai kahan se, client follow-up, phone par bare buttons.)
 
 ## Price bot: KV list limit fix (v2.41)
 - Cloudflare KV free plan mein **1,000 list requests/day** hoti hain. Bot ka cron har minute `KV.list` chalata tha (1,440/day), is liye ~15 ghante mein 90% usage email aa jati thi.

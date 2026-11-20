@@ -57,8 +57,8 @@ assert.ok(!/\bRs\b|\bPKR\b|\d{3,}/.test(msg.replace("0314-3176560", "")), "no am
 assert.ok(html.includes("var CL_IDLE_DAYS = 60;"));
 assert.ok(html.includes('class="btn small cl-wa"') && html.includes('id="clIdleOnly"'));
 
-/* more sale types */
-for (const k of ["Visa", "Hotel", "Insurance", "Tour", "Other"]) assert.ok(html.includes("<option>" + k + "</option>"), "sale type " + k);
+/* sale types: sirf purane 4 (v3.36 — Visa/Hotel/Insurance/Tour/Other wapas hataye) */
+assert.ok(html.includes('<select id="tkKind"><option>Ticket</option><option>Change</option><option>Umrah</option><option>Hajj</option></select>'), "sale types are the original four");
 
 /* settings shortcuts + touch targets */
 for (const q of ["telegram", "github", "backup", "appearance", "invoice"]) assert.ok(html.includes('["' + q + '",'), "settings chip " + q);

@@ -2404,7 +2404,10 @@ async function proxyIgnav(request, env, path, hdrs) {
 
 /* Meezab read-only fares. Only whitelisted search endpoints are called.
    Credentials/session and supplier tokens never appear in public responses. */
-const MEZ_BASE = "https://testb2bapi.meezabair.com.pk/api/MiddleWare/";
+/* 20 Nov 2026: Meezab ne API ko portal ke apne domain par le aaya
+   (portal ki appsettings.json -> BackendApiRoute). Purana host
+   testb2bapi.meezabair.com.pk ab ghalat SSL certificate deta he -> HTTP 526. */
+const MEZ_BASE = "https://b2b.meezabair.com.pk/b2b_api/api/MiddleWare/";
 let mezSession = null;
 let mezLoginPending = null;
 /* Har qadam apna naam rakhta he, taake fail hone par wajah saaf mile:
