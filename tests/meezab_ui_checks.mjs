@@ -280,11 +280,15 @@ assert.ok(/set\("faTrip", pd\.trip \|\| "one"\)/.test(html), "resume does not re
 assert.ok(/set\("faRet", pd\.ret\)/.test(html), "resume does not restore the return date");
 assert.ok(/set\("faDate2", pd\.leg2\.date/.test(html), "resume does not restore the second leg date");
 assert.ok(/set\("faClass", pd\.cls\)/.test(html), "resume does not restore the cabin");
-/* Round trip / multi-city IATA-only: country alias (UAE/USA) aur naam dono reject */
-assert.ok(/trip !== "one" && \(!\/\^\[A-Z\]\{3\}\$\/\.test\(toUp\) \|\| aliasHit\)/.test(html),
-  "round trip / multi-city guard missing");
-assert.ok(/countryCandidates\(toRaw, 1\)\.length/.test(html),
-  "3-letter country names are not filtered out of the IATA check");
+/* Country search ab teeno trip types mein chalti he (v3.37) — purana
+   "sirf one-way" guard hata diya gaya he, is liye test bhi wahi kehta he. */
+assert.ok(!/Country search sirf one-way/.test(html), "old one-way-only country guard is back");
+assert.ok(/var pickCap = \(trip === "one"\) \? MEZ_COUNTRY_MAX : Math\.min\(MEZ_COUNTRY_MAX, 5\);/.test(html),
+  "round trip / multi-city country search does not cap the airports");
+assert.ok(/trip: base\.trip_type \|\| "oneway"/.test(html),
+  "country list does not remember the trip type");
+assert.ok(/perPayload\.legs = perPayload\.legs\.map/.test(html),
+  "multi-city country search does not rewrite leg 1 for each airport");
 assert.ok(/payload\.trip_type = "round"; payload\.return_date = ret/.test(html), "round-trip payload missing");
 assert.ok(/payload\.legs = \[ \{ origin:origin, destination:mainTo, date:date \}/.test(html), "multi-city payload missing");
 
