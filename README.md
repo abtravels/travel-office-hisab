@@ -1,5 +1,11 @@
 # Travel Office Hisab - AB Travels
 
+## Sale register: number na ho to Phone column mein naam (v3.41)
+- Mobile par sales register mein **Phone** column khaali (`—`) dikhta tha jab client ka number nahi hota — us row ko pehchanne ka koi tareeqa nahi bachta tha (client column tak scroll karna parta).
+- Ab: number ho to `☎ 03xx-…` (tap par call), **number na ho to usi jagah client ka naam** (lamba naam `…` par kat jata he, long-press par pura).
+- Client ka number `clientPhoneFor` se aata he — sale par likha number ya client record ka number; dono na hon to hi naam dikhta he.
+- Sirf app ka change — Worker redeploy ki zaroorat nahi.
+
 ## App notifications ab Discord par bhi (v3.40)
 - **Masla:** `DISCORD_WEBHOOK` set tha, tracker ke alerts Discord par ja rahe thay, magar **naya ticket / ticket file / invoice** ki notification sirf **Telegram** par aati thi.
 - **Wajah:** app ki notifications `/notify` relay se jati hain, aur Discord sirf `notifyAll` (bot/tracker/reminders) mein laga hua tha — relay mein nahi.
@@ -888,7 +894,7 @@ Current version: **2.31** (Email share opens Gmail compose with recipient prompt
 - Default waisa hi hai, is liye purane users ka behaviour nahi badla.
 
 ## Version
-Current version: **3.40** — App notifications (naya ticket, ticket file, invoice) ab `/notify` relay se Telegram + **Discord** dono par; relay Discord-only config par bhi chalta he. (v3.39: "Failed to fetch" fix — country round trip 2 airports + 6 pages per airport, network auto-retry.)
+Current version: **3.41** — Sale register ke Phone column mein number na ho to client ka naam; v3.40 app notifications (ticket/file/invoice) Telegram + Discord dono par.
 
 ## Price bot: KV list limit fix (v2.41)
 - Cloudflare KV free plan mein **1,000 list requests/day** hoti hain. Bot ka cron har minute `KV.list` chalata tha (1,440/day), is liye ~15 ghante mein 90% usage email aa jati thi.
