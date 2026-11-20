@@ -831,7 +831,7 @@ Current version: **2.31** (Email share opens Gmail compose with recipient prompt
 - Default waisa hi hai, is liye purane users ka behaviour nahi badla.
 
 ## Version
-Current version: **3.30** (v3.30 Summary mein net-profit line chart — zero line, ek hue, endpoint/extreme labels, palette validator se pass; aur har form control ka accessible naam — Lighthouse accessibility 100)
+Current version: **3.31** — Light mode mein form fields ke outlines, card edges aur register headings zyada saaf nazar aate hain.
 
 ## Price bot: KV list limit fix (v2.41)
 - Cloudflare KV free plan mein **1,000 list requests/day** hoti hain. Bot ka cron har minute `KV.list` chalata tha (1,440/day), is liye ~15 ghante mein 90% usage email aa jati thi.
