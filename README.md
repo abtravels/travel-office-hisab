@@ -1,5 +1,12 @@
 # Travel Office Hisab - AB Travels
 
+## App notifications ab Discord par bhi (v3.40)
+- **Masla:** `DISCORD_WEBHOOK` set tha, tracker ke alerts Discord par ja rahe thay, magar **naya ticket / ticket file / invoice** ki notification sirf **Telegram** par aati thi.
+- **Wajah:** app ki notifications `/notify` relay se jati hain, aur Discord sirf `notifyAll` (bot/tracker/reminders) mein laga hua tha — relay mein nahi.
+- **Fix:** relay ab har notification **Telegram + Discord dono** par bhejta he; jawab mein dono ka nateeja aata he (`discord: {ok, error}`), aur `ok` tab bhi true hota he jab sirf Discord gaya ho.
+- Agar Telegram token na ho magar `DISCORD_WEBHOOK` set ho to relay ab kaam karta he (pehle `no_token` de deta tha); Telegram chats khali hon to bhi Discord par chala jata he.
+- Worker status page **v3.40**; Cloudflare build push par khud chalta he.
+
 ## "Failed to fetch" fix — country round trip (v3.39)
 - **Masla:** KHI → Indonesia (country) round trip 27 Dec → 20 Jan par **"Failed to fetch"** aata tha. Ye browser ka network error he — worker ka jawab hi nahi mila, kyunke round trip / multi-city ka **har airport** 10 pages (≈2,500 options) ka bhara search hota he aur country run unhe **3 ek saath** chalata tha → worker ka memory/CPU limit toot kar connection band.
 - **Fix (app):** round trip/multi ke country run mein ab **2 airports ek saath** (one-way par 3 wahi), aur har airport ki search **6 pages** (round/multi) — halki aur tez.
@@ -881,7 +888,7 @@ Current version: **2.31** (Email share opens Gmail compose with recipient prompt
 - Default waisa hi hai, is liye purane users ka behaviour nahi badla.
 
 ## Version
-Current version: **3.39** — "Failed to fetch" fix: country round trip/multi ab 2 airports ek saath + 6 pages per airport, worker `pages` leta he, network fail par ek auto-retry + saaf message. (v3.38: country card header tareekh + party.)
+Current version: **3.40** — App notifications (naya ticket, ticket file, invoice) ab `/notify` relay se Telegram + **Discord** dono par; relay Discord-only config par bhi chalta he. (v3.39: "Failed to fetch" fix — country round trip 2 airports + 6 pages per airport, network auto-retry.)
 
 ## Price bot: KV list limit fix (v2.41)
 - Cloudflare KV free plan mein **1,000 list requests/day** hoti hain. Bot ka cron har minute `KV.list` chalata tha (1,440/day), is liye ~15 ghante mein 90% usage email aa jati thi.

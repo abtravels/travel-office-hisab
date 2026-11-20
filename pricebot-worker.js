@@ -3019,7 +3019,7 @@ async function notifyRelay(request, env, hdrs) {
   if (request.method !== "POST") return jres({ ok: false, error: "POST only" }, 405, hdrs);
   const internal = !!env.NOTIFY_KEY && request.headers.get("X-Notify-Key") === env.NOTIFY_KEY;
   if (!internal && !notifyOriginOk(env, request)) return jres({ ok: false, error: "origin" }, 403, hdrs);
-  if (!env.TELEGRAM_BOT_TOKEN) return jres({ ok: false, error: "no_token" }, 500, hdrs);
+  if (!env.TELEGRAM_BOT_TOKEN && !env.DISCORD_WEBHOOK) return jres({ ok: false, error: "no_token" }, 500, hdrs);
 
   let body = {};
   try { body = (await request.json()) || {}; } catch (e) { body = {}; }
@@ -3035,7 +3035,8 @@ async function notifyRelay(request, env, hdrs) {
   if (!chats.length) chats = await allowedChats(env);
   const allowed = await allowedChats(env);
   chats = [...new Set(chats)].filter(c => allowed.includes(c));
-  if (!chats.length) return jres({ ok: false, error: "no_chats" }, 400, hdrs);
+  /* Discord set ho to Telegram chat na hone par bhi notification jaye. */
+  if (!chats.length && !env.DISCORD_WEBHOOK) return jres({ ok: false, error: "no_chats" }, 400, hdrs);
 
   // soft hourly cap so a stuck page cannot spam the team
   try {
@@ -3054,7 +3055,15 @@ async function notifyRelay(request, env, hdrs) {
   await Promise.all(chats.map(async c => {
     try { await send(env, c, html, extra); sent.push(c); } catch (e) { failed.push(c); errors.push(String(e.message || 'Telegram send failed').slice(0,300)); }
   }));
-  return jres({ ok: sent.length > 0 && failed.length === 0, sent: sent, failed: failed, errors: errors }, failed.length ? 502 : 200, hdrs);
+  /* App ki har notification (naya ticket, ticket file, invoice) Discord par bhi
+     — pehle sirf Telegram jata tha (v3.40). */
+  let discord = null;
+  if (env.DISCORD_WEBHOOK) {
+    try { await discordSend(env, "<b>" + title + "</b>\n" + text); discord = { ok: true }; }
+    catch (e) { discord = { ok: false, error: String((e && e.message) || e).slice(0, 160) }; }
+  }
+  const okAll = (sent.length > 0 && failed.length === 0) || !!(discord && discord.ok);
+  return jres({ ok: okAll, sent: sent, failed: failed, errors: errors, discord: discord }, failed.length ? 502 : 200, hdrs);
 }
 
 function page(title, body) {
@@ -3141,7 +3150,7 @@ async function statusPage(env) {
       info = "<li>Webhook: <span style=\"color:var(--gold)\">check slow</span> <small>(Telegram jawab nahi de raha - bot par message bhej kar test karein)</small></li>";
     }
   }
-  return page("AB Travels worker", "<h1>✈️ AB Travels worker <small>v3.39</small></h1><ul>" + rows.join("") + info +
+  return page("AB Travels worker", "<h1>✈️ AB Travels worker <small>v3.40</small></h1><ul>" + rows.join("") + info +
     "<li>Today's searches: <b>" + esc(used) + "</b> / " + budgetCap(env) + "</li>" +
     "<li>Owner chat: <code>" + esc(owner) + "</code></li>" +
     "<li>Team alerts: " + (team.length ? team.map(function (c) { return "<code>" + esc(c) + "</code>"; }).join(", ") : "<i>sirf owner</i>") + "</li></ul>" +
