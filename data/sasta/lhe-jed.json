@@ -4,11 +4,11 @@
   "origin": "LHE",
   "destination": "JED",
   "currency": "PKR",
-  "amount": 100433,
+  "amount": 80000,
   "price_basis": "per_person",
   "taxes_included": null,
   "fare_breakdown": null,
   "source_url": "https://www.sastaticket.pk/flights/cheap-flights-from-lahore-to-jeddah",
-  "observed_at": "2026-11-20T01:19:04.805Z",
-  "headline": "Cheap Flights from Lahore (LHE) to Jeddah (JED) (PKR 100,433)"
+  "observed_at": "2026-11-20T09:15:45.527Z",
+  "headline": "Cheap Flights from Lahore (LHE) to Jeddah (JED)"
 }
