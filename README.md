@@ -1,5 +1,12 @@
 # Travel Office Hisab - AB Travels
 
+## "Failed to fetch" fix — country round trip (v3.39)
+- **Masla:** KHI → Indonesia (country) round trip 27 Dec → 20 Jan par **"Failed to fetch"** aata tha. Ye browser ka network error he — worker ka jawab hi nahi mila, kyunke round trip / multi-city ka **har airport** 10 pages (≈2,500 options) ka bhara search hota he aur country run unhe **3 ek saath** chalata tha → worker ka memory/CPU limit toot kar connection band.
+- **Fix (app):** round trip/multi ke country run mein ab **2 airports ek saath** (one-way par 3 wahi), aur har airport ki search **6 pages** (round/multi) — halki aur tez.
+- **Fix (worker):** request body mein `pages` accept hota he (1–20), is liye app bina redeploy ke pages kam/zyada maang sakti he. `MEZ_MAX_PAGES` env cap barqarar he.
+- **Network retry:** koi bhi "Failed to fetch" aaye to app **ek dafa khud dobara** try karti he (1.5s baad); phir bhi na ho to saaf message: *"Meezab/Worker se connection nahi bana (Failed to fetch) — internet ya worker ka masla he. Dubara try karein."*
+- Sirf ek hi cheez ki qurbani: round/multi country search mein pehle 1,500 fares (6 pages) aate hain, 2,500 nahi — price ke hisab se sorted hone ki wajah se sab se saste fares usi mein hote hain.
+
 ## Country search ab round trip aur multi-city mein bhi (v3.37)
 - Pehle **"To" mein country/city ka naam (UAE, Saudi Arabia, Dubai) sirf one-way** mein chalta tha; round trip / multi-city par app kehti thi "IATA code dalein".
 - Ab **teeno trip types** mein: har airport ke liye **wahi trip** search hoti he — round trip par us airport ka **return fare** (origin wapas), multi-city par leg 1 ka destination badal kar baqi legs waise hi.
@@ -874,7 +881,7 @@ Current version: **2.31** (Email share opens Gmail compose with recipient prompt
 - Default waisa hi hai, is liye purane users ka behaviour nahi badla.
 
 ## Version
-Current version: **3.38** — Country search round trip/multi-city ka header ab tareekh + party bhi dikhata he; help line update. (v3.36: invoice form ka draft (iPhone par app switch se form nahi urta), Meezab API naye address par (login 526 fix), sale types wapas 4. v3.35: Kamai kahan se, client follow-up, phone par bare buttons.)
+Current version: **3.39** — "Failed to fetch" fix: country round trip/multi ab 2 airports ek saath + 6 pages per airport, worker `pages` leta he, network fail par ek auto-retry + saaf message. (v3.38: country card header tareekh + party.)
 
 ## Price bot: KV list limit fix (v2.41)
 - Cloudflare KV free plan mein **1,000 list requests/day** hoti hain. Bot ka cron har minute `KV.list` chalata tha (1,440/day), is liye ~15 ghante mein 90% usage email aa jati thi.

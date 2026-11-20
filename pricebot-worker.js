@@ -2899,8 +2899,12 @@ async function mezRunSearch(env, q, opts) {
   const PAGE = 250;
   /* "Sary results" — koi page chhoda nahi jata: jitne pages portal deta he sab
      (max MEZ_MAX_PAGES, default 10 = 2,500 options; env se 20 tak). */
-  const MAX_PAGES = Number(env.MEZ_MAX_PAGES) > 0
+  const envCap = Number(env.MEZ_MAX_PAGES) > 0
     ? Math.min(20, Math.floor(Number(env.MEZ_MAX_PAGES))) : 10;
+  /* Caller (country run) pages kam maang sakta he — round trip ka har airport
+     10 pages leta he, 3 ek saath chalne par worker memory/CPU limit tor deti he. */
+  const wantPages = Math.max(0, Math.min(20, Math.floor(Number(opts && opts.pages) || 0)));
+  const MAX_PAGES = wantPages > 0 ? Math.min(wantPages, envCap) : envCap;
   const pageBody = (index, size) => ({ searchID: state.SearchID,
     sortBy_ColumnName: "OptionTotal_WithPM_Agent_Currency_Amount", sortBy_Descending: false,
     pageIndex: index, pageSize: size || PAGE, minPrice: 0, maxPrice: 0,
@@ -2972,16 +2976,19 @@ async function mezRunSearch(env, q, opts) {
 async function meezabSearch(request, env, hdrs) {
   if (request.method !== "POST") return jres({ error: "POST only" }, 405, hdrs);
   if (!notifyOriginOk(env, request)) return jres({ error: "origin" }, 403, hdrs);
-  let q, fresh = false;
+  let q, fresh = false, pages = 0;
   try {
     const body = await request.json();
     fresh = body && body.fresh === true;   // auto-refresh: cache skip karo
+    /* Chhoti search (country run) ke liye pages kam maang sakte hain — bhari
+       round trip 10 pages par worker/memory limit tor deti thi. */
+    pages = Math.max(0, Math.min(20, Math.floor(Number(body && body.pages) || 0)));
     q = mezQuery(body);
   }
   catch (e) { return jres({ error: e.message || "Invalid search" }, 400, hdrs); }
   try {
     if (!env.KV) throw new Error("Meezab requires the KV binding.");
-    return jres(await mezRunSearch(env, q, { fresh }), 200, hdrs);
+    return jres(await mezRunSearch(env, q, { fresh: fresh, pages: pages }), 200, hdrs);
   } catch (e) {
     console.error("Meezab lookup failed: " + ((e && e.message) || e));
     if (e && e.code === 429) return jres({ error: e.message, code: "budget", cap: e.cap, left: 0, reset_at: e.reset_at }, 429, hdrs);
