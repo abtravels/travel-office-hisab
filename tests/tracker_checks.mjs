@@ -10,6 +10,10 @@ const ROOT = fileURLToPath(new URL("..", import.meta.url)).replace(/[\\/]$/, "")
 const html = fs.readFileSync(ROOT + "/index.html", "utf8");
 let wsrc = fs.readFileSync(ROOT + "/pricebot-worker.js", "utf8");
 
+/* Worker "aaj se ek saal andar" wali date check karta he — hardcoded dates
+   ek din guzarne par test tor dete thay (CI 2026-11-20 par red hui thi). */
+const FUT = (n) => new Date(Date.now() + (n || 30) * 86400000).toISOString().slice(0, 10);
+
 function grab(src, start, end) {
   const a = src.indexOf(start);
   assert.ok(a > 0, "missing: " + start);
@@ -88,7 +92,7 @@ assert.ok(sparkUp.indexOf("var(--red)") > 0, "rising line = red");
   const p2 = A.trkPlanText(5, Date.now() + 3 * 86400000, "2026-11-20");
   assert.ok(p2.includes("~288 checks") && p2.includes("budget"), p2);
   assert.ok(p2.includes("flight ki date ke baad"), "warns when until > departure: " + p2);
-  const row = A.trackerRow({ id: "x", origin: "KHI", destination: "UET", departure: "2026-12-14", every: 30,
+  const row = A.trackerRow({ id: "x", origin: "KHI", destination: "UET", departure: FUT(35), every: 30,
     until: Date.now() + 2 * 3600000, last: { amount: 20300, currency: "PKR" },
     history: [{ amount: 22000 }, { amount: 19800 }, { amount: 20300 }] });
   assert.ok(row.includes("trk-row expiring"), "ending within 6h is highlighted");
@@ -218,14 +222,14 @@ assert.equal(W.trackFlightLabel(fares[0]), "PA401");
 assert.equal(W.trackFlightLabel(null), "");
 
 /* trackQuery shape */
-const tq = W.trackQuery({ origin: "KHI", destination: "UET", departure: "2026-12-14",
+const tq = W.trackQuery({ origin: "KHI", destination: "UET", departure: FUT(35),
   trip_type: "oneway", adults: 1, children: 0, infants_on_lap: 0, infants_in_seat: 0 });
 assert.equal(tq.origin, "KHI");
 assert.equal(tq.trip_type, "oneway");
 assert.equal(tq.return_date, undefined, "oneway has no return date");
-const tqR = W.trackQuery({ origin: "KHI", destination: "UET", departure: "2026-12-14",
-  trip_type: "round", return_date: "2026-12-20", adults: 2 });
-assert.equal(tqR.return_date, "2026-12-20");
+const tqR = W.trackQuery({ origin: "KHI", destination: "UET", departure: FUT(35),
+  trip_type: "round", return_date: FUT(46), adults: 2 });
+assert.equal(tqR.return_date, FUT(46));
 assert.equal(tqR.adults, 2);
 
 /* API: save -> list -> check -> pause -> remove */
@@ -239,7 +243,7 @@ function post(body) {
 async function json(r) { return JSON.parse(await r.text()); }
 
 const saved = await json(await post({ action: "save", check: false,
-  tracker: { origin: "KHI", destination: "UET", departure: "2026-12-14", every: 5, target: 45000, flight: "PA401" } }));
+  tracker: { origin: "KHI", destination: "UET", departure: FUT(35), every: 5, target: 45000, flight: "PA401" } }));
 assert.equal(saved.ok, true, JSON.stringify(saved));
 assert.ok(saved.tracker.id, "id assigned");
 assert.equal(saved.tracker.every, 5);
@@ -249,17 +253,17 @@ console.log("saved tracker:", saved.tracker.id, saved.tracker.origin, saved.trac
 
 /* every 1 min is clamped to the 5 min floor */
 const fast = await json(await post({ action: "save", check: false,
-  tracker: { origin: "LHE", destination: "DXB", departure: "2026-12-15", every: 1 } }));
+  tracker: { origin: "LHE", destination: "DXB", departure: FUT(36), every: 1 } }));
 assert.equal(fast.tracker.every, 5, "min interval enforced");
 
 /* duplicate route rejected */
 const dupe = await post({ action: "save", check: false,
-  tracker: { origin: "KHI", destination: "UET", departure: "2026-12-14", flight: "PA401" } });
+  tracker: { origin: "KHI", destination: "UET", departure: FUT(35), flight: "PA401" } });
 assert.equal(dupe.status, 409, "duplicate route blocked");
 
 /* bad route rejected */
 const badRoute = await post({ action: "save", check: false,
-  tracker: { origin: "KHI", destination: "KHI", departure: "2026-12-14" } });
+  tracker: { origin: "KHI", destination: "KHI", departure: FUT(35) } });
 assert.equal(badRoute.status, 400, "same origin/destination rejected");
 
 /* bad date rejected */
@@ -342,7 +346,7 @@ assert.equal(env.__sent.length, 0, "same / higher price stays quiet: " + JSON.st
 
 /* asli case — 28,173 -> 27,090 -> 26,990 (Rs 100) -> 27,500 (upar) -> 27,400 (Rs 100 neeche) */
 {
-  const live = { id: "live", origin: "ISB", destination: "KHI", departure: "2026-11-20", every: 5,
+  const live = { id: "live", origin: "ISB", destination: "KHI", departure: FUT(20), every: 5,
     flight: "PA401", history: [{ at: Date.now() - 600000, amount: 28173.36 }], createdAt: Date.now(),
     last: { amount: 28173.36, currency: "PKR" }, lastAlertAt: Date.now() - 30 * 60000, lastAlertAmount: 28173.36 };
   const steps = [[27089.76, true], [26989.76, true], [26989.76, false], [27500, false], [27400, true]];
@@ -365,7 +369,7 @@ assert.equal(env.__sent.length, 0, "same / higher price stays quiet: " + JSON.st
 {
   const KV2 = makeKV(), DO2 = makeDO();
   const env2 = { KV: KV2, WATCH_INDEX_DO: DO2, MEZ_DAILY_CAP: "4000", __sent: [] };
-  const tr = { id: "retry1", origin: "ISB", destination: "KHI", departure: "2026-11-20", every: 60,
+  const tr = { id: "retry1", origin: "ISB", destination: "KHI", departure: FUT(20), every: 60,
     history: [], createdAt: Date.now(), last: { amount: 30000, currency: "PKR" },
     lastAlertAt: Date.now() - 30 * 60000, lastAlertAmount: 30000 };
   globalThis.__failChats = ["2"];
@@ -415,28 +419,28 @@ assert.ok(!env.KV.store.has("tr:" + fast.tracker.id), "KV key deleted");
 
 /* "Kab tak" — until store, 60 din ka cap, past waqt reject */
 const withUntil = await json(await post({ action: "save", check: false,
-  tracker: { origin: "ISB", destination: "DXB", departure: "2026-12-18", every: 30,
+  tracker: { origin: "ISB", destination: "DXB", departure: FUT(38), every: 30,
              until: Date.now() + 3 * 3600 * 1000 } }));
 assert.ok(withUntil.tracker.until > Date.now(), "until stored");
 const farUntil = await json(await post({ action: "save", check: false,
-  tracker: { origin: "ISB", destination: "RUH", departure: "2026-12-19",
+  tracker: { origin: "ISB", destination: "RUH", departure: FUT(39),
              until: Date.now() + 90 * 24 * 3600 * 1000 } }));
 assert.ok(farUntil.tracker.until <= Date.now() + 60 * 24 * 3600 * 1000 + 60000, "capped at 60 din");
 const pastUntil = await post({ action: "save", check: false,
-  tracker: { origin: "ISB", destination: "BLR", departure: "2026-12-20",
+  tracker: { origin: "ISB", destination: "BLR", departure: FUT(40),
              until: Date.now() - 60000 } });
 assert.equal(pastUntil.status, 400, "past until rejected");
 
 /* alert text mein "band" waqt nazar aaye */
 {
-  const bandText = W.trackText({ origin: "KHI", destination: "UET", departure: "2026-12-14",
+  const bandText = W.trackText({ origin: "KHI", destination: "UET", departure: FUT(35),
     every: 30, until: Date.now() + 3600000, last: { currency: "PKR" } }, 40000, 50000, "down");
   assert.ok(bandText.indexOf("band") > 0, "until shown in alert: " + bandText);
 }
 
 /* "kb tak" guzar jaye to cron tracker apne aap delete kar deta he */
 {
-  const expTrk = { id: "test-exp", origin: "LHE", destination: "DXB", departure: "2026-12-21",
+  const expTrk = { id: "test-exp", origin: "LHE", destination: "DXB", departure: FUT(41),
     every: 30, until: Date.now() - 60000, lastCheckAt: 0, history: [], createdAt: Date.now() };
   env.KV.store.set("tr:" + expTrk.id, JSON.stringify(expTrk));
   env.WATCH_INDEX_DO.storage.set("tr:" + expTrk.id, true);
@@ -456,7 +460,7 @@ assert.equal(blocked.status, 403, "foreign origin rejected");
 env.KV.store.clear();
 await W.trackApi(new Request("https://worker.test/track", { method: "POST",
   headers: { "Content-Type": "application/json", Origin: "https://abtravels.github.io" },
-  body: JSON.stringify({ action: "save", check: false, tracker: { origin: "KHI", destination: "DXB", departure: "2026-12-20" } })
+  body: JSON.stringify({ action: "save", check: false, tracker: { origin: "KHI", destination: "DXB", departure: FUT(40) } })
 }), env, {});
 const manyEnv = env;
 const many = await json(await W.trackApi(new Request("https://worker.test/track", { method: "POST",
