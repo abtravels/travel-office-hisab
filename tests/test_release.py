@@ -31,7 +31,11 @@ class ReleaseChecks(unittest.TestCase):
         self.assertGreater(body.index("await env.KV.put(budgetKey"), body.index("if (!state?.SearchID)"))
         # Pages are capped (10 by default) and fetched in small batches so
         # nothing is dropped and the CPU limit is not crossed.
-        self.assertIn("const MAX_PAGES = Number(env.MEZ_MAX_PAGES) > 0", body)
+        self.assertIn("const envCap = Number(env.MEZ_MAX_PAGES) > 0", body)
+        self.assertIn("const MAX_PAGES = wantPages > 0 ? Math.min(wantPages, envCap) : envCap;", body)
+        # Country runs may ask for fewer pages (v3.39) to stay inside the
+        # Worker's memory limit; the request carries it as `pages`.
+        self.assertIn("const wantPages = Math.max(0, Math.min(20, Math.floor(Number(opts && opts.pages) || 0)));", body)
         self.assertIn("const PAGE_BATCH = 3;", body)
         self.assertNotIn("stable >= 5", body)
 
