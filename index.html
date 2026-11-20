@@ -828,7 +828,7 @@
   <div class="brand">
     <img src="logo.png" alt="AB Travels" decoding="async" onerror="this.style.display='none'">
     <div style="min-width:0;">
-      <h1>AB Travels <span class="ver" id="verBadge">v3.41</span></h1>
+      <h1>AB Travels <span class="ver" id="verBadge">v3.42</span></h1>
       <div class="tag">Ahmed Brothers Hajj &amp; Umra Services (Pvt) Ltd</div>
     </div>
     <button id="brandFares" class="brand-fares" type="button" title="Flights — Price Lookup / Tracker / Booking alerts" aria-label="Flights menu" aria-haspopup="menu">✈</button>
@@ -898,7 +898,7 @@
 <script>
 /* ================= DATA ================= */
 var KEY = "travelOfficeHisab";
-var APP_VER = "3.41";
+var APP_VER = "3.42";
 var MONTH_NAMES = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
 /* Cloudflare Worker — Ignav flight prices proxy (free plan, no credit card) */
 var IGNAV_WORKER_CODE = "// AB Travels - Ignav flight prices proxy (Cloudflare Worker)\n// Ignav API key SERVER par rehti hai - app/browser mein kabhi nahi aati.\n//\n// SETUP (ek dafa, ~5 min, free):\n// 1) ignav.com/signup -> free account -> dashboard se API key\n// 2) cloudflare.com -> free account -> Workers & Pages -> Create Worker -> yeh code paste -> Deploy\n// 3) Worker -> Settings -> Variables and Secrets -> secret add karein:\n//      IGNAV_API_KEY = (aap ki Ignav key)\n// 4) Worker URL (https://xxx.workers.dev) app -> Settings -> Flight prices -> paste -> Save & test\n\nexport default {\n  async fetch(request, env) {\n    const cors = {\n      'Access-Control-Allow-Origin': env.ALLOWED_ORIGIN || '*',\n      'Access-Control-Allow-Methods': 'GET,POST,OPTIONS',\n      'Access-Control-Allow-Headers': 'Content-Type',\n      'Access-Control-Max-Age': '86400'\n    };\n    const url = new URL(request.url);\n    if (request.method === 'OPTIONS') return new Response(null, { status: 204, headers: cors });\n    if (!env.IGNAV_API_KEY) {\n      return new Response(JSON.stringify({ error: { code: 'no_key', message: 'IGNAV_API_KEY secret is not set in the Worker.' } }), { status: 500, headers: Object.assign({ 'Content-Type': 'application/json' }, cors) });\n    }\n    const base = 'https://ignav.com/api';\n    let target = '';\n    let init = { method: 'GET', headers: { 'X-Api-Key': env.IGNAV_API_KEY } };\n    if (url.pathname === '/health') {\n      target = base + '/health';\n    } else if (url.pathname === '/fares') {\n      if (request.method !== 'POST') return new Response(JSON.stringify({ error: { message: 'POST only' } }), { status: 405, headers: cors });\n      const body = await request.text();\n      target = base + '/fares/one-way';\n      init = { method: 'POST', headers: { 'X-Api-Key': env.IGNAV_API_KEY, 'Content-Type': 'application/json' }, body };\n    } else if (url.pathname === '/search') {\n      if (request.method !== 'POST') return new Response(JSON.stringify({ error: { message: 'POST only' } }), { status: 405, headers: cors });\n      const body = await request.text();\n      target = base + '/fares/search';\n      init = { method: 'POST', headers: { 'X-Api-Key': env.IGNAV_API_KEY, 'Content-Type': 'application/json' }, body };\n    } else if (url.pathname === '/round-trip') {\n      if (request.method !== 'POST') return new Response(JSON.stringify({ error: { message: 'POST only' } }), { status: 405, headers: cors });\n      const body = await request.text();\n      target = base + '/fares/round-trip';\n      init = { method: 'POST', headers: { 'X-Api-Key': env.IGNAV_API_KEY, 'Content-Type': 'application/json' }, body };\n    } else if (url.pathname === '/booking-links') {\n      if (request.method !== 'POST') return new Response(JSON.stringify({ error: { message: 'POST only' } }), { status: 405, headers: cors });\n      const body = await request.text();\n      target = base + '/fares/booking-links';\n      init = { method: 'POST', headers: { 'X-Api-Key': env.IGNAV_API_KEY, 'Content-Type': 'application/json' }, body };\n    } else {\n      return new Response(JSON.stringify({ error: { message: 'not found' } }), { status: 404, headers: Object.assign({ 'Content-Type': 'application/json' }, cors) });\n    }\n    try {\n      const r = await fetch(target, init);\n      const text = await r.text();\n      return new Response(text, { status: r.status, headers: Object.assign({ 'Content-Type': 'application/json' }, cors) });\n    } catch (e) {\n      return new Response(JSON.stringify({ error: { message: String((e && e.message) || e) } }), { status: 502, headers: Object.assign({ 'Content-Type': 'application/json' }, cors) });\n    }\n  }\n};\n";
@@ -5215,10 +5215,10 @@ function viewTickets(){
             + '</td>'
             + '<td class="num">'+Math.max(1, Number(t.persons)||1)+'</td>'
             + '<td class="c-phone">'+(phone
-                ? '<a href="tel:'+esc(phone)+'">☎ '+esc(phone)+'</a>'
-                : (t.client
-                    ? '<span class="cell-clip" title="Contact number nahi he — client ka naam">'+esc(t.client)+'</span>'
-                    : '<span class="cell-muted">—</span>'))+'</td>'
+                ? (/\d/.test(phone)
+                    ? '<a href="tel:'+esc(phone)+'">☎ '+esc(phone)+'</a>'
+                    : '<span class="cell-clip" title="Contact: '+esc(phone)+'">'+esc(phone)+'</span>')
+                : '<span class="cell-muted">—</span>')+'</td>'
             + '<td class="c-act">'
             + '<button class="del ia ia-more js-row-menu" data-id="'+t.id+'" title="Actions — Edit / Invoice / Detail / Date / Delete">⋯</button>'
             + '<span class="row-actions" hidden>'
@@ -5251,7 +5251,7 @@ function viewTickets(){
   html += '<div class="row" style="margin-top:8px;"><div><label for="tkKind">Sale type</label><select id="tkKind"><option>Ticket</option><option>Change</option><option>Umrah</option><option>Hajj</option></select></div></div>';
   html += '<div class="row" style="margin-top:8px;">'
         + '<div><label for="tkClient">Client name</label><input id="tkClient" placeholder="Full name"></div>'
-        + '<div><label for="tkPhone">Contact number</label><input id="tkPhone" type="tel" inputmode="tel" placeholder="For payment reminders"></div>'
+        + '<div><label for="tkPhone">Contact number / name</label><input id="tkPhone" type="text" inputmode="text" autocomplete="off" placeholder="03xx-xxxxxxx ya naam"></div>'
         + '</div>';
   html += '<label for="tkDetail" style="margin-top:8px;">Detail — route / PNR / note</label><input id="tkDetail" placeholder="e.g. KHI-DXB EK601">';
   html += '<div class="row" style="margin-top:8px;">'
@@ -9529,7 +9529,7 @@ function viewBakaya(){
   htmlX += '<div class="card"><h2>'+esc(T("newcl"))+'</h2>';
   htmlX += '<label for="rvClient">'+esc(T("cliname"))+'</label><input id="rvClient" placeholder="Name">';
   htmlX += '<div class="row" style="margin-top:8px;"><label for="rvNote" style="width:100%;">'+esc(T("tafseel"))+'</label><input id="rvNote" placeholder="e.g. Umrah package booking"></div>';
-  htmlX += '<div class="row" style="margin-top:8px;"><label for="rvPhone" style="width:100%;">Contact number (for reminders)</label><input id="rvPhone" type="tel" inputmode="tel" placeholder="03xx-xxxxxxx"></div>';
+  htmlX += '<div class="row" style="margin-top:8px;"><label for="rvPhone" style="width:100%;">Contact number / name (for reminders)</label><input id="rvPhone" type="text" inputmode="text" autocomplete="off" placeholder="03xx-xxxxxxx ya naam"></div>';
   htmlX += '<div class="row" style="margin-top:8px;"><label for="rvTotal" style="width:100%;">'+esc(T("kulraqam"))+'</label><input id="rvTotal" type="number" min="0" inputmode="decimal" placeholder="Rs"><input id="rvDate" type="date" aria-label="Entry date" value="'+today()+'" style="max-width:160px;"></div>';
   htmlX += '<button class="btn small primary" id="addRv" style="width:100%;">'+esc(T("addk"))+'</button>';
   htmlX += '</div>';
@@ -9554,9 +9554,9 @@ function viewBakaya(){
       if(xAdj) html += '<div class="hint" style="margin-top:5px;">⇄ Change: sale '+money(x.sale)+' − adj '+money(xAdj)+' = <b>'+money(xNet)+'</b>'+(x.prevRef?' · previous '+esc(x.prevRef):'')+'</div>';
       if(paid) html += '<div class="hint" style="margin-top:5px;">Partial payments: '+money(paid)+' received · '+money(rem)+' remaining</div>';
       var xPhone = clientPhoneFor(x.client, x.phone);
-      if(xPhone) html += '<div style="font-size:12.5px; color:var(--muted); margin-top:6px;">☎ '+esc(xPhone)+'</div>';
+      if(xPhone) html += '<div style="font-size:12.5px; color:var(--muted); margin-top:6px;">'+(/\d/.test(xPhone) ? '☎ ' : '👤 ')+esc(xPhone)+'</div>';
       html += '<div style="display:flex; gap:6px; flex-wrap:wrap; margin-top:8px;">';
-      if(xPhone){
+      if(xPhone && /\d/.test(xPhone)){
         html += '<a class="btn small" href="tel:'+esc(xPhone)+'" style="flex:0 0 auto; margin-top:0; text-decoration:none;">📞 Call</a>';
         html += '<button class="btn small pv-wa" data-client="'+esc(x.client)+'" data-phone="'+esc(xPhone)+'" data-amt="'+rem+'" data-date="'+esc(x.date||"")+'" style="flex:0 0 auto; margin-top:0;">💬 WhatsApp</button>';
       }
@@ -9602,9 +9602,9 @@ function viewBakaya(){
         html += '<div class="ok-msg" style="margin-top:8px;">✓ Fully paid</div>';
       }
       var rPhone = clientPhoneFor(r.client, r.phone);
-      if(rPhone) html += '<div style="font-size:12.5px; color:var(--muted); margin-top:6px;">☎ '+esc(rPhone)+'</div>';
+      if(rPhone) html += '<div style="font-size:12.5px; color:var(--muted); margin-top:6px;">'+(/\d/.test(rPhone) ? '☎ ' : '👤 ')+esc(rPhone)+'</div>';
       html += '<div style="display:flex; gap:6px; flex-wrap:wrap; margin-top:8px;">';
-      if(rPhone){
+      if(rPhone && /\d/.test(rPhone)){
         html += '<a class="btn small" href="tel:'+esc(rPhone)+'" style="flex:0 0 auto; margin-top:0; text-decoration:none;">📞 Call</a>';
         html += '<button class="btn small pv-wa" data-client="'+esc(r.client)+'" data-phone="'+esc(rPhone)+'" data-amt="'+rem+'" data-date="'+esc(r.date||"")+'" style="flex:0 0 auto; margin-top:0;">💬 WhatsApp</button>';
       }

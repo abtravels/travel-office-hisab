@@ -1,5 +1,13 @@
 # Travel Office Hisab - AB Travels
 
+## Contact field mein naam bhi likha ja sakta he (v3.42)
+- **v3.41 ka register wala change revert** — Phone column dobara number ya `—` dikhata he. (Sirf itna rakha: agar us field mein naam likha ho to wo bina ☎ ke nazar aata he.)
+- **Asli masla** sale form ka **Contact number** box tha: wo `type="tel"` tha, is liye phone ka **number keypad** khulta tha aur naam type nahi hota tha.
+- Ab wo **text box** he — label **"Contact number / name"**, placeholder *"03xx-xxxxxxx ya naam"* — client ka number na ho to seedha naam likh dein (keypad bhi normal text wala aata he).
+- Pending Payments ke naye entry form mein bhi wahi (`Contact number / name`).
+- Register mein agar us field mein naam ho to wo naam dikhta he (☎ link sirf number par), aur empty ho to `—`.
+- Sirf app ka change — Worker redeploy ki zaroorat nahi.
+
 ## Sale register: number na ho to Phone column mein naam (v3.41)
 - Mobile par sales register mein **Phone** column khaali (`—`) dikhta tha jab client ka number nahi hota — us row ko pehchanne ka koi tareeqa nahi bachta tha (client column tak scroll karna parta).
 - Ab: number ho to `☎ 03xx-…` (tap par call), **number na ho to usi jagah client ka naam** (lamba naam `…` par kat jata he, long-press par pura).
@@ -894,7 +902,7 @@ Current version: **2.31** (Email share opens Gmail compose with recipient prompt
 - Default waisa hi hai, is liye purane users ka behaviour nahi badla.
 
 ## Version
-Current version: **3.41** — Sale register ke Phone column mein number na ho to client ka naam; v3.40 app notifications (ticket/file/invoice) Telegram + Discord dono par.
+Current version: **3.42** — Sale form ka Contact box ab text (naam bhi likha ja sakta he); v3.41 ka register-naam change revert. (v3.40: app notifications Telegram + Discord dono par.)
 
 ## Price bot: KV list limit fix (v2.41)
 - Cloudflare KV free plan mein **1,000 list requests/day** hoti hain. Bot ka cron har minute `KV.list` chalata tha (1,440/day), is liye ~15 ghante mein 90% usage email aa jati thi.
