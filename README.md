@@ -1,5 +1,12 @@
 # Travel Office Hisab - AB Travels
 
+## Wapsi ka bag "jaane jaisa", aur zyada options ka note (v3.44)
+- **Saved invoice dobara kholne par** wapsi ke bag ka khana ab khali ("jaane jaisa") rehta he jab dono weight barabar hon. Pehle us mein number jam jata tha, aur jaane ka weight badalne par wapsi wala purana reh jata tha. Alag weight (ya 0 = NIL) waise hi rehta he.
+- **Zyada options ka note:** portal ke paas pages ki hadd se zyada options hon to header mein *"sirf sab se saste dekhe gaye"* likha aata he. List price ke hisab se aati he, is liye jo reh jate hain wo mehnge wale hote hain — sab se sasta fare phir bhi sahi he.
+- Country list se chune hue airport ke header mein ab portal ke asli options ki ginti (pehle sirf aaye hue fares ki ginti dikhti thi).
+- **Asli test (21 Nov):** KHI → Indonesia round trip, 27 Dec – 20 Jan, 5 airports — sab ke fares aaye (CGK 1,527, DPS 1,550, BPN 1,382, BDO 68, HLP 1,500), 111 second mein, koi "Failed to fetch" nahi.
+- Worker status page **v3.44**.
+
 ## Fare se invoice, flexible dates, aur Meezab search ke fixes (v3.43)
 - **Fare card se invoice:** har Meezab fare card par **🧾 Invoice banayein** button. Route, tareekh, departure/arrival ka waqt, airline, passengers ki ginti aur checked bag (kg) invoice form mein khud bhar jate hain; round trip mein return flight bhi, aur ek stop wali flight mein connection airport aur layover ke waqt bhi. Naam, PNR aur ticket number aap likhte hain. Form mein pehle se likha naam / PNR rehta he.
   - 2 ya zyada stops: sirf pehla aur aakhri airport bharta he (form mein ek hi connection ki jagah he) — app bata deti he.

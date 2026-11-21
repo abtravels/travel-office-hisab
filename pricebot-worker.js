@@ -2983,6 +2983,9 @@ async function mezRunSearch(env, q, opts) {
     complete = false;
   }
   const output = mezFinishResult(fares, q, complete, total);
+  /* Portal ke paas pages ki hadd se zyada options hon to bata dein — pages price ke
+     hisab se sorted hain, is liye sirf mehnge wale reh jate hain (v3.44). */
+  if (total > jobCount * PAGE) output.capped = true;
   /* Cache likhi hamesha jati he (fallback ke liye), magar padhi sirf tab jati
      he jab caller `cache:true` bheje — default jawab hamesha live hota he. */
   if (output.complete) {
@@ -3168,7 +3171,7 @@ async function statusPage(env) {
       info = "<li>Webhook: <span style=\"color:var(--gold)\">check slow</span> <small>(Telegram jawab nahi de raha - bot par message bhej kar test karein)</small></li>";
     }
   }
-  return page("AB Travels worker", "<h1>✈️ AB Travels worker <small>v3.43</small></h1><ul>" + rows.join("") + info +
+  return page("AB Travels worker", "<h1>✈️ AB Travels worker <small>v3.44</small></h1><ul>" + rows.join("") + info +
     "<li>Today's searches: <b>" + esc(used) + "</b> / " + budgetCap(env) + "</li>" +
     "<li>Owner chat: <code>" + esc(owner) + "</code></li>" +
     "<li>Team alerts: " + (team.length ? team.map(function (c) { return "<code>" + esc(c) + "</code>"; }).join(", ") : "<i>sirf owner</i>") + "</li></ul>" +

@@ -124,4 +124,17 @@ assert.ok(/children:Number\(\(document\.getElementById\("trkChildren"\)/.test(ht
 assert.ok(html.includes("function trkFormCapture()"), "tracker form survives a re-render");
 assert.ok(html.includes("(f.trip_type === \"multi\" ? '' : '<button type=\"button\" class=\"btn small\" data-mez-track="), "no Track button on multi-city cards");
 
+/* v3.44: saved invoice dobara kholne par wapsi ka bag "jaane jaisa" rahe */
+const c2 = vm.createContext({});
+vm.runInContext(grab("function invBagKg(", "function invBagLabel(") + grab("function invToCache(", "function openInvoiceForSale("), c2);
+const bagRet = (d) => vm.runInContext("invToCache(" + JSON.stringify(d) + ").invBagRet", c2);
+assert.equal(bagRet({ trip: "round", bag: 30, bagRet: 30 }), "", "same weight reopens as empty = same as going");
+assert.equal(bagRet({ trip: "round", bag: 30, bagRet: 25 }), "25", "a different return weight is kept");
+assert.equal(bagRet({ trip: "round", bag: 30, bagRet: 0 }), "0", "an explicit NIL return is kept");
+assert.equal(bagRet({ trip: "round", bag: 0, bagRet: 0 }), "");
+assert.equal(bagRet({ trip: "one", bag: 20 }), "");
+/* v3.44: pages ki hadd se zyada options hon to jawab bata de */
+assert.ok(worker.includes("if (total > jobCount * PAGE) output.capped = true;"), "worker flags a capped result");
+assert.ok(html.includes("capped:!!j.capped") && html.includes("sirf sab se saste dekhe gaye"), "app shows the capped note");
+
 console.log("Fare-to-invoice + flexible dates checks passed (legs, connection, baggage, pax; date strip, trip length; Meezab state fixes)");
