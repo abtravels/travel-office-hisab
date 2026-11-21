@@ -1,12 +1,12 @@
 {
   "v": 1,
   "provider": "sasta",
-  "observed_at": "2026-11-20T17:59:40.172Z",
+  "observed_at": "2026-11-21T00:01:19.214Z",
   "results": [
     {
       "origin": "KHI",
       "destination": "DXB",
-      "amount": 62633,
+      "amount": 59046,
       "file": "data/sasta/khi-dxb.json"
     },
     {
@@ -24,13 +24,13 @@
     {
       "origin": "KHI",
       "destination": "JED",
-      "amount": 73642,
+      "amount": 69540,
       "file": "data/sasta/khi-jed.json"
     },
     {
       "origin": "LHE",
       "destination": "JED",
-      "amount": 100433,
+      "amount": 100890,
       "file": "data/sasta/lhe-jed.json"
     },
     {
@@ -54,13 +54,13 @@
     {
       "origin": "LHE",
       "destination": "KHI",
-      "amount": 22050,
+      "amount": 24233,
       "file": "data/sasta/lhe-khi.json"
     },
     {
       "origin": "ISB",
       "destination": "KHI",
-      "amount": 31379,
+      "amount": 32850,
       "file": "data/sasta/isb-khi.json"
     },
     {
@@ -78,25 +78,25 @@
     {
       "origin": "KHI",
       "destination": "AUH",
-      "amount": 63033,
+      "amount": 62952,
       "file": "data/sasta/khi-auh.json"
     },
     {
       "origin": "KHI",
       "destination": "SHJ",
-      "amount": 59419,
+      "amount": 61971,
       "file": "data/sasta/khi-shj.json"
     },
     {
       "origin": "KHI",
       "destination": "RUH",
-      "amount": 63886,
+      "amount": 61254,
       "file": "data/sasta/khi-ruh.json"
     },
     {
       "origin": "KHI",
       "destination": "MED",
-      "amount": 62346,
+      "amount": 62279,
       "file": "data/sasta/khi-med.json"
     }
   ],
