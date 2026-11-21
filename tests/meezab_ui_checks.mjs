@@ -26,6 +26,7 @@ const source =
   aliasSrc + "\n" +
   grab("function mezBagTokens(", "function mezAirlineStats(") +
   grab("function mezAirlineStats(", "function mezLogoHtml(") +
+  grab("function mezFareStops(", "/* Agli subah pahunchne par") +
   grab("function mezBase(", "function mezPageButtons(");
 const context = vm.createContext({ MEZ: { fares: [], stops: "all", baggage: "all", airline: "", sort: "price" } });
 vm.runInContext(source, context);
@@ -63,6 +64,11 @@ assert.equal(run("mezView()[0].airline_code"), "EY");            // price sort
 run("MEZ.stops = '0'");
 assert.equal(run("mezView().map(function(f){ return f.airline_code; }).join(',')"), "EK,QR");
 run("MEZ.stops = 'all'");
+/* v3.43: round trip mein wapsi ke stops bhi gine jate hain */
+assert.equal(run("mezFareStops({ stops: 0, legs: [{ stops: 0 }, { stops: 1 }] })"), 1);
+assert.equal(run("mezFareStops({ stops: 2 })"), 2);
+assert.equal(run("mezLegsRoute([{origin:'KHI',destination:'DPS'},{origin:'CGK',destination:'KHI'}])"), "KHI → DPS · CGK → KHI");
+assert.equal(run("mezLegsRoute([{origin:'KHI',destination:'DXB'},{origin:'DXB',destination:'LHR'}])"), "KHI → DXB → LHR");
 
 run("MEZ.baggage = 'checked'");
 assert.equal(run("mezView().length"), 2);                         // 25kg + 30KG, unknown hata

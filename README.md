@@ -1,5 +1,40 @@
 # Travel Office Hisab - AB Travels
 
+## Fare se invoice, flexible dates, aur Meezab search ke fixes (v3.43)
+- **Fare card se invoice:** har Meezab fare card par **🧾 Invoice banayein** button. Route, tareekh, departure/arrival ka waqt, airline, passengers ki ginti aur checked bag (kg) invoice form mein khud bhar jate hain; round trip mein return flight bhi, aur ek stop wali flight mein connection airport aur layover ke waqt bhi. Naam, PNR aur ticket number aap likhte hain. Form mein pehle se likha naam / PNR rehta he.
+  - 2 ya zyada stops: sirf pehla aur aakhri airport bharta he (form mein ek hi connection ki jagah he) — app bata deti he.
+  - Multi-city: sirf pehli leg. Baggage pieces / pounds mein ho to khud likhna hota he.
+- **Flexible dates:** form mein tick **"Meri dates flexible hain (±3 din)"**. Tick ho to search ke saath 7 tareekhon ki patti banti he, har tareekh ka sab se sasta fare, **sab se sasti tareekh hari**. Tareekh par tap → us din ki poori list. Round trip mein safar ki lambai wahi rehti he.
+  - Meezab ek waqt mein ek hi tareekh deta he, is liye ye **6 zyada searches** hain (2-2 kar ke, halki — 2 pages). Tick na ho to koi zyada search nahi lagti.
+  - Sirf ek airport ki one-way / round trip search par; country search aur multi-city mein nahi.
+- **Search form:** trip / class / passengers wala box ab dates se **upar** he.
+- **Meezab fixes:**
+  - Zero fares par spinner hamesha chalta rehta tha — ab "Is search mein koi fare nahi mila" dikhta he (tab badalne ke baad bhi).
+  - Nayi search fail ho to purane route ke results wapas aa jate thay aur error nazar nahi aata tha — ab error dikhta he.
+  - Country search (maslan Indonesia round trip) mein **sab airports fail** hon to ab wajah aur "Dobara search karein" button dikhta he; pehle khali screen aur phir atka hua loading card aata tha.
+  - Country list ya results ko search ke dauran ✕ se band karne par JavaScript error aata tha — ab search saaf ruk jati he.
+  - Band ki hui country list auto-refresh se wapas aa jati thi.
+  - Watchdog ke baad "resume" dabane par purani aur nayi search ek doosre ka haal bigaarti thin.
+  - Country list se chune hue airport par "partial" / "purana data" ka nishan aur sahi fetch time; ↻ refresh ke baad row ka price bhi naya.
+  - Round trip: "Non-stop only" filter aur country row ab **wapsi ke stops** bhi ginte hain.
+  - Multi-city header ab pehli leg ka asli destination dikhata he (`KHI → DPS · CGK → KHI`).
+  - "Korea" likhne par North Korea search hota tha — ab South Korea.
+  - 5 minute ka timeout ab dobara search nahi chalata aur "Failed to fetch" ki jagah saaf message deta he.
+  - Tracker: fare se banne wale tracker mein lap infants 0 ho jate thay.
+- **Invoice fixes:**
+  - **Sale ki row se kholi invoice sale se judti hi nahi thi** (v2.63 se): dropdown "Not linked" dikhata tha aur invoice "Saved invoices" mein chali jati thi; jis sale ki invoice pehle se thi us ki ek faltu copy ban jati thi. Ab link rehta he aur invoice usi sale ke saath save hoti he.
+  - **Expenses tab adhoori invoice ka draft mita deta tha** (dono cards ki class ek thi), aur expense likhne par draft mein expense ke fields chale jate thay. Ab draft sirf invoice ke card ka he.
+  - Sale ko dropdown se link karne par likhi hui flight date chup-chaap sale ki tareekh ban jati thi — ab sirf tab badalti he jab date abhi chheri na gayi ho.
+  - Sale se kholi invoice mein connection date "aaj" par atak jati thi aur flight date ke saath nahi chalti thi.
+  - Layover aadhi raat ke paar ho (22:30 utre, 01:15 par agli flight) to connection date ab agla din banti he aur layover ka waqt chhapta he.
+  - Passengers ki ginti 1 se zyada karne par likha hua naam / NIC / seat chhupe box mein reh jata tha — ab list mein chala jata he; 2+ passengers ki invoice par purani single seat nahi chhapti.
+  - Saved Umrah invoice kholne par "Child without bed" ka price box chhupa rehta tha.
+- **Tracker fixes:**
+  - Form mein ab **Children / Infants (lap) / Infants (seat)** hain — fare card se banne wala tracker pehle sirf adults ka price track karta tha.
+  - Form re-render par khali ho jata tha (list load, fail hui save, "Check now") — ab likha hua rehta he.
+  - Multi-city fare card par "Track" button nahi (tracker sirf one-way / round trip janta he; pehle pehli leg ka one-way price track hota tha).
+- **Worker:** results ka koi page fail ho to ek dafa dobara try hota he; phir bhi na aaye to jawab **partial** kehlata he (pehle sab se saste fares wala page chup-chaap gir jata tha aur jawab "complete" likha aata tha). Worker status page **v3.43**.
+
 ## Contact field mein naam bhi likha ja sakta he (v3.42)
 - **v3.41 ka register wala change revert** — Phone column dobara number ya `—` dikhata he. (Sirf itna rakha: agar us field mein naam likha ho to wo bina ☎ ke nazar aata he.)
 - **Asli masla** sale form ka **Contact number** box tha: wo `type="tel"` tha, is liye phone ka **number keypad** khulta tha aur naam type nahi hota tha.

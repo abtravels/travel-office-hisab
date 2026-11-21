@@ -2937,6 +2937,17 @@ async function mezRunSearch(env, q, opts) {
   const jobCount = Math.max(1, Math.min(MAX_PAGES, Math.ceil(total / PAGE) || 1));
   const fares = [];
   const PAGE_BATCH = 3;
+  /* Pages price ke hisab se sorted hain — pehla page hi sab se saste fares rakhta
+     he. Koi page do dafa fail ho to jawab "complete" nahi kehlata (v3.43). */
+  let lostPages = 0;
+  const fetchPage = async (p) => {
+    const r = await fetch(MEZ_BASE + "GetFlightListUpdate", {
+      method: "POST", redirect: "follow", signal: AbortSignal.timeout(60000),
+      headers: { "Content-Type": "application/json", Cookie: cookie },
+      body: JSON.stringify(pageBody(p, PAGE)) });
+    if (!r.ok) { if (r.status === 401 || r.status === 403) mezSession = null; throw new Error("HTTP " + r.status); }
+    return { p, res: await r.json() };
+  };
   for (let first = 1; first <= jobCount; first += PAGE_BATCH) {
     /* Deadline ke qareeb: baqi pages chhor dein, jo fares mil chuki hain de dein
        (complete false rahega, app user ko "partial" bata deta he). */
@@ -2945,15 +2956,18 @@ async function mezRunSearch(env, q, opts) {
     for (let p = first; p < first + PAGE_BATCH && p <= jobCount; p++) batch.push(p);
     const settled = await Promise.all(batch.map(async (p) => {
       try {
-        const r = await fetch(MEZ_BASE + "GetFlightListUpdate", {
-          method: "POST", redirect: "follow", signal: AbortSignal.timeout(60000),
-          headers: { "Content-Type": "application/json", Cookie: cookie },
-          body: JSON.stringify(pageBody(p, PAGE)) });
-        if (!r.ok) { if (r.status === 401 || r.status === 403) mezSession = null; throw new Error("HTTP " + r.status); }
-        return { p, res: await r.json() };
+        return await fetchPage(p);
       } catch (e) {
         console.warn("Meezab page " + p + " failed: " + ((e && e.message) || e));
-        return null;
+        if (Date.now() > deadline) { lostPages++; return null; }
+        try {
+          await new Promise(resolve => setTimeout(resolve, 600));
+          return await fetchPage(p);
+        } catch (e2) {
+          console.warn("Meezab page " + p + " failed again: " + ((e2 && e2.message) || e2));
+          lostPages++;
+          return null;
+        }
       }
     }));
     for (const item of settled) {
@@ -2963,6 +2977,10 @@ async function mezRunSearch(env, q, opts) {
       total = Math.max(total, part.total);
       for (const f of part.fares) fares.push(f);
     }
+  }
+  if (lostPages) {
+    if (!fares.length) throw new Error("Meezab pages: results load nahi ho sakay, dobara try karein.");
+    complete = false;
   }
   const output = mezFinishResult(fares, q, complete, total);
   /* Cache likhi hamesha jati he (fallback ke liye), magar padhi sirf tab jati
@@ -3150,7 +3168,7 @@ async function statusPage(env) {
       info = "<li>Webhook: <span style=\"color:var(--gold)\">check slow</span> <small>(Telegram jawab nahi de raha - bot par message bhej kar test karein)</small></li>";
     }
   }
-  return page("AB Travels worker", "<h1>✈️ AB Travels worker <small>v3.40</small></h1><ul>" + rows.join("") + info +
+  return page("AB Travels worker", "<h1>✈️ AB Travels worker <small>v3.43</small></h1><ul>" + rows.join("") + info +
     "<li>Today's searches: <b>" + esc(used) + "</b> / " + budgetCap(env) + "</li>" +
     "<li>Owner chat: <code>" + esc(owner) + "</code></li>" +
     "<li>Team alerts: " + (team.length ? team.map(function (c) { return "<code>" + esc(c) + "</code>"; }).join(", ") : "<i>sirf owner</i>") + "</li></ul>" +
