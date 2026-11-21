@@ -944,7 +944,7 @@ Current version: **2.31** (Email share opens Gmail compose with recipient prompt
 - Default waisa hi hai, is liye purane users ka behaviour nahi badla.
 
 ## Version
-Current version: **3.42** — Sale form ka Contact box ab text (naam bhi likha ja sakta he); v3.41 ka register-naam change revert. (v3.40: app notifications Telegram + Discord dono par.)
+Current version: **3.44** — wapsi ka bag "jaane jaisa" (saved invoice dobara kholne par), zyada options ka note, country card par tareekh/party. (v3.43: fare card se invoice + flexible dates; v3.42: Contact mein naam; v3.40: Discord notifications.)
 
 ## Price bot: KV list limit fix (v2.41)
 - Cloudflare KV free plan mein **1,000 list requests/day** hoti hain. Bot ka cron har minute `KV.list` chalata tha (1,440/day), is liye ~15 ghante mein 90% usage email aa jati thi.
