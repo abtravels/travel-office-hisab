@@ -4,11 +4,11 @@
   "origin": "ISB",
   "destination": "DXB",
   "currency": "PKR",
-  "amount": 75018,
+  "amount": 75006,
   "price_basis": "per_person",
   "taxes_included": null,
   "fare_breakdown": null,
   "source_url": "https://www.sastaticket.pk/flights/cheap-flights-from-islamabad-to-dubai",
-  "observed_at": "2026-11-21T21:13:53.362Z",
-  "headline": "Cheap Flights from Islamabad (ISB) to Dubai (DXB) (PKR 75,018)"
+  "observed_at": "2026-11-22T01:24:34.868Z",
+  "headline": "Cheap Flights from Islamabad (ISB) to Dubai (DXB) (PKR 75,006)"
 }
