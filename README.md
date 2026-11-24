@@ -1,5 +1,21 @@
 # Travel Office Hisab - AB Travels
 
+## Refund, client statement, payment receipt, aur print ki gehri lines (v3.45)
+- **Invoice print:** boxes aur rows ki lines print par nazar nahi aati thin (halki grey `#e5e7eb` / `#f3f4f6`). Ab print ki copy mein har halki line gehri ho jati he, aur page A4 par fit hone ke liye chhota ho to line ki motai bhi wapas poori ho jati he. Screen wali invoice aur WhatsApp wali PDF waisi hi hain.
+- **↩ Refund / void:** Sales register → row par tap → **↩ Refund**. Teen cheezein poochta he: airline / supplier se kitna wapas aayega, client ka refund kitna banta he, aur tareekh. Dono ka farq aap ka service charge he.
+  - Client ka payable = sale − adj − client refund. Supplier cost = cost − adj − supplier refund. Profit = sale − cost + supplier refund − client refund.
+  - Misal: sale 50,000, cost 47,000, paid; airline 40,000 wapas, client ko 38,000 → profit 5,000, airline se 40,000 aana he, client ko 38,000 dena he.
+  - Client ne poora na diya ho to sirf utna wapas banta he jitna us ne naye payable se zyada diya; kuch na diya ho to baqi raqam Pending mein rehti he.
+  - **Pending Payments → ↩ Refunds** card: har khula refund, **💰 Airline se mila** aur **💸 Client ko diya** buttons (qiston mein bhi). Dono taraf poora ho jaye to card se nikal jata he.
+  - Row menu se **✕ Refund hatao** — sale apni pehli raqmon par wapas (auto-backup + Undo).
+  - Refund us mahine ka profit badalta he jis mein sale thi. Mahine ki taqseem ho chuki ho to app bata deti he ke **Re-apply split** karein.
+  - Refund ke liye cost aur sale dono likhi honi chahiye. Jis sale par refund ho use Unpaid nahi kiya ja sakta (pehle refund hatayein).
+- **Client statement:** Clients → **History** → **🖨 Statement** (A4 print / PDF) aur **💬 Statement** (WhatsApp). Har sale, payment, refund aur pending entry tareekh ke hisaab se, chalte balance ke saath. Balance minus ho to matlab client ko wapas dena he. WhatsApp wale message mein sirf khuli entries aur total hota he.
+- **Payment receipt:** payment darj karte hi neeche patti aati he — **💬 Receipt** dabane par WhatsApp message tayyar: kitna mila, tareekh, total, ab tak mila, baqi. Sales ki payment aur Pending entries dono par.
+- **Pending kitna purana he:** Pending Payments ke upar teen khane — 0–7 din, 8–30 din, 30 din se zyada. 7 din se purani har entry par din ka nishan.
+- Staff portal nahi badla: wo refund nahi janta, is liye refund wali unpaid sale ka baqi wahan purana dikhega.
+- Sirf app ka change — Worker redeploy ki zaroorat nahi.
+
 ## Wapsi ka bag "jaane jaisa", aur zyada options ka note (v3.44)
 - **Saved invoice dobara kholne par** wapsi ke bag ka khana ab khali ("jaane jaisa") rehta he jab dono weight barabar hon. Pehle us mein number jam jata tha, aur jaane ka weight badalne par wapsi wala purana reh jata tha. Alag weight (ya 0 = NIL) waise hi rehta he.
 - **Zyada options ka note:** portal ke paas pages ki hadd se zyada options hon to header mein *"sirf sab se saste dekhe gaye"* likha aata he. List price ke hisab se aati he, is liye jo reh jate hain wo mehnge wale hote hain — sab se sasta fare phir bhi sahi he.
@@ -944,7 +960,7 @@ Current version: **2.31** (Email share opens Gmail compose with recipient prompt
 - Default waisa hi hai, is liye purane users ka behaviour nahi badla.
 
 ## Version
-Current version: **3.44** — wapsi ka bag "jaane jaisa" (saved invoice dobara kholne par), zyada options ka note, country card par tareekh/party. (v3.43: fare card se invoice + flexible dates; v3.42: Contact mein naam; v3.40: Discord notifications.)
+Current version: **3.45** — refund / void, client statement, payment receipt, pending ki umar, invoice print ki gehri lines. (v3.44: wapsi ka bag "jaane jaisa"; v3.43: fare card se invoice + flexible dates; v3.42: Contact mein naam; v3.40: Discord notifications.)
 
 ## Price bot: KV list limit fix (v2.41)
 - Cloudflare KV free plan mein **1,000 list requests/day** hoti hain. Bot ka cron har minute `KV.list` chalata tha (1,440/day), is liye ~15 ghante mein 90% usage email aa jati thi.

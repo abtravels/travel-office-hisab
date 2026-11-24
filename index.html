@@ -836,7 +836,7 @@
   <div class="brand">
     <img src="logo.png" alt="AB Travels" decoding="async" onerror="this.style.display='none'">
     <div style="min-width:0;">
-      <h1>AB Travels <span class="ver" id="verBadge">v3.44</span></h1>
+      <h1>AB Travels <span class="ver" id="verBadge">v3.45</span></h1>
       <div class="tag">Ahmed Brothers Hajj &amp; Umra Services (Pvt) Ltd</div>
     </div>
     <button id="brandFares" class="brand-fares" type="button" title="Flights — Price Lookup / Tracker / Booking alerts" aria-label="Flights menu" aria-haspopup="menu">✈</button>
@@ -906,7 +906,7 @@
 <script>
 /* ================= DATA ================= */
 var KEY = "travelOfficeHisab";
-var APP_VER = "3.44";
+var APP_VER = "3.45";
 var MONTH_NAMES = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
 /* Cloudflare Worker — Ignav flight prices proxy (free plan, no credit card) */
 var IGNAV_WORKER_CODE = "// AB Travels - Ignav flight prices proxy (Cloudflare Worker)\n// Ignav API key SERVER par rehti hai - app/browser mein kabhi nahi aati.\n//\n// SETUP (ek dafa, ~5 min, free):\n// 1) ignav.com/signup -> free account -> dashboard se API key\n// 2) cloudflare.com -> free account -> Workers & Pages -> Create Worker -> yeh code paste -> Deploy\n// 3) Worker -> Settings -> Variables and Secrets -> secret add karein:\n//      IGNAV_API_KEY = (aap ki Ignav key)\n// 4) Worker URL (https://xxx.workers.dev) app -> Settings -> Flight prices -> paste -> Save & test\n\nexport default {\n  async fetch(request, env) {\n    const cors = {\n      'Access-Control-Allow-Origin': env.ALLOWED_ORIGIN || '*',\n      'Access-Control-Allow-Methods': 'GET,POST,OPTIONS',\n      'Access-Control-Allow-Headers': 'Content-Type',\n      'Access-Control-Max-Age': '86400'\n    };\n    const url = new URL(request.url);\n    if (request.method === 'OPTIONS') return new Response(null, { status: 204, headers: cors });\n    if (!env.IGNAV_API_KEY) {\n      return new Response(JSON.stringify({ error: { code: 'no_key', message: 'IGNAV_API_KEY secret is not set in the Worker.' } }), { status: 500, headers: Object.assign({ 'Content-Type': 'application/json' }, cors) });\n    }\n    const base = 'https://ignav.com/api';\n    let target = '';\n    let init = { method: 'GET', headers: { 'X-Api-Key': env.IGNAV_API_KEY } };\n    if (url.pathname === '/health') {\n      target = base + '/health';\n    } else if (url.pathname === '/fares') {\n      if (request.method !== 'POST') return new Response(JSON.stringify({ error: { message: 'POST only' } }), { status: 405, headers: cors });\n      const body = await request.text();\n      target = base + '/fares/one-way';\n      init = { method: 'POST', headers: { 'X-Api-Key': env.IGNAV_API_KEY, 'Content-Type': 'application/json' }, body };\n    } else if (url.pathname === '/search') {\n      if (request.method !== 'POST') return new Response(JSON.stringify({ error: { message: 'POST only' } }), { status: 405, headers: cors });\n      const body = await request.text();\n      target = base + '/fares/search';\n      init = { method: 'POST', headers: { 'X-Api-Key': env.IGNAV_API_KEY, 'Content-Type': 'application/json' }, body };\n    } else if (url.pathname === '/round-trip') {\n      if (request.method !== 'POST') return new Response(JSON.stringify({ error: { message: 'POST only' } }), { status: 405, headers: cors });\n      const body = await request.text();\n      target = base + '/fares/round-trip';\n      init = { method: 'POST', headers: { 'X-Api-Key': env.IGNAV_API_KEY, 'Content-Type': 'application/json' }, body };\n    } else if (url.pathname === '/booking-links') {\n      if (request.method !== 'POST') return new Response(JSON.stringify({ error: { message: 'POST only' } }), { status: 405, headers: cors });\n      const body = await request.text();\n      target = base + '/fares/booking-links';\n      init = { method: 'POST', headers: { 'X-Api-Key': env.IGNAV_API_KEY, 'Content-Type': 'application/json' }, body };\n    } else {\n      return new Response(JSON.stringify({ error: { message: 'not found' } }), { status: 404, headers: Object.assign({ 'Content-Type': 'application/json' }, cors) });\n    }\n    try {\n      const r = await fetch(target, init);\n      const text = await r.text();\n      return new Response(text, { status: r.status, headers: Object.assign({ 'Content-Type': 'application/json' }, cors) });\n    } catch (e) {\n      return new Response(JSON.stringify({ error: { message: String((e && e.message) || e) } }), { status: 502, headers: Object.assign({ 'Content-Type': 'application/json' }, cors) });\n    }\n  }\n};\n";
@@ -2517,11 +2517,165 @@ function receiveTicketPayment(t){
   var nowGot = ticketPaidAmt(t);
   if(nowGot >= net) t.paid = true;   // poori raqam aa gayi
   save(); render();
-  appToast("\u2713 " + money(amt) + " jama — baqi " + money(Math.max(0, net - nowGot)) + ".");
+  var left = Math.max(0, net - nowGot);
+  receiptOffer("\u2713 " + money(amt) + " jama — baqi " + money(left) + ".",
+    receiptText({ client:t.client, amount:amt, date:payDt, detail:t.detail, total:net, received:nowGot, remaining:left }),
+    clientPhoneFor(t.client, t.phone));
+}
+/* Payment ke baad patti: WhatsApp receipt ka button (seedha tap, is liye popup block nahi hota) */
+function receiptOffer(msg, text, phone){
+  var old = document.getElementById("rcptBar");
+  if(old && old.parentNode) old.parentNode.removeChild(old);
+  var el = document.createElement("div");
+  el.id = "rcptBar";
+  el.setAttribute("role", "status");
+  el.style.cssText = "position:fixed; left:12px; right:12px; bottom:78px; z-index:9998; background:#0f172a; color:#fff; border-radius:12px; padding:10px 14px; display:flex; gap:10px; align-items:center; box-shadow:0 8px 24px rgba(0,0,0,.28); font-size:13px;";
+  function close(){ if(el.parentNode) el.parentNode.removeChild(el); }
+  var sp = document.createElement("span");
+  sp.style.flex = "1";
+  sp.textContent = msg;
+  var a = document.createElement("a");
+  a.href = "https://wa.me/" + fileWaDigits(/\d/.test(String(phone || "")) ? phone : "") + "?text=" + encodeURIComponent(text);
+  a.target = "_blank";
+  a.rel = "noopener";
+  a.className = "btn small";
+  a.textContent = "💬 Receipt";
+  a.style.cssText = "background:#fff; color:#0f172a; font-weight:700; padding:5px 10px; flex:0 0 auto; margin-top:0; text-decoration:none;";
+  a.onclick = function(){ setTimeout(close, 300); };
+  var x = document.createElement("button");
+  x.type = "button";
+  x.setAttribute("aria-label", "Close");
+  x.textContent = "✕";
+  x.style.cssText = "background:transparent; color:#fff; border:0; font-size:15px; cursor:pointer; flex:0 0 auto; padding:4px 6px;";
+  x.onclick = close;
+  el.appendChild(sp); el.appendChild(a); el.appendChild(x);
+  document.body.appendChild(el);
+  setTimeout(close, 30000);
+}
+/* ---------- Refund / void darj karna (v3.45) ---------- */
+function askRupees(msg, def){
+  var v = prompt(msg, def);
+  if(v === null) return null;
+  var n = Number(String(v).replace(/[^0-9.]/g, ""));
+  if(String(v).trim() === "" || !isFinite(n) || n < 0){ appToast("Sahi amount likhein.", true); return null; }
+  return n;
+}
+function askPayDate(msg){
+  var v = prompt(msg + " (dd/mm/yy) — khali chhod dein to aaj:", dmy(today()));
+  if(v === null) return null;
+  var d = v.trim() ? sheetDate(v, "") : today();
+  if(!/^\d{4}-\d{2}-\d{2}$/.test(d)){ appToast("Tareekh samajh nahi aayi — misal " + dmy(today()), true); return null; }
+  return d;
+}
+function refundStart(t){
+  if(!t) return;
+  if(ticketRefund(t)){ appToast("Is sale par refund pehle se darj he.", true); return; }
+  if(!ticketProfitReady(t)){ appToast("Refund ke liye cost aur sale price dono likhi honi chahiye — pehle ✏ Edit.", true); return; }
+  var cost = Math.max(0, Number(t.cost) || 0), billed = ticketBilled(t), got = ticketReceived(t);
+  var head = (t.client || "") + " — " + dmy(t.date || "") + (t.detail ? " — " + t.detail : "") + "\n\n";
+  var sup = askRupees(head + "Airline / supplier se kitni raqam wapas aayegi? (Rs)\nCost price: " + money(cost) + ". Kuch nahi aana to 0.", "");
+  if(sup === null) return;
+  if(sup > cost){ appToast("Airline ka refund cost price " + money(cost) + " se zyada nahi ho sakta.", true); return; }
+  var cli = askRupees(head + "Client ka refund kitna banta he? (Rs)\nClient price: " + money(billed) + " · ab tak mila: " + money(got)
+    + ".\n(Airline ka refund minus aap ka service charge. Kuch nahi dena to 0.)", "");
+  if(cli === null) return;
+  if(cli > billed){ appToast("Client ka refund client price " + money(billed) + " se zyada nahi ho sakta.", true); return; }
+  if(!(sup > 0) && !(cli > 0)){ appToast("Dono raqmein 0 hain — refund darj nahi hua.", true); return; }
+  var dt = askPayDate("Refund ki tareekh");
+  if(dt === null) return;
+  var rf = { date:dt, sup:sup, cli:cli, recv:got, supGot:[], cliGiven:[] };
+  var after = {}; for(var k in t) after[k] = t[k];
+  after.refund = rf;
+  var rem = ticketRemaining(after), due = refundCliDue(after);
+  var mid = String(t.date || "").slice(0, 7);
+  var msg = "Airline / supplier se aana he: " + money(sup)
+    + "\nClient ka refund: " + money(cli)
+    + (due > 0 ? "\nClient ko wapas dena he: " + money(due) : "")
+    + (rem > 0 ? "\nClient par ab bhi baqi: " + money(rem) : "")
+    + "\n\nIs sale ka profit: " + money(ticketProfit(t)) + " → " + money(ticketProfit(after))
+    + ((S.months[mid] && S.months[mid].applied) ? "\n\n⚠ " + monthLabel(mid) + " ki taqseem ho chuki he — profit badalne ke baad Monthly Accounts mein Re-apply split karein." : "");
+  appConfirm(msg, "Refund darj karein?", { okText:"Haan, darj karo", cancelText:"Nahi", type:"warning" }).then(function(ok){
+    if(!ok) return;
+    t.refund = rf;
+    /* Refund ke baad kuch baqi nahi to sale Pending se nikal jaye */
+    if(t.paid === false && ticketRemaining(t) <= 0) t.paid = true;
+    save(); render();
+    appToast("↩ Refund darj ho gaya — Pending Payments → Refunds mein dikhega.");
+  });
+}
+function refundSupReceive(t){
+  var r = ticketRefund(t), due = refundSupDue(t);
+  if(!r || !(due > 0)){ appToast("Airline se koi refund baqi nahi.", true); return; }
+  var amt = askRupees((t.client || "") + " — airline / supplier se refund\nBaqi: " + money(due) + "\n\nKitni raqam mili? (Rs)", Math.round(due));
+  if(amt === null) return;
+  if(!(amt > 0) || amt > due + 0.5){ appToast("Raqam 0 se zyada aur " + money(due) + " tak honi chahiye.", true); return; }
+  var dt = askPayDate("Milne ki tareekh");
+  if(dt === null) return;
+  if(!Array.isArray(r.supGot)) r.supGot = [];
+  r.supGot.push({ amount:amt, date:dt });
+  save(); render();
+  appToast("\u2713 Airline se " + money(amt) + " mila — baqi " + money(refundSupDue(t)) + ".");
+}
+function refundCliGive(t){
+  var r = ticketRefund(t), due = refundCliDue(t);
+  if(!r || !(due > 0)){ appToast("Client ko koi refund dena baqi nahi.", true); return; }
+  var amt = askRupees((t.client || "") + " — client ko refund\nBaqi: " + money(due) + "\n\nKitni raqam di? (Rs)", Math.round(due));
+  if(amt === null) return;
+  if(!(amt > 0) || amt > due + 0.5){ appToast("Raqam 0 se zyada aur " + money(due) + " tak honi chahiye.", true); return; }
+  var dt = askPayDate("Dene ki tareekh");
+  if(dt === null) return;
+  if(!Array.isArray(r.cliGiven)) r.cliGiven = [];
+  r.cliGiven.push({ amount:amt, date:dt });
+  save(); render();
+  appToast("\u2713 Client ko " + money(amt) + " diya — baqi " + money(refundCliDue(t)) + ".");
+}
+function refundRemove(t){
+  var r = ticketRefund(t);
+  if(!r) return;
+  var moved = payListSum(r.supGot) + payListSum(r.cliGiven);
+  var msg = "\u201c" + (t.client || "Sale") + "\u201d ka refund hata dein?\n\nSale apni pehli raqmon par wapas aa jayegi."
+    + (moved > 0 ? "\n\n⚠ Is refund par mili / di hui raqmein (" + money(moved) + ") bhi hat jayengi." : "")
+    + "\n\nAuto-backup ban jayega — ↩ Undo se wapas aa sakta hai.";
+  appConfirm(msg, "Refund hatayein?", { okText:"Haan, hatao", cancelText:"Nahi", type:"warning" }).then(function(ok){
+    if(!ok) return;
+    if(!takeAutoBackup("1 refund removed", true)){ alert("Backup nahi ban saka — refund nahi hataya gaya."); return; }
+    /* Client se jo mila tha wo mehfooz rahe; poori raqam na mili ho to sale dobara Pending mein */
+    var got = ticketReceived(t);
+    delete t.refund;
+    if(got < ticketBilled(t) - 0.5){
+      var rows = ticketPaidAmt(t);
+      if(got > rows){
+        if(!Array.isArray(t.payments)) t.payments = [];
+        t.payments.push({ amount:got - rows, date:r.date || t.date, note:"paid" });
+      }
+      t.paid = false;
+    }
+    save(); render();
+    appToast("Refund hata diya.");
+  });
+}
+/* Statement / koi bhi chhota document A4 par print (gehri lines ke saath) */
+function printDoc(title, html){
+  var f = document.createElement("iframe");
+  f.style.cssText = "position:fixed; left:-10000px; top:0; width:703px; height:1200px; border:0;";
+  document.body.appendChild(f);
+  var doc = f.contentWindow.document;
+  doc.open();
+  doc.write('<html><head><title>' + esc(title) + '</title><style>@page{size:A4 portrait; margin:12mm;} body{margin:0; color:#111827; font-family:-apple-system,\'Segoe UI\',Roboto,Helvetica,Arial,sans-serif;}'
+    + ' table{width:100%; border-collapse:collapse; font-size:12px;} th,td{border:1px solid #374151; padding:5px 6px; text-align:left; vertical-align:top;}'
+    + ' th{font-size:10.5px; letter-spacing:.6px; text-transform:uppercase;} tr{page-break-inside:avoid;}</style></head><body>' + html + '</body></html>');
+  doc.close();
+  var oldTitle = document.title;
+  document.title = title;
+  setTimeout(function(){
+    try{ f.contentWindow.focus(); f.contentWindow.print(); }catch(e){}
+    setTimeout(function(){ document.title = oldTitle; if(f.parentNode) f.parentNode.removeChild(f); }, 1000);
+  }, 150);
 }
 /* Paid ticket ko dobara Unpaid karein (ghalti se Paid dab gaya ho to). */
 function markTicketUnpaid(t){
   if(!t) return;
+  if(ticketRefund(t)){ appToast("Is sale par refund darj he — Unpaid karne se pehle refund hatayein.", true); return; }
   var sale = ticketNet(t);
   var got = ticketPaidAmt(t);
   var fullyCovered = sale > 0 && got >= sale;
@@ -2551,7 +2705,8 @@ function openRowSheet(tr){
   title.innerHTML = "<b>"+esc(t.client||"")+"</b> · "+esc(dmy(t.date))+" · Sale "+money(ticketNet(t))
     + (ticketAdj(t) ? " (adj −"+money(ticketAdj(t))+")" : "")
     + (t.detail ? " · "+esc(t.detail) : "")
-    + (t.paid === false ? " · <span style='color:var(--gold); font-weight:700;'>Unpaid</span>" : "");
+    + (t.paid === false ? " · <span style='color:var(--gold); font-weight:700;'>Unpaid</span>" : "")
+    + (ticketRefund(t) ? " · "+esc(refundStatusText(t)) : "");
   bar.appendChild(title);
 
   var btns = document.createElement("div");
@@ -2572,8 +2727,14 @@ function openRowSheet(tr){
     btns.appendChild(b);
   }
   if(t.paid === false) add("✔ Paid", "green", ".tk-toggle");
-  else add("↩ Unpaid", "", function(){ markTicketUnpaid(t); });
+  else if(!ticketRefund(t)) add("↩ Unpaid", "", function(){ markTicketUnpaid(t); });
   add("💵 Payment", "", function(){ receiveTicketPayment(t); });
+  if(!ticketRefund(t)) add("↩ Refund", "", function(){ refundStart(t); });
+  else {
+    if(refundSupDue(t) > 0) add("💰 Airline se mila", "", function(){ refundSupReceive(t); });
+    if(refundCliDue(t) > 0) add("💸 Client ko diya", "", function(){ refundCliGive(t); });
+    add("✕ Refund hatao", "", function(){ refundRemove(t); });
+  }
   add("🧾 Invoice", "", ".tk-inv");
   add("✏ Edit", "", ".tk-edit");
   add("📝 Detail", "", function(){
@@ -3912,6 +4073,52 @@ function readInvCx(prefix, mainLeg){
   return { from:from, to:to, date:date, time:tm, arr:arr, arr1:a1,
            dateTxt: date ? dmy(date) : "", timeTxt: invTimeTxt(tm), arrTxt: invTimeTxt(arr), arr1Txt: invTimeTxt(a1) };
 }
+/* ---------- Print: halki lines gehri (v3.45) ----------
+   Invoice ke boxes aur rows ki lines #e5e7eb / #f3f4f6 jaisi halki grey hain —
+   screen par theek, magar printer par nazar nahi aatin (aur A4 par fit karne ke
+   liye page chhota ho to 1px line aur patli ho jati he). Print ki copy mein har
+   halki border gehri kar di jati he; screen wali invoice waisi hi rehti he. */
+var INV_PRINT_BOX = "#111827", INV_PRINT_RULE = "#374151";
+function invPrintInk(color, box){
+  var s = String(color || "").trim().toLowerCase(), r, g, b, a = 1, m;
+  if((m = s.match(/^#([0-9a-f]{3,8})$/))){
+    var h = m[1];
+    if(h.length === 3 || h.length === 4) h = h.replace(/./g, "$&$&");
+    if(h.length !== 6 && h.length !== 8) return "";
+    r = parseInt(h.slice(0,2), 16); g = parseInt(h.slice(2,4), 16); b = parseInt(h.slice(4,6), 16);
+    if(h.length === 8) a = parseInt(h.slice(6,8), 16) / 255;
+  } else if((m = s.match(/^rgba?\(\s*([\d.]+)[\s,]+([\d.]+)[\s,]+([\d.]+)(?:[\s,\/]+([\d.]+%?))?\s*\)$/))){
+    r = Number(m[1]); g = Number(m[2]); b = Number(m[3]);
+    if(m[4] !== undefined) a = /%$/.test(m[4]) ? parseFloat(m[4]) / 100 : Number(m[4]);
+  } else return "";
+  if(!(a > 0)) return "";
+  function lum(al){
+    function ch(v){ return al * v + (1 - al) * 255; }
+    return (0.2126 * ch(r) + 0.7152 * ch(g) + 0.0722 * ch(b)) / 255;
+  }
+  if(lum(a) < 0.62) return "";                                  // pehle se gehri
+  if(a < 1 && lum(1) < 0.62) return "rgb(" + r + ", " + g + ", " + b + ")";   // rang wahi, bina transparency
+  return box ? INV_PRINT_BOX : INV_PRINT_RULE;
+}
+function invPrintDarken(root, minPx){
+  if(!root) return 0;
+  var sides = ["Top", "Right", "Bottom", "Left"], changed = 0;
+  var els = [root].concat([].slice.call(root.querySelectorAll("[style]")));
+  els.forEach(function(el){
+    if(!el.style || String(el.tagName || "").toUpperCase() === "IMG") return;
+    var have = sides.filter(function(sd){
+      var st = el.style["border" + sd + "Style"];
+      return st && st !== "none" && st !== "hidden";
+    });
+    have.forEach(function(sd){
+      var ink = invPrintInk(el.style["border" + sd + "Color"], have.length === 4);
+      if(ink){ el.style["border" + sd + "Color"] = ink; changed++; }
+      var w = parseFloat(el.style["border" + sd + "Width"]);
+      if(minPx > 0 && w > 0 && w < minPx) el.style["border" + sd + "Width"] = minPx.toFixed(2) + "px";
+    });
+  });
+  return changed;
+}
 function printInvoice(){
   if(!lastInv && !document.getElementById("invPrint")){ alert("Press Generate Invoice first."); return; }
   // Umrah invoice par PNR nahi hota — PDF filename "PassengerName-Umrah" banta hai
@@ -3937,14 +4144,20 @@ function printInvoice(){
     var pg = doc.getElementById("invPrint");
     if(pg){
       var avail = 1020, z = 1;
+      var fit = function(){
+        for(var k = 0; k < 5; k++){
+          var hh = pg.getBoundingClientRect().height;
+          if(hh <= avail || z <= 0.55) break;
+          z = Math.max(0.55, z * (avail / hh));
+          pg.style.zoom = z.toFixed(3);
+          pg.style.width = (100 / z).toFixed(2) + "%";
+        }
+      };
       pg.style.width = "100%";
-      for(var k = 0; k < 5; k++){
-        var hh = pg.getBoundingClientRect().height;
-        if(hh <= avail || z <= 0.55) break;
-        z = Math.max(0.55, z * (avail / hh));
-        pg.style.zoom = z.toFixed(3);
-        pg.style.width = (100 / z).toFixed(2) + "%";
-      }
+      invPrintDarken(pg, 0);
+      fit();
+      /* Page chhota hua ho to line ki motai wapas 1px ke barabar, phir dobara fit */
+      if(z < 1){ invPrintDarken(pg, 1 / z); fit(); }
     }
   }catch(e){}
   // Flight logo aur baaki images ke poora load hone ka intezar karein — warna PDF mein logo reh jata hai
@@ -5160,13 +5373,12 @@ function viewTickets(){
   if(ticketFilter !== "all" && months.indexOf(ticketFilter) === -1) ticketFilter = "all";
   var list = (ticketFilter === "all") ? all : all.filter(function(t){ return String(t.date||"").slice(0,7) === ticketFilter; });
 
-  var tc = 0, ts = 0, personsTotal = 0, tcGross = 0, tsGross = 0, adjTotal = 0, tp = 0, tpSkip = 0;
+  var tc = 0, ts = 0, personsTotal = 0, tcGross = 0, tsGross = 0, tp = 0, tpSkip = 0;
   list.forEach(function(t){
     tc += ticketCost(t);
     ts += ticketNet(t);
     tcGross += Number(t.cost) || 0;
     tsGross += Number(t.sale) || 0;
-    adjTotal += ticketAdj(t);
     personsTotal += Math.max(1, Number(t.persons) || 1);
     /* gross margin — adj se azad; cost/sale 0 wali sale profit mein nahi */
     if(ticketProfitReady(t)) tp += ticketProfit(t); else tpSkip++;
@@ -5224,6 +5436,10 @@ function viewTickets(){
       var netSale = ticketNet(t), adjAmt = ticketAdj(t);
       var effCost = ticketCost(t);
       var p = ticketProfit(t);
+      var refS = ticketRefSup(t), refC = ticketRefCli(t);
+      var dedTxt = function(ref, res){
+        return '<span class="cell-sub">'+(adjAmt ? 'adj −'+esc(money(adjAmt))+' ' : '')+(ref ? 'refund −'+esc(money(ref))+' ' : '')+'= '+esc(money(res))+'</span>';
+      };
       var costPending = !(Number(t.cost) > 0) && (netSale > 0);
       var tkPaid = 0; (t.payments||[]).forEach(function(x){ tkPaid += Number(x.amount)||0; });
       var tkRem = Math.max(0, netSale - tkPaid);
@@ -5232,15 +5448,16 @@ function viewTickets(){
       var st = (t.paid === false)
         ? '<span class="pill pending">'+esc(T("unpaid"))+'</span>'+(tkRem > 0 ? '<span class="cell-sub">due '+money(tkRem)+'</span>' : '')
         : '<span class="pill done">'+esc(T("paidp"))+'</span>'+(tkPaid > 0 ? '<span class="cell-sub">'+money(tkPaid)+'</span>' : '');
-      html += '<tr data-search="'+esc(hay)+'" data-id="'+esc(t.id)+'" data-cost="'+(Number(t.cost)||0)+'" data-sale="'+(Number(t.sale)||0)+'" data-adj="'+adjAmt+'" data-eff="'+effCost+'" data-profit="'+p+'">'
+      if(ticketRefund(t)) st += '<span class="cell-sub" style="display:block; margin-left:0;">'+esc(refundStatusText(t))+'</span>';
+      html += '<tr data-search="'+esc(hay)+'" data-id="'+esc(t.id)+'" data-cost="'+(Number(t.cost)||0)+'" data-sale="'+(Number(t.sale)||0)+'" data-adj="'+adjAmt+'" data-net="'+netSale+'" data-eff="'+effCost+'" data-profit="'+p+'">'
             + '<td class="rn">'+(i+1)+'</td>'
             + '<td class="c-date" title="'+esc(dmy(t.date))+'">'+(dayOnly ? esc(dayNum(t.date)) : esc(dmy(t.date)))+'</td>'
             + '<td class="c-client" title="'+esc(t.client)+'"><span class="cell-clip"><b>'+esc(t.client)+'</b>'
             + (t.doubleEntry ? ' <span class="cell-flag" title="Possible duplicate">⚠</span>' : '')
             + (t.commission ? ' <span class="cell-sub">'+esc(T("wscomm"))+money(t.commission)+'</span>' : '')
             + '</span></td>'
-            + '<td class="num">'+(costPending ? '<span class="cell-warn" title="Cost price missing">—</span>' : money(t.cost)+(adjAmt ? '<span class="cell-sub" title="Supplier cost minus adj">adj −'+esc(money(adjAmt))+' = '+esc(money(effCost))+'</span>' : ''))+'</td>'
-            + '<td class="num c-sale">'+(!(Number(t.sale) > 0) ? '<span class="cell-warn" title="Sale price missing">—</span>' : money(t.sale))+(adjAmt ? '<span class="cell-sub" title="Sale minus adj">adj −'+esc(money(adjAmt))+' = '+esc(money(netSale))+'</span>' : '')+'</td>'
+            + '<td class="num">'+(costPending ? '<span class="cell-warn" title="Cost price missing">—</span>' : money(t.cost)+((adjAmt || refS) ? dedTxt(refS, effCost) : ''))+'</td>'
+            + '<td class="num c-sale">'+(!(Number(t.sale) > 0) ? '<span class="cell-warn" title="Sale price missing">—</span>' : money(t.sale))+((adjAmt || refC) ? dedTxt(refC, netSale) : '')+'</td>'
             + (ticketProfitReady(t)
                 ? '<td class="num '+(p>=0?"pos":"neg")+'">'+money(p)+'</td>'
                 : '<td class="num"><span class="cell-muted" title="Cost ya sale 0 he — profit mein nahi gina gaya">—</span></td>')
@@ -5270,8 +5487,8 @@ function viewTickets(){
     html += '</tbody><tfoot><tr>'
           + '<td class="rn">Σ</td><td class="c-date"></td>'
           + '<td><b>'+list.length+' sales</b></td>'
-          + '<td class="num" id="tkSumCost">'+money(tcGross)+(adjTotal ? '<span class="cell-sub" id="tkSumCostSub">adj −'+esc(money(adjTotal))+' = '+esc(money(tc))+'</span>' : '')+'</td>'
-          + '<td class="num" id="tkSumSale">'+money(tsGross)+(adjTotal ? '<span class="cell-sub" id="tkSumSaleSub">adj −'+esc(money(adjTotal))+' = '+esc(money(ts))+'</span>' : '')+'</td>'
+          + '<td class="num" id="tkSumCost">'+money(tcGross)+(tcGross !== tc ? '<span class="cell-sub" id="tkSumCostSub">adj / refund −'+esc(money(tcGross - tc))+' = '+esc(money(tc))+'</span>' : '')+'</td>'
+          + '<td class="num" id="tkSumSale">'+money(tsGross)+(tsGross !== ts ? '<span class="cell-sub" id="tkSumSaleSub">adj / refund −'+esc(money(tsGross - ts))+' = '+esc(money(ts))+'</span>' : '')+'</td>'
           + '<td class="num '+(tp>=0?"pos":"neg")+'" id="tkSumProfit">'+money(tp)+'</td>'
           + '<td></td><td></td><td class="c-detail"></td>'
           + '<td class="num">'+personsTotal+'</td><td class="c-phone"></td><td class="c-act"></td>'
@@ -9781,7 +9998,7 @@ function viewClients(){
         var tkPaid = 0; (t.payments||[]).forEach(function(x){ tkPaid += Number(x.amount)||0; });
         var tkRem = Math.max(0, ticketNet(t) - tkPaid);
         var adjN = ticketAdj(t);
-        hist += '<tr><td>'+esc(dmy(t.date))+'</td><td>'+esc(t.kind||"Ticket")+'</td><td>'+esc(t.detail||"—")+(adjN?'<div class="hint" style="font-size:11px;">⇄ '+esc(t.prevRef||"previous ticket")+' · adj −'+money(adjN)+' · net '+money(ticketNet(t))+'</div>':'')+'</td><td>'+money(ticketNet(t))+'</td><td>'+(t.paid === false ? '<span class="pill pending">Unpaid</span>'+(tkPaid?'<div class="hint" style="font-size:11px;">Remaining '+money(tkRem)+'</div>':'') : '<span class="pill done">Paid</span>')+'</td></tr>';
+        hist += '<tr><td>'+esc(dmy(t.date))+'</td><td>'+esc(t.kind||"Ticket")+'</td><td>'+esc(t.detail||"—")+(adjN?'<div class="hint" style="font-size:11px;">⇄ '+esc(t.prevRef||"previous ticket")+' · adj −'+money(adjN)+' · net '+money(ticketBilled(t))+'</div>':'')+(ticketRefund(t)?'<div class="hint" style="font-size:11px;">'+esc(refundStatusText(t))+'</div>':'')+'</td><td>'+money(ticketNet(t))+'</td><td>'+(t.paid === false ? '<span class="pill pending">Unpaid</span>'+(tkPaid?'<div class="hint" style="font-size:11px;">Remaining '+money(tkRem)+'</div>':'') : '<span class="pill done">Paid</span>')+'</td></tr>';
       });
       hist += '</table></div>';
     }
@@ -9796,6 +10013,15 @@ function viewClients(){
       hist += '</div>';
     }
     if(!hist) hist = '<div class="empty" style="padding:8px;">Is client ki koi sale abhi nahi.</div>';
+    /* Khata / statement (v3.45) */
+    var lg = clientLedger(c.name);
+    if(lg.rows.length){
+      hist = '<div style="display:flex; gap:6px; flex-wrap:wrap; align-items:center; margin-top:8px;">'
+           + '<b style="flex:1 1 150px; font-size:13px;" class="'+(lg.balance > 0 ? "gld" : (lg.balance < 0 ? "neg" : "pos"))+'">'+esc(clientBalanceText(lg.balance))+'</b>'
+           + '<button class="btn small cl-stmt" data-id="'+esc(c.id)+'" style="flex:0 0 auto; margin-top:0;">🖨 Statement</button>'
+           + '<button class="btn small cl-stmt-wa" data-id="'+esc(c.id)+'" style="flex:0 0 auto; margin-top:0;">💬 Statement</button>'
+           + '</div>' + hist;
+    }
     /* Dobara rabta (v3.35): aakhri sale ko kitne din hue — 60+ din = wapas bulane ka mauqa */
     var lastDate = tks.length ? String(tks[0].date || "") : "";
     var idleDays = lastDate ? Math.floor((Date.parse(today()) - Date.parse(lastDate)) / 86400000) : -1;
@@ -9811,6 +10037,7 @@ function viewClients(){
       + (st.unpaid ? ' · <b style="color:var(--gold);">'+st.unpaid+' unpaid</b>' : '')
       + '</div>'
       + (st.bak ? '<div style="font-size:12.5px; color:var(--red); font-weight:700;">Bakaya: '+money(st.bak)+'</div>' : '')
+      + (lg.refundDue ? '<div style="font-size:12.5px; color:var(--red); font-weight:700;">↩ Refund dena he: '+money(lg.refundDue)+'</div>' : '')
       + (c.note ? '<div style="font-size:12px; color:var(--muted);">'+esc(c.note)+'</div>' : '')
       + (idle ? '<div style="font-size:12px; color:var(--gold); font-weight:700;">⏳ '+idleDays+' din se koi sale nahi (aakhri '+esc(dmy(lastDate))+')</div>' : '')
       + '</div>'
@@ -9889,8 +10116,61 @@ function ticketAdj(t){
   var sale = Math.max(0, Number(t && t.sale) || 0);
   return Math.min(sale, Math.max(0, Number(t && t.adj) || 0));
 }
-function ticketNet(t){
+/* ---------- Refund / void (v3.45) ----------
+   Refund sale par hi darj hota he (t.refund), nayi sale nahi banti:
+     sup  = airline / supplier se wapas aane wali raqam   (cost se zyada nahi)
+     cli  = client ka refund                              (client price se zyada nahi)
+     recv = refund ke waqt client se mila hua (Paid sale par payments[] khali ho sakti he)
+     net payable    = sale - adj - cli
+     effective cost = cost - adj - sup
+     profit         = sale - cost + sup - cli   (sup - cli = service charge)
+   Misal: sale 50,000, cost 47,000, paid; airline 40,000 wapas, client ko 38,000
+          -> profit 5,000, airline se 40,000 aana he, client ko 38,000 dena he. */
+function ticketRefund(t){ return (t && t.refund && typeof t.refund === "object") ? t.refund : null; }
+function payListSum(list){
+  return (Array.isArray(list) ? list : []).reduce(function(n, p){ return n + (Number(p && p.amount) || 0); }, 0);
+}
+/* Refund se pehle client ka payable */
+function ticketBilled(t){
   return Math.max(0, (Number(t && t.sale) || 0) - ticketAdj(t));
+}
+function ticketRefSup(t){
+  var r = ticketRefund(t);
+  if(!r) return 0;
+  return Math.min(Math.max(0, Number(t.cost) || 0), Math.max(0, Number(r.sup) || 0));
+}
+function ticketRefCli(t){
+  var r = ticketRefund(t);
+  if(!r) return 0;
+  return Math.min(ticketBilled(t), Math.max(0, Number(r.cli) || 0));
+}
+function ticketNet(t){
+  return Math.max(0, ticketBilled(t) - ticketRefCli(t));
+}
+/* Client se ab tak mila hua. "Paid" sale par payments[] adhoori ho sakti he. */
+function ticketReceived(t){
+  var got = ticketPaidAmt(t);
+  if(t && t.paid === false) return got;
+  var r = ticketRefund(t);
+  return Math.max(got, r ? Math.max(Number(r.recv) || 0, ticketNet(t)) : ticketBilled(t));
+}
+function refundSupDue(t){
+  var r = ticketRefund(t);
+  return r ? Math.max(0, ticketRefSup(t) - payListSum(r.supGot)) : 0;
+}
+function refundCliDue(t){
+  var r = ticketRefund(t);
+  if(!r) return 0;
+  var over = Math.max(0, ticketReceived(t) - ticketNet(t));
+  return Math.max(0, Math.min(ticketRefCli(t), over) - payListSum(r.cliGiven));
+}
+function refundOpen(t){ return refundSupDue(t) > 0 || refundCliDue(t) > 0; }
+function refundStatusText(t){
+  if(!ticketRefund(t)) return "";
+  var s = refundSupDue(t), c = refundCliDue(t), out = [];
+  if(s > 0) out.push("airline se " + money(s) + " aana he");
+  if(c > 0) out.push("client ko " + money(c) + " dena he");
+  return "↩ refund: " + (out.length ? out.join(" · ") : "settled");
 }
 /* Adj purani ticket se aata he aur sale + supplier cost dono se minus hota he,
    is liye profit par asar nahi padta — profit hamesha gross margin rehta he:
@@ -9904,24 +10184,182 @@ function ticketNet(t){
           apni jagah (4,000) rehta he, total 7,000. */
 function ticketCost(t){
   var cost = Math.max(0, Number(t && t.cost) || 0);
-  return Math.max(0, cost - ticketAdj(t));
+  return Math.max(0, cost - ticketAdj(t) - ticketRefSup(t));
 }
 /* Cost ya sale 0 ho (abhi likha nahi gaya) to profit adhoora he — na row mein,
    na totals, month, dashboard ya report mein gina jata he. */
 function ticketProfitReady(t){
   return (Number(t && t.cost) || 0) > 0 && (Number(t && t.sale) || 0) > 0;
 }
+function ticketGrossProfit(t){
+  return (Number(t.sale) || 0) - (Number(t.cost) || 0);
+}
 function ticketProfit(t){
   if(!ticketProfitReady(t)) return 0;
-  return (Number(t.sale) || 0) - (Number(t.cost) || 0);
+  return ticketGrossProfit(t) + ticketRefSup(t) - ticketRefCli(t);
+}
+/* Pending ki umar: 0-7 din, 8-30 din, 30 se zyada. Tareekh na ho to purana gina jata he. */
+function pendingAgeDays(dateStr, todayStr){
+  if(!/^\d{4}-\d{2}-\d{2}/.test(String(dateStr || ""))) return null;
+  var d = Math.floor((Date.parse(String(todayStr).slice(0,10)) - Date.parse(String(dateStr).slice(0,10))) / 86400000);
+  return isFinite(d) ? Math.max(0, d) : null;
+}
+function pendingAging(items, todayStr){
+  var out = { d7:0, d30:0, old:0 };
+  (items || []).forEach(function(x){
+    var amt = Number(x && x.amount) || 0;
+    if(!(amt > 0)) return;
+    var d = pendingAgeDays(x.date, todayStr);
+    if(d !== null && d <= 7) out.d7 += amt;
+    else if(d !== null && d <= 30) out.d30 += amt;
+    else out.old += amt;
+  });
+  return out;
 }
 function ticketRemaining(t){
   if(t && t.paid === true) return 0;
   return Math.max(0, ticketNet(t) - ticketPaidAmt(t));
 }
+/* ---------- Client ka khata / statement (v3.45) ----------
+   Har sale (debit), payment (credit), refund (credit), wapas diya hua refund
+   (debit) aur Pending entries tareekh ke hisaab se, chalte balance ke saath.
+   Balance > 0 = client ko dena he; balance < 0 = office ko client ko dena he. */
+function clientKey(n){ return String(n || "").trim().toLowerCase(); }
+function clientLedger(name){
+  var key = clientKey(name), rows = [], seq = 0, pending = 0, refundDue = 0, open = [];
+  function add(date, text, debit, credit, ord){
+    rows.push({ date:String(date || ""), text:text, debit:debit || 0, credit:credit || 0, ord:ord, seq:seq++ });
+  }
+  (S.tickets || []).forEach(function(t){
+    if(!key || clientKey(t.client) !== key) return;
+    var r = ticketRefund(t);
+    var label = (t.kind || "Ticket") + (t.detail ? " — " + t.detail : "");
+    add(t.date, label + (ticketAdj(t) ? " (purani ticket ke adj ke baad)" : ""), ticketBilled(t), 0, 0);
+    var paySum = 0;
+    (Array.isArray(t.payments) ? t.payments : []).forEach(function(p){
+      var a = Number(p && p.amount) || 0;
+      if(!(a > 0)) return;
+      paySum += a;
+      add(p.date || t.date, "Payment" + (p.note ? " (" + p.note + ")" : ""), 0, a, 1);
+    });
+    var rest = ticketReceived(t) - paySum;
+    if(rest > 0) add(t.date, "Payment (paid)", 0, rest, 1);
+    if(r){
+      if(ticketRefCli(t) > 0) add(r.date || t.date, "Refund — " + label, 0, ticketRefCli(t), 2);
+      (Array.isArray(r.cliGiven) ? r.cliGiven : []).forEach(function(p){
+        var a = Number(p && p.amount) || 0;
+        if(a > 0) add(p.date || r.date || t.date, "Refund wapas diya", a, 0, 3);
+      });
+    }
+    var rem = ticketRemaining(t), cd = refundCliDue(t);
+    pending += rem; refundDue += cd;
+    if(rem > 0) open.push({ date:String(t.date || ""), text:label, amount:rem });
+    if(cd > 0) open.push({ date:String((r && r.date) || t.date || ""), text:"Refund — " + label, amount:-cd });
+  });
+  (S.receivables || []).forEach(function(rv){
+    if(!key || clientKey(rv.client) !== key) return;
+    var total = Number(rv.total) || 0, label = rv.note || "Pending entry", paid = 0;
+    add(rv.date, label, total, 0, 0);
+    (Array.isArray(rv.payments) ? rv.payments : []).forEach(function(p){
+      var a = Number(p && p.amount) || 0;
+      if(!(a > 0)) return;
+      paid += a;
+      add(p.date || rv.date, "Payment", 0, a, 1);
+    });
+    var rem = Math.max(0, total - paid);
+    pending += rem;
+    if(rem > 0) open.push({ date:String(rv.date || ""), text:label, amount:rem });
+  });
+  rows.sort(function(a, b){ return a.date.localeCompare(b.date) || (a.ord - b.ord) || (a.seq - b.seq); });
+  var bal = 0;
+  rows.forEach(function(x){ bal += x.debit - x.credit; x.bal = bal; });
+  return { rows:rows, balance:bal, pending:pending, refundDue:refundDue, open:open };
+}
+function clientBalanceText(bal){
+  if(bal > 0) return "Total baqi: " + money(bal);
+  if(bal < 0) return "Aap ko wapas milna he: " + money(-bal);
+  return "Koi raqam baqi nahi.";
+}
+/* WhatsApp ke liye: sirf khuli entries + total (poora khata print wali statement mein he) */
+function clientStatementText(name, todayStr){
+  var lg = clientLedger(name);
+  var co = String((S.settings && S.settings.invCompany) || "AB Travels").trim();
+  var L = ["Assalam-o-Alaikum " + String(name || "").trim() + ",", "", co + " — account statement (" + dmy(todayStr) + ")"];
+  var max = 20;
+  lg.open.slice(0, max).forEach(function(x){
+    L.push("• " + (x.date ? dmy(x.date) + " — " : "") + x.text + ": "
+      + (x.amount < 0 ? "refund " + money(-x.amount) + " (aap ko milna he)" : money(x.amount)));
+  });
+  if(lg.open.length > max) L.push("… aur " + (lg.open.length - max) + " entries");
+  L.push("", clientBalanceText(lg.balance), "", "Shukriya.");
+  return L.join("\n");
+}
+/* Payment milte hi client ko bhejne wali receipt */
+function receiptText(o){
+  var co = String((S.settings && S.settings.invCompany) || "AB Travels").trim();
+  var L = ["Assalam-o-Alaikum " + String(o.client || "").trim() + ",", "",
+           co + " ko aap ki payment mil gayi: " + money(o.amount) + (o.date ? " (" + dmy(o.date) + ")" : "") + "."];
+  if(o.detail) L.push("Kis ka: " + o.detail);
+  if(o.total > 0) L.push("Total: " + money(o.total) + " · ab tak mila: " + money(o.received));
+  L.push(o.remaining > 0 ? "Baqi: " + money(o.remaining) : "Baqi: kuch nahi — poori payment mil gayi.");
+  L.push("", "Shukriya.");
+  return L.join("\n");
+}
+function clientStatementTable(lg){
+  var n = ' style="text-align:right; white-space:nowrap;"';
+  var h = '<table><tr><th>Date</th><th>Detail</th><th' + n + '>Debit</th><th' + n + '>Credit</th><th' + n + '>Balance</th></tr>';
+  lg.rows.forEach(function(x){
+    h += '<tr><td>' + esc(x.date ? dmy(x.date) : "—") + '</td><td>' + esc(x.text) + '</td>'
+       + '<td' + n + '>' + (x.debit ? money(x.debit) : "") + '</td>'
+       + '<td' + n + '>' + (x.credit ? money(x.credit) : "") + '</td>'
+       + '<td' + n + '><b>' + money(x.bal) + '</b></td></tr>';
+  });
+  return h + '</table>';
+}
+function clientStatementHtml(name){
+  var lg = clientLedger(name);
+  var co = String((S.settings && S.settings.invCompany) || "AB Travels").trim();
+  var p1 = S.settings.invPhone1 || "", p2 = S.settings.invPhone2 || "";
+  return '<div style="border-bottom:2px solid #111827; padding-bottom:8px; margin-bottom:10px; display:flex; align-items:flex-end; gap:12px;">'
+    + '<div style="flex:1;"><div style="font-size:19px; font-weight:800; letter-spacing:1.4px; text-transform:uppercase;">' + esc(co) + '</div>'
+    + '<div style="font-size:12px; font-weight:700; letter-spacing:1.6px; margin-top:2px;">ACCOUNT STATEMENT</div></div>'
+    + '<div style="text-align:right; font-size:11.5px; font-weight:700; line-height:1.5;">' + esc(p1) + (p2 ? '<br>' + esc(p2) : '') + '</div></div>'
+    + '<div style="font-size:13px; margin-bottom:8px;"><b>' + up(name) + '</b> &nbsp;·&nbsp; ' + esc(dmy(today())) + '</div>'
+    + clientStatementTable(lg)
+    + '<div style="margin-top:10px; font-size:14px; font-weight:800; text-align:right;">' + esc(clientBalanceText(lg.balance)) + '</div>'
+    + '<div style="margin-top:6px; font-size:10.5px;">Debit = client ke zimme · Credit = client se mila ya refund · Balance = baqi (minus ho to client ko wapas dena he).</div>';
+}
+function pendingAgeTag(dateStr){
+  var d = pendingAgeDays(dateStr, today());
+  if(d === null || d <= 7) return "";
+  return ' <span class="pill" style="background:' + (d > 30 ? 'var(--red-bg); color:var(--red)' : 'var(--gold-bg); color:var(--gold)') + '; font-size:10.5px; padding:1px 7px;">' + d + ' din</span>';
+}
 function viewBakaya(){
   var mf = monthFilterCard("BAK", "Pick a month to see that month&rsquo;s pending amount (unpaid tickets + clients). <b>All months</b> shows everything pending.");
   var html = mf.html;
+  /* Pending kitna purana he (v3.45) */
+  var agItems = [];
+  (S.tickets || []).forEach(function(x){
+    if(x.paid !== false) return;
+    if(mf.cur !== "all" && String(x.date || "").slice(0,7) !== mf.cur) return;
+    agItems.push({ date:x.date, amount:ticketRemaining(x) });
+  });
+  (S.receivables || []).forEach(function(r){
+    if(mf.cur !== "all" && String(r.date || "").slice(0,7) !== mf.cur) return;
+    agItems.push({ date:r.date, amount:Math.max(0, (Number(r.total) || 0) - payListSum(r.payments)) });
+  });
+  var ag = pendingAging(agItems, today());
+  if(ag.d7 + ag.d30 + ag.old > 0){
+    var agBox = function(label, amt, color){
+      return '<div style="flex:1 1 110px; border:1px solid var(--line); border-radius:10px; padding:8px 10px;">'
+           + '<div style="font-size:11.5px; color:var(--muted);">' + label + '</div>'
+           + '<div style="font-weight:800; color:' + color + ';">' + money(amt) + '</div></div>';
+    };
+    html += '<div class="card" style="padding-bottom:12px;"><h2>Pending kitna purana he</h2>'
+          + '<div style="display:flex; gap:8px; flex-wrap:wrap;">'
+          + agBox("0–7 din", ag.d7, "var(--ink)") + agBox("8–30 din", ag.d30, "var(--gold)") + agBox("30 din se zyada", ag.old, "var(--red)")
+          + '</div><div class="hint">Umar sale / entry ki tareekh se gini jati he. Jo 30 din se purana he pehle wohi wasool karein.</div></div>';
+  }
   var htmlX = "";
   htmlX += '<div class="card"><h2>'+esc(T("newcl"))+'</h2>';
   htmlX += '<label for="rvClient">'+esc(T("cliname"))+'</label><input id="rvClient" placeholder="Name">';
@@ -9944,11 +10382,12 @@ function viewBakaya(){
       var paid = ticketPaidAmt(x), rem = ticketRemaining(x);
       html += '<div style="border:1px solid var(--line); border-radius:12px; padding:12px; margin-bottom:10px;">';
       html += '<div style="display:flex; justify-content:space-between; align-items:center; gap:8px;">';
-      html += '<div><b>'+esc(x.client)+'</b><div style="font-size:13px; color:var(--muted);">'+esc(dmy(x.date||""))+' • '+esc(x.detail||"")+'</div></div>';
+      html += '<div><b>'+esc(x.client)+'</b>'+pendingAgeTag(x.date)+'<div style="font-size:13px; color:var(--muted);">'+esc(dmy(x.date||""))+' • '+esc(x.detail||"")+'</div></div>';
       var xNet = ticketNet(x), xAdj = ticketAdj(x);
       html += '<div style="text-align:right;"><div class="gld" style="font-weight:800;">'+money(rem)+'</div><div style="font-size:12px; color:var(--muted);">'+esc(T("ublbl2"))+(paid?' · Received '+money(paid)+' of '+money(xNet):' · Sale '+money(xNet))+'</div></div>';
       html += '</div>';
-      if(xAdj) html += '<div class="hint" style="margin-top:5px;">⇄ Change: sale '+money(x.sale)+' − adj '+money(xAdj)+' = <b>'+money(xNet)+'</b>'+(x.prevRef?' · previous '+esc(x.prevRef):'')+'</div>';
+      if(xAdj) html += '<div class="hint" style="margin-top:5px;">⇄ Change: sale '+money(x.sale)+' − adj '+money(xAdj)+' = <b>'+money(ticketBilled(x))+'</b>'+(x.prevRef?' · previous '+esc(x.prevRef):'')+'</div>';
+      if(ticketRefCli(x)) html += '<div class="hint" style="margin-top:5px;">↩ Refund: '+money(ticketBilled(x))+' − refund '+money(ticketRefCli(x))+' = <b>'+money(xNet)+'</b></div>';
       if(paid) html += '<div class="hint" style="margin-top:5px;">Partial payments: '+money(paid)+' received · '+money(rem)+' remaining</div>';
       var xPhone = clientPhoneFor(x.client, x.phone);
       if(xPhone) html += '<div style="font-size:12.5px; color:var(--muted); margin-top:6px;">'+(/\d/.test(xPhone) ? '☎ ' : '👤 ')+esc(xPhone)+'</div>';
@@ -9986,7 +10425,7 @@ function viewBakaya(){
       var rem = (Number(r.total)||0) - paid;
       html += '<div style="border:1px solid var(--line); border-radius:12px; padding:12px; margin-bottom:10px;">';
       html += '<div style="display:flex; justify-content:space-between; align-items:center; gap:8px;">';
-      html += '<div><b>'+esc(r.client)+'</b><div style="font-size:13px; color:var(--muted);">'+esc(r.date ? dmy(r.date) : "old entry (no date)")+(r.note ? " • "+esc(r.note) : "")+'</div></div>';
+      html += '<div><b>'+esc(r.client)+'</b>'+(rem > 0 ? pendingAgeTag(r.date) : '')+'<div style="font-size:13px; color:var(--muted);">'+esc(r.date ? dmy(r.date) : "old entry (no date)")+(r.note ? " • "+esc(r.note) : "")+'</div></div>';
       html += '<div style="text-align:right;"><div class="'+(rem<=0?"pos":"gld")+'" style="font-weight:800;">'+money(rem)+'</div><div style="font-size:12px; color:var(--muted);">Total '+money(r.total)+' • Received '+money(paid)+'</div></div>';
       html += '</div>';
       if(rem > 0){
@@ -10013,6 +10452,34 @@ function viewBakaya(){
   }
   html += '<div class="hint">'+(mf.cur==="all" ? esc(T("kulb")) : "Pending this month: ")+'<b>'+money(shownTotal)+'</b></div>';
   html += '</div>';
+
+  /* Refunds — airline se aana he / client ko dena he (v3.45) */
+  var refs = (S.tickets || []).filter(function(x){
+    if(!refundOpen(x)) return false;
+    return mf.cur === "all" || String((x.refund && x.refund.date) || x.date || "").slice(0,7) === mf.cur;
+  });
+  if(refs.length){
+    var supSum = 0, cliSum = 0;
+    refs.forEach(function(x){ supSum += refundSupDue(x); cliSum += refundCliDue(x); });
+    html += '<div class="card" data-collapse="rvrefund" data-open="1"><h2>↩ Refunds'+(mf.cur==="all"?"":' — '+esc(monthLabel(mf.cur)))+'</h2>';
+    html += '<div class="hint" style="margin-top:0;">Airline / supplier se aana he: <b>'+money(supSum)+'</b> · clients ko dena he: <b>'+money(cliSum)+'</b></div>';
+    refs.forEach(function(x){
+      var sd = refundSupDue(x), cd = refundCliDue(x), rf = x.refund;
+      html += '<div style="border:1px solid var(--line); border-radius:12px; padding:12px; margin-top:10px;">'
+            + '<div><b>'+esc(x.client)+'</b>'+pendingAgeTag(rf.date)
+            + '<div style="font-size:13px; color:var(--muted);">Refund '+esc(dmy(rf.date||""))+' • sale '+esc(dmy(x.date||""))+(x.detail ? ' • '+esc(x.detail) : '')+'</div></div>'
+            + '<div style="display:flex; gap:8px; flex-wrap:wrap; margin-top:8px;">'
+            + '<div style="flex:1 1 130px;"><div style="font-size:11.5px; color:var(--muted);">Airline se aana he</div><div style="font-weight:800;" class="'+(sd > 0 ? "gld" : "pos")+'">'+(sd > 0 ? money(sd) : "✓ mil gaya")+'</div>'
+            + '<div style="font-size:11.5px; color:var(--muted);">'+money(ticketRefSup(x))+' mein se '+money(payListSum(rf.supGot))+' mila</div></div>'
+            + '<div style="flex:1 1 130px;"><div style="font-size:11.5px; color:var(--muted);">Client ko dena he</div><div style="font-weight:800;" class="'+(cd > 0 ? "neg" : "pos")+'">'+(cd > 0 ? money(cd) : "✓ kuch nahi")+'</div>'
+            + '<div style="font-size:11.5px; color:var(--muted);">refund '+money(ticketRefCli(x))+' · diya '+money(payListSum(rf.cliGiven))+'</div></div>'
+            + '</div><div style="display:flex; gap:6px; flex-wrap:wrap; margin-top:8px;">'
+            + (sd > 0 ? '<button class="btn small rf-sup" data-id="'+esc(x.id)+'" style="flex:0 0 auto; margin-top:0;">💰 Airline se mila</button>' : '')
+            + (cd > 0 ? '<button class="btn small rf-cli" data-id="'+esc(x.id)+'" style="flex:0 0 auto; margin-top:0;">💸 Client ko diya</button>' : '')
+            + '</div></div>';
+    });
+    html += '<div class="hint">Refund darj karna: Sales register → row par tap → ↩ Refund.</div></div>';
+  }
   return html;
 }
 
@@ -11937,7 +12404,20 @@ function bind(){
       var payDt = readDateEl(dateEl, true); if(!payDt) return;
       r.payments.push({ amount:amt, date:payDt });
       save(); render();
+      var rvTotal = Number(r.total) || 0, rvGot = payListSum(r.payments), rvLeft = Math.max(0, rvTotal - rvGot);
+      receiptOffer("\u2713 " + money(amt) + " jama — baqi " + money(rvLeft) + ".",
+        receiptText({ client:r.client, amount:amt, date:payDt, detail:r.note, total:rvTotal, received:rvGot, remaining:rvLeft }),
+        clientPhoneFor(r.client, r.phone));
     };
+  });
+  /* Refunds card: airline se mila / client ko diya (v3.45) */
+  [["rf-sup", refundSupReceive], ["rf-cli", refundCliGive]].forEach(function(p){
+    app.querySelectorAll("." + p[0]).forEach(function(b){
+      b.onclick = function(){
+        var t = (S.tickets || []).filter(function(x){ return x.id === b.getAttribute("data-id"); })[0];
+        if(t) p[1](t);
+      };
+    });
   });
   app.querySelectorAll(".del[data-type='receivable']").forEach(function(b){
     b.onclick = function(){
@@ -12155,7 +12635,7 @@ function bind(){
     var q = this.value.trim().toLowerCase();
     var cnt = document.getElementById("tkSearchCount");
     var rowsAll = document.querySelectorAll("#tkList tbody tr[data-search]");
-    var shown = 0, sc = 0, ss = 0, sa = 0, seff = 0, sp = 0;
+    var shown = 0, sc = 0, ss = 0, sn = 0, seff = 0, sp = 0;
     rowsAll.forEach(function(r){
       var hay = r.getAttribute("data-search") || "";
       var ok = !q || hay.indexOf(q) >= 0;
@@ -12164,14 +12644,14 @@ function bind(){
         shown++;
         sc += Number(r.getAttribute("data-cost"))||0;
         ss += Number(r.getAttribute("data-sale"))||0;
-        sa += Number(r.getAttribute("data-adj"))||0;
+        sn += Number(r.getAttribute("data-net"))||0;
         seff += Number(r.getAttribute("data-eff"))||0;
         sp += Number(r.getAttribute("data-profit"))||0;
       }
     });
     var eC = document.getElementById("tkSumCost"), eS = document.getElementById("tkSumSale"), eP = document.getElementById("tkSumProfit");
-    if(eC) eC.innerHTML = money(sc) + (sa ? '<span class="cell-sub" id="tkSumCostSub">adj −'+esc(money(sa))+' = '+esc(money(seff))+'</span>' : '');
-    if(eS) eS.innerHTML = money(ss) + (sa ? '<span class="cell-sub" id="tkSumSaleSub">adj −'+esc(money(sa))+' = '+esc(money(Math.max(0, ss - sa)))+'</span>' : '');
+    if(eC) eC.innerHTML = money(sc) + (sc !== seff ? '<span class="cell-sub" id="tkSumCostSub">adj / refund −'+esc(money(sc - seff))+' = '+esc(money(seff))+'</span>' : '');
+    if(eS) eS.innerHTML = money(ss) + (ss !== sn ? '<span class="cell-sub" id="tkSumSaleSub">adj / refund −'+esc(money(ss - sn))+' = '+esc(money(sn))+'</span>' : '');
     if(eP){ eP.innerHTML = money(sp); eP.className = "num " + (sp >= 0 ? "pos" : "neg"); }
     if(cnt) cnt.textContent = q ? (shown + " of " + rowsAll.length + " sales — ‘" + this.value.trim() + "’") : "";
   };
@@ -13412,6 +13892,23 @@ function bind(){
       var digits = fileWaDigits(c.phone);
       if(!digits){ appToast("Is client ka number theek nahi — Edit se sahi karein.", true); return; }
       try{ window.open("https://wa.me/" + digits + "?text=" + encodeURIComponent(clFollowUpText(c.name)), "_blank", "noopener"); }catch(e){}
+    };
+  });
+  /* Client statement — print aur WhatsApp (v3.45) */
+  function clById(b){ return (S.clients || []).filter(function(x){ return x.id === b.getAttribute("data-id"); })[0]; }
+  app.querySelectorAll(".cl-stmt").forEach(function(b){
+    b.onclick = function(){
+      var c = clById(b);
+      if(c) printDoc(String(c.name || "client").replace(/[\\/:*?"<>|]+/g, "").trim().replace(/\s+/g, "-") + "-statement", clientStatementHtml(c.name));
+    };
+  });
+  app.querySelectorAll(".cl-stmt-wa").forEach(function(b){
+    b.onclick = function(){
+      var c = clById(b);
+      if(!c) return;
+      var digits = /\d/.test(String(c.phone || "")) ? fileWaDigits(c.phone) : "";
+      if(!digits) appToast("Is client ka number save nahi — WhatsApp mein contact khud chunein.");
+      try{ window.open("https://wa.me/" + digits + "?text=" + encodeURIComponent(clientStatementText(c.name, today())), "_blank", "noopener"); }catch(e){}
     };
   });
   var clIdleBtn = document.getElementById("clIdleOnly");
