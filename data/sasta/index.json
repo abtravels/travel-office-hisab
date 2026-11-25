@@ -1,12 +1,12 @@
 {
   "v": 1,
   "provider": "sasta",
-  "observed_at": "2026-11-24T21:18:33.163Z",
+  "observed_at": "2026-11-25T04:22:09.236Z",
   "results": [
     {
       "origin": "KHI",
       "destination": "DXB",
-      "amount": 61977,
+      "amount": 62371,
       "file": "data/sasta/khi-dxb.json"
     },
     {
@@ -18,19 +18,19 @@
     {
       "origin": "ISB",
       "destination": "DXB",
-      "amount": 75006,
+      "amount": 72635,
       "file": "data/sasta/isb-dxb.json"
     },
     {
       "origin": "KHI",
       "destination": "JED",
-      "amount": 79374,
+      "amount": 61748,
       "file": "data/sasta/khi-jed.json"
     },
     {
       "origin": "LHE",
       "destination": "JED",
-      "amount": 75986,
+      "amount": 100221,
       "file": "data/sasta/lhe-jed.json"
     },
     {
@@ -48,7 +48,7 @@
     {
       "origin": "KHI",
       "destination": "ISB",
-      "amount": 22050,
+      "amount": 20276,
       "file": "data/sasta/khi-isb.json"
     },
     {
@@ -60,43 +60,43 @@
     {
       "origin": "ISB",
       "destination": "KHI",
-      "amount": 23562,
+      "amount": 22050,
       "file": "data/sasta/isb-khi.json"
     },
     {
       "origin": "KHI",
       "destination": "PEW",
-      "amount": 20500,
+      "amount": 17310,
       "file": "data/sasta/khi-pew.json"
     },
     {
       "origin": "KHI",
       "destination": "DOH",
-      "amount": 57149,
+      "amount": 58722,
       "file": "data/sasta/khi-doh.json"
     },
     {
       "origin": "KHI",
       "destination": "AUH",
-      "amount": 62067,
+      "amount": 63031,
       "file": "data/sasta/khi-auh.json"
     },
     {
       "origin": "KHI",
       "destination": "SHJ",
-      "amount": 59000,
+      "amount": 60624,
       "file": "data/sasta/khi-shj.json"
     },
     {
       "origin": "KHI",
       "destination": "RUH",
-      "amount": 65626,
+      "amount": 71707,
       "file": "data/sasta/khi-ruh.json"
     },
     {
       "origin": "KHI",
       "destination": "MED",
-      "amount": 67676,
+      "amount": 70399,
       "file": "data/sasta/khi-med.json"
     }
   ],
