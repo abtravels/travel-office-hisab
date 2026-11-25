@@ -836,7 +836,7 @@
   <div class="brand">
     <img src="logo.png" alt="AB Travels" decoding="async" onerror="this.style.display='none'">
     <div style="min-width:0;">
-      <h1>AB Travels <span class="ver" id="verBadge">v3.45</span></h1>
+      <h1>AB Travels <span class="ver" id="verBadge">v3.46</span></h1>
       <div class="tag">Ahmed Brothers Hajj &amp; Umra Services (Pvt) Ltd</div>
     </div>
     <button id="brandFares" class="brand-fares" type="button" title="Flights — Price Lookup / Tracker / Booking alerts" aria-label="Flights menu" aria-haspopup="menu">✈</button>
@@ -906,7 +906,7 @@
 <script>
 /* ================= DATA ================= */
 var KEY = "travelOfficeHisab";
-var APP_VER = "3.45";
+var APP_VER = "3.46";
 var MONTH_NAMES = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
 /* Cloudflare Worker — Ignav flight prices proxy (free plan, no credit card) */
 var IGNAV_WORKER_CODE = "// AB Travels - Ignav flight prices proxy (Cloudflare Worker)\n// Ignav API key SERVER par rehti hai - app/browser mein kabhi nahi aati.\n//\n// SETUP (ek dafa, ~5 min, free):\n// 1) ignav.com/signup -> free account -> dashboard se API key\n// 2) cloudflare.com -> free account -> Workers & Pages -> Create Worker -> yeh code paste -> Deploy\n// 3) Worker -> Settings -> Variables and Secrets -> secret add karein:\n//      IGNAV_API_KEY = (aap ki Ignav key)\n// 4) Worker URL (https://xxx.workers.dev) app -> Settings -> Flight prices -> paste -> Save & test\n\nexport default {\n  async fetch(request, env) {\n    const cors = {\n      'Access-Control-Allow-Origin': env.ALLOWED_ORIGIN || '*',\n      'Access-Control-Allow-Methods': 'GET,POST,OPTIONS',\n      'Access-Control-Allow-Headers': 'Content-Type',\n      'Access-Control-Max-Age': '86400'\n    };\n    const url = new URL(request.url);\n    if (request.method === 'OPTIONS') return new Response(null, { status: 204, headers: cors });\n    if (!env.IGNAV_API_KEY) {\n      return new Response(JSON.stringify({ error: { code: 'no_key', message: 'IGNAV_API_KEY secret is not set in the Worker.' } }), { status: 500, headers: Object.assign({ 'Content-Type': 'application/json' }, cors) });\n    }\n    const base = 'https://ignav.com/api';\n    let target = '';\n    let init = { method: 'GET', headers: { 'X-Api-Key': env.IGNAV_API_KEY } };\n    if (url.pathname === '/health') {\n      target = base + '/health';\n    } else if (url.pathname === '/fares') {\n      if (request.method !== 'POST') return new Response(JSON.stringify({ error: { message: 'POST only' } }), { status: 405, headers: cors });\n      const body = await request.text();\n      target = base + '/fares/one-way';\n      init = { method: 'POST', headers: { 'X-Api-Key': env.IGNAV_API_KEY, 'Content-Type': 'application/json' }, body };\n    } else if (url.pathname === '/search') {\n      if (request.method !== 'POST') return new Response(JSON.stringify({ error: { message: 'POST only' } }), { status: 405, headers: cors });\n      const body = await request.text();\n      target = base + '/fares/search';\n      init = { method: 'POST', headers: { 'X-Api-Key': env.IGNAV_API_KEY, 'Content-Type': 'application/json' }, body };\n    } else if (url.pathname === '/round-trip') {\n      if (request.method !== 'POST') return new Response(JSON.stringify({ error: { message: 'POST only' } }), { status: 405, headers: cors });\n      const body = await request.text();\n      target = base + '/fares/round-trip';\n      init = { method: 'POST', headers: { 'X-Api-Key': env.IGNAV_API_KEY, 'Content-Type': 'application/json' }, body };\n    } else if (url.pathname === '/booking-links') {\n      if (request.method !== 'POST') return new Response(JSON.stringify({ error: { message: 'POST only' } }), { status: 405, headers: cors });\n      const body = await request.text();\n      target = base + '/fares/booking-links';\n      init = { method: 'POST', headers: { 'X-Api-Key': env.IGNAV_API_KEY, 'Content-Type': 'application/json' }, body };\n    } else {\n      return new Response(JSON.stringify({ error: { message: 'not found' } }), { status: 404, headers: Object.assign({ 'Content-Type': 'application/json' }, cors) });\n    }\n    try {\n      const r = await fetch(target, init);\n      const text = await r.text();\n      return new Response(text, { status: r.status, headers: Object.assign({ 'Content-Type': 'application/json' }, cors) });\n    } catch (e) {\n      return new Response(JSON.stringify({ error: { message: String((e && e.message) || e) } }), { status: 502, headers: Object.assign({ 'Content-Type': 'application/json' }, cors) });\n    }\n  }\n};\n";
@@ -2050,6 +2050,14 @@ function importFromSheet(opts){
 }
 function uid(){ return Date.now().toString(36) + Math.random().toString(36).slice(2,7); }
 var _moneyFmt = null;
+/* Number inputs: "150,000" / "Rs 150000" / "1 50 000" bhi sahi samjhein —
+   warna prompt mein comma likhne par app raqam ghalat samajh kar purani value rakh deti thi. */
+function numFromText(v){
+  if(v == null) return NaN;
+  var s = String(v).replace(/[^0-9.\-]/g, "");
+  if(!s || s === "-" || s === ".") return NaN;
+  return Number(s);
+}
 function money(n){
   n = Math.round((Number(n)||0) * 100) / 100;
   if(!_moneyFmt){ try{ _moneyFmt = new Intl.NumberFormat("en-PK"); }catch(e){ _moneyFmt = null; } }
@@ -2556,8 +2564,8 @@ function receiptOffer(msg, text, phone){
 function askRupees(msg, def){
   var v = prompt(msg, def);
   if(v === null) return null;
-  var n = Number(String(v).replace(/[^0-9.]/g, ""));
-  if(String(v).trim() === "" || !isFinite(n) || n < 0){ appToast("Sahi amount likhein.", true); return null; }
+  var n = numFromText(v);
+  if(String(v).trim() === "" || !isFinite(n) || n < 0){ appToast("Sahi amount likhein (sirf digits, misal 150000).", true); return null; }
   return n;
 }
 function askPayDate(msg){
@@ -13223,10 +13231,21 @@ function bind(){
       if(pn === null) return;
       var ph = prompt("Contact number — khali chhod dein to purana rahega:", t.phone || clientPhoneFor(t.client, ""));
       if(ph === null) return;
-      if(c !== "" && !isNaN(Number(c)) && Number(c) >= 0) t.cost = Number(c);
-      if(s !== "" && !isNaN(Number(s)) && Number(s) >= 0) t.sale = Number(s);
+      var nCost = numFromText(c), nSale = numFromText(s), nAdj = numFromText(adjIn);
+      /* Comma / Rs / space wali raqam bhi samjhein — pehle Number("150,000") NaN tha
+         aur purani raqam (151,000) hi reh jati thi. */
+      var bad = [];
+      if(c !== "" && !isFinite(nCost)) bad.push("cost");
+      if(s !== "" && !isFinite(nSale)) bad.push("sale");
+      if(adjIn !== null && adjIn !== "" && !isFinite(nAdj)) bad.push("adj");
+      if(bad.length){
+        appToast("Raqam samajh nahi aayi (" + bad.join(", ") + ") — sirf digits likhein, misal 150000. Purani raqam waisi hi he.", true);
+        return;
+      }
+      if(isFinite(nCost) && nCost >= 0) t.cost = nCost;
+      if(isFinite(nSale) && nSale >= 0) t.sale = nSale;
       if((t.kind || "") === "Change"){
-        if(adjIn !== "" && adjIn !== null && !isNaN(Number(adjIn)) && Number(adjIn) >= 0) t.adj = Number(adjIn);
+        if(isFinite(nAdj) && nAdj >= 0) t.adj = nAdj;
         t.adj = Math.min(Number(t.sale) || 0, Math.max(0, Number(t.adj) || 0));
         if(prevIn !== null && prevIn.trim()) t.prevRef = prevIn.trim();
       }
@@ -13234,6 +13253,8 @@ function bind(){
       if(pn !== "" && !isNaN(Number(pn)) && Number(pn) >= 1) t.persons = Math.min(99, Math.floor(Number(pn)));
       if(ph.trim()){ t.phone = ph.trim(); ensureClientRecord(t.client, "", t.phone); }
       save(); render();
+      appToast("✓ Sale update: cost " + money(t.cost) + " · sale " + money(t.sale)
+        + (ticketAdj(t) ? " · adj " + money(ticketAdj(t)) : "") + ".");
     };
   });
   var tkShift = document.getElementById("tkShift");
@@ -13333,7 +13354,9 @@ function bind(){
     var lbl = prompt("Name of the fixed expense? (e.g. Generator fuel)");
     if(!lbl) return;
     var amt = prompt("Monthly amount (Rs)?", "0");
-    S.settings.fixes.push({ id:uid(), label:lbl.trim(), amount:Number(amt)||0, on:true });
+    var amtN = numFromText(amt);
+    if(amt !== null && !isFinite(amtN)){ appToast("Raqam samajh nahi aayi — sirf digits likhein, misal 70000. Kuch add nahi hua.", true); return; }
+    S.settings.fixes.push({ id:uid(), label:lbl.trim(), amount:isFinite(amtN) ? Math.max(0, amtN) : 0, on:true });
     save(); render();
   };
   app.querySelectorAll(".tk-toggle").forEach(function(b){

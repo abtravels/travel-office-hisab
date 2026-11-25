@@ -1,5 +1,13 @@
 # Travel Office Hisab - AB Travels
 
+## Sale edit: comma wali raqam bhi samjhi jati he (v3.46)
+- **Masla:** sale ✏ Edit karte waqt agar raqam comma ke sath likhein (maslan `150,000`) to app usay number nahi samajhti thi aur **purani raqam hi reh jati thi** (`151,000` wapas aa jati thi). Wajah: `Number("150,000")` = NaN.
+- **Fix:** ab `Rs`, comma, space sab saaf kar ke digits parse hote hain (`150000`, `Rs 1,50,000` sab chalti hain).
+- Raqam phir bhi samajh na aaye to app **saaf batati he** kaun sa box (`cost`, `sale`, `adj`) ghalat tha, aur kuch save nahi hota — purani raqam waisi hi rehti he.
+- **Har edit ke baad toast:** `✓ Sale update: cost … · sale … · adj …` — is se foran pata chalta he ke value sach mein lag gayi ya nahi.
+- Fixed expense ka amount aur refund wale prompts bhi ab comma/space samajhte hain.
+- Sirf app ka change — Worker redeploy ki zaroorat nahi.
+
 ## Refund, client statement, payment receipt, aur print ki gehri lines (v3.45)
 - **Invoice print:** boxes aur rows ki lines print par nazar nahi aati thin (halki grey `#e5e7eb` / `#f3f4f6`). Ab print ki copy mein har halki line gehri ho jati he, aur page A4 par fit hone ke liye chhota ho to line ki motai bhi wapas poori ho jati he. Screen wali invoice aur WhatsApp wali PDF waisi hi hain.
 - **↩ Refund / void:** Sales register → row par tap → **↩ Refund**. Teen cheezein poochta he: airline / supplier se kitna wapas aayega, client ka refund kitna banta he, aur tareekh. Dono ka farq aap ka service charge he.
