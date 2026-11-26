@@ -1,7 +1,7 @@
 {
   "v": 1,
   "provider": "sasta",
-  "observed_at": "2026-11-25T23:40:52.691Z",
+  "observed_at": "2026-11-26T05:30:52.482Z",
   "results": [
     {
       "origin": "KHI",
@@ -24,13 +24,13 @@
     {
       "origin": "KHI",
       "destination": "JED",
-      "amount": 76737,
+      "amount": 79140,
       "file": "data/sasta/khi-jed.json"
     },
     {
       "origin": "LHE",
       "destination": "JED",
-      "amount": 100221,
+      "amount": 100500,
       "file": "data/sasta/lhe-jed.json"
     },
     {
@@ -84,7 +84,7 @@
     {
       "origin": "KHI",
       "destination": "SHJ",
-      "amount": 60624,
+      "amount": 59419,
       "file": "data/sasta/khi-shj.json"
     },
     {
@@ -96,7 +96,7 @@
     {
       "origin": "KHI",
       "destination": "MED",
-      "amount": 68513,
+      "amount": 100069,
       "file": "data/sasta/khi-med.json"
     }
   ],
