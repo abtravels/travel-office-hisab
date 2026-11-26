@@ -1,5 +1,14 @@
 # Travel Office Hisab - AB Travels
 
+## Sale edit ki raqam ab wapas nahi jati (v3.48)
+- **Masla:** sale ki raqam (maslan 151,000) ✏ Edit se 150,000 ki jaye to kuch dair baad wohi purani 151,000 wapas aa jati thi — ek hi device par, refresh ke baghair bhi.
+- **Wajah:** edit local mein save hota tha, magar us ke baad koi sync pull (app switch, tab wapas, ya pehle bhara hua debounce push) GitHub ki purani file se wohi sale purani raqam par le jata tha. User ko lagta tha ke edit hua hi nahi.
+- **Fix 1 — edited sale pull se mehfooz:** har edit par sale `__edited` waqt ka nishan rakhti he. Pull ke waqt (`syncPull`) naya `mergeEditedTickets()` chalata he: agar is device par edit hui sale remote copy se **nayi** ho to local copy rakhi jati he, warna remote (doosre device ka naya edit) hi rehta he. Sirf usi sale par asar — baqi data jaisa remote mein he waisa.
+- **Fix 2 — edit foran GitHub par:** edit ke baad wahi `save()` (debounce wala push) nahi, `saveNow()` chalta he, is liye raqam turant push hoti he.
+- **Fix 3 — comma wali raqam:** `150,000` / `Rs 150000` / `1 50 000` sab sahi parhe jate hain; raqam samajh na aaye to saaf toast aata he kaun sa box ghalat tha, aur kuch save nahi hota.
+- **Naya test:** `tests/sale_edit_checks.mjs` — comma parsing, edited-sale-wins, newer-remote-wins aur immediate push teeno check karta he (CI mein `tests/*.mjs` ke sath chalta he).
+- Sirf app ka change — Worker redeploy ki zaroorat nahi.
+
 ## Sale edit: comma wali raqam bhi samjhi jati he (v3.46)
 - **Masla:** sale ✏ Edit karte waqt agar raqam comma ke sath likhein (maslan `150,000`) to app usay number nahi samajhti thi aur **purani raqam hi reh jati thi** (`151,000` wapas aa jati thi). Wajah: `Number("150,000")` = NaN.
 - **Fix:** ab `Rs`, comma, space sab saaf kar ke digits parse hote hain (`150000`, `Rs 1,50,000` sab chalti hain).
