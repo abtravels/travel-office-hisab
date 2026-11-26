@@ -1434,7 +1434,7 @@ function syncPull(cb){
       data.settings.importId = S.settings.importId || "";
       mergeMissingAppData(data, S);   // purani sync file se naye sections mat mitayein
       mergeRecentFileTickets(data, S);
-      mergeEditedTickets(data, S);    // is device par edited sale purani remote copy se na dhake
+      if(typeof mergeEditedTickets === "function") mergeEditedTickets(data, S);   // is device par edited sale purani remote copy se na dhake
       /* Local-only ticket files remote list mein bhi shamil karein — dono taraf ek list. */
       data.fileTombstones = fileTombstoneMerge(S.fileTombstones, data.fileTombstones);
       var remoteFileCount = Array.isArray(data.fileTickets) ? data.fileTickets.length : 0;

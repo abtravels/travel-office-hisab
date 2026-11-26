@@ -49,6 +49,7 @@ function makeCtx(local, remote) {
     syncPush: () => { state.syncPushes++; },
     ensureSettings: () => {},
     mergeMissingAppData: () => {},
+    mergeEditedTickets: () => {},
     migrateAutoQarza: () => {}
   });
   vm.runInContext(src, ctx);
