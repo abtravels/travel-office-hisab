@@ -1,7 +1,7 @@
 {
   "v": 1,
   "provider": "sasta",
-  "observed_at": "2026-11-27T00:39:12.694Z",
+  "observed_at": "2026-11-27T09:09:30.114Z",
   "results": [
     {
       "origin": "KHI",
@@ -72,7 +72,7 @@
     {
       "origin": "KHI",
       "destination": "DOH",
-      "amount": 57839,
+      "amount": 57149,
       "file": "data/sasta/khi-doh.json"
     },
     {
