@@ -105,7 +105,7 @@ def run_with_node(node):
             "const driver = fs.readFileSync(process.argv[4], 'utf8');\n"
             "globalThis.__worker = new Function(wsrc + '\\nreturn {%s};')();" % ", ".join(WORKER_EXPORTS) + "\n"
             "globalThis.__staff = new Function(ssrc + '\\nreturn {invoiceData};')();\n"
-            + driver + "\n"
+            + DRIVER.read_text(encoding="utf-8") + "\n"
             + "setTimeout(function(){ process.stdout.write(JSON.stringify(globalThis.__results || [])); }, 1500);\n",
             encoding="utf-8",
         )
