@@ -4,11 +4,11 @@
   "origin": "MUX",
   "destination": "DXB",
   "currency": "PKR",
-  "amount": 75006,
+  "amount": 82998,
   "price_basis": "per_person",
   "taxes_included": null,
   "fare_breakdown": null,
   "source_url": "https://www.sastaticket.pk/flights/cheap-flights-from-multan-to-dubai",
-  "observed_at": "2026-11-27T19:01:53.207Z",
-  "headline": "Cheap Flights from Multan (MUX) to Dubai (DXB) (PKR 75,006)"
+  "observed_at": "2026-11-28T02:02:08.736Z",
+  "headline": "Cheap Flights from Multan (MUX) to Dubai (DXB) (PKR 82,998)"
 }
